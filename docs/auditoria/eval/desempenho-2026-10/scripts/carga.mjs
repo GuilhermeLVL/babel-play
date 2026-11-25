@@ -31,7 +31,11 @@ const colher = async (s, m0, tRede) => {
       nos: document.querySelectorAll('*').length,
       folhas: document.styleSheets.length,
       corpo: document.body.className,
-      raiz: Object.fromEntries([...document.documentElement.attributes].filter((a) => a.name.startsWith('data-')).map((a) => [a.name, a.value])),
+      raiz: Object.fromEntries(
+        [...document.documentElement.attributes]
+          .filter((a) => a.name.startsWith('data-'))
+          .map((a) => [a.name, a.value]),
+      ),
       sw: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
     };
   });
@@ -46,13 +50,32 @@ const colher = async (s, m0, tRede) => {
     maiorLt: Math.max(0, ...d.lt.map((x) => x.d)),
     somaLt: d.lt.reduce((a, x) => a + x.d, 0),
     tti,
-    cpu: deltaMetricas(m0, m1), aosMs: await s.page.evaluate(() => performance.now()),
+    cpu: deltaMetricas(m0, m1),
+    aosMs: await s.page.evaluate(() => performance.now()),
     heapMb: Math.round((m1.JSHeapUsedSize / 1048576) * 10) / 10,
     rede: resumoRede(s.rede.fim, tRede),
   };
 };
-const curto = (x) => ({ fcp: r0(x.fcp), lcp: r0(x.lcp), palco: r0(x.marcos.palco), tti: r0(x.tti), tbt: r0(x.tbt), cls: +x.cls.toFixed(3), ped: x.rede.pedidos, daRede: x.rede.daRede, kb: r0(x.rede.bytes / 1024), cpu: x.cpu });
-const ZERO = { TaskDuration: 0, ScriptDuration: 0, RecalcStyleDuration: 0, LayoutDuration: 0, RecalcStyleCount: 0, LayoutCount: 0 };
+const curto = (x) => ({
+  fcp: r0(x.fcp),
+  lcp: r0(x.lcp),
+  palco: r0(x.marcos.palco),
+  tti: r0(x.tti),
+  tbt: r0(x.tbt),
+  cls: +x.cls.toFixed(3),
+  ped: x.rede.pedidos,
+  daRede: x.rede.daRede,
+  kb: r0(x.rede.bytes / 1024),
+  cpu: x.cpu,
+});
+const ZERO = {
+  TaskDuration: 0,
+  ScriptDuration: 0,
+  RecalcStyleDuration: 0,
+  LayoutDuration: 0,
+  RecalcStyleCount: 0,
+  LayoutCount: 0,
+};
 const tudo = {};
 for (const nome of perfis) {
   const runs = [];

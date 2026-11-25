@@ -14,7 +14,15 @@ const umaCasa = (n: number): string => numeroCom(n, { maximumFractionDigits: 1 }
  * acertos (`GET /api/vocab/:id/memoria`). A tabela de revisões, uma a uma, do protótipo NÃO entra: o
  * servidor não tem rota que liste o histórico de um cartão.
  */
-export function InfoDoCartao({ cartao, baralho, aoFechar }: { cartao: VocabCard; baralho: string; aoFechar: () => void }) {
+export function InfoDoCartao({
+  cartao,
+  baralho,
+  aoFechar,
+}: {
+  cartao: VocabCard;
+  baralho: string;
+  aoFechar: () => void;
+}) {
   const [memoria, setMemoria] = useState<{ revisoes: number; acertos: number } | null>(null);
   useEffect(() => {
     let vivo = true;
@@ -36,10 +44,7 @@ export function InfoDoCartao({ cartao, baralho, aoFechar }: { cartao: VocabCard;
   const medidas: Array<[string, string]> = [
     [t('Estado'), estado ?? '—'],
     [t('Origem'), baralho],
-    [
-      t('Estabilidade'),
-      visto && estabilidade ? t('{n} dias', { n: umaCasa(estabilidade) }) : t('ainda não há'),
-    ],
+    [t('Estabilidade'), visto && estabilidade ? t('{n} dias', { n: umaCasa(estabilidade) }) : t('ainda não há')],
     [t('Dificuldade'), visto && dificuldade ? t('{n} de 10', { n: umaCasa(dificuldade) }) : t('ainda não há')],
     [t('Erros'), String(extra.lapses ?? 0)],
     [t('Revisões'), memoria ? String(memoria.revisoes) : '…'],

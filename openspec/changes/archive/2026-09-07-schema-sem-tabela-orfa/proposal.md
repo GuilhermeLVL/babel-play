@@ -23,6 +23,7 @@ Pergunta 5 do relatorio decide por tabela; sem decisao, o padrao e remover (a me
 ## Capabilities
 
 ### New Capabilities
+
 - `schema-e-so-o-que-o-codigo-usa`: nenhuma tabela ou coluna sem leitor e escritor.
 
 ## Impact

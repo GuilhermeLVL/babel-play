@@ -20,11 +20,13 @@ beforeAll(prepararDialogoNoJsdom)
 afterEach(cleanup)
 
 describe('folha do início (a pergunta do mic com o download real)', () => {
-  function montar(inicio: { mbSePrivado: number; mbSeRapido: number; aparelhoLento: boolean; mbTradutor?: number } = {
-    mbSePrivado: 80,
-    mbSeRapido: 0,
-    aparelhoLento: true,
-  }) {
+  function montar(
+    inicio: { mbSePrivado: number; mbSeRapido: number; aparelhoLento: boolean; mbTradutor?: number } = {
+      mbSePrivado: 80,
+      mbSeRapido: 0,
+      aparelhoLento: true,
+    },
+  ) {
     const props = { mb: 80, aoEscolher: vi.fn(), aoFechar: vi.fn(), inicio }
     render(<EscolhaDoMicrofone {...props} />)
     return props

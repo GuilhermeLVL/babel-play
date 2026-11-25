@@ -1,6 +1,7 @@
 # carga-inicial-do-app Specification
 
 ## Purpose
+
 Reduzir LCP do /app no celular, primeira legenda em rede lenta e download sem aviso (auditoria 17/11). Criada pela change `carga-rapida-no-celular` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-carga-rapida-no-celular/proposal.md` para o porquê.
 
 ## Requirements

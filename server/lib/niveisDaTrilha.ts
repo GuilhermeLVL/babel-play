@@ -45,9 +45,23 @@ import zh from '../../src/data/trilha/niveis/zh.json'
 type Niveis = Record<string, string>
 
 const LISTAS: Record<string, Niveis> = {
-  ar, de, en, es, fr, he, hi, it, ja, ko, nl, pl, ru, sv, tr, zh,
+  ar,
+  de,
+  en,
+  es,
+  fr,
+  he,
+  hi,
+  it,
+  ja,
+  ko,
+  nl,
+  pl,
+  ru,
+  sv,
+  tr,
+  zh,
 }
-
 
 /**
  * Garante que a lista do idioma esteja registrada antes de perguntar o nível de uma palavra.

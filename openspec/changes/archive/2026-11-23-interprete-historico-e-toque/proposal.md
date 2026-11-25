@@ -29,11 +29,13 @@ percebido com o menor risco: não mexe no pipeline de voz.
 ## Capabilities
 
 ### New Capabilities
+
 - `interprete-historico`: lista das falas na tela (por metade e em "Conversa"), rolagem, estados e acabamento.
 - `interprete-ouvir-ao-tocar`: ouvir palavra ou frase tocando, no idioma da própria palavra, com modo lento.
 - `interprete-revisao`: corrigir uma fala, favoritar para estudo e exportar a conversa.
 
 ### Modified Capabilities
+
 <!-- Nenhuma: a especificação do modo intérprete ainda está na change `modo-interprete` (não arquivada). -->
 
 ## Impact

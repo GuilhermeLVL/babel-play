@@ -50,8 +50,10 @@ export function aplicarOrdem<T>(jogos: T[], pref: OrdemDosJogos, idDe: (j: T) =>
   const FIM = jogos.length + (pref.ordem?.length ?? 0) + 1;
 
   return [...jogos].sort((a, b) => {
-    const ia = idDe(a), ib = idDe(b);
-    const fa = fixados.has(ia), fb = fixados.has(ib);
+    const ia = idDe(a),
+      ib = idDe(b);
+    const fa = fixados.has(ia),
+      fb = fixados.has(ib);
     if (fa !== fb) return fa ? -1 : 1;
     if (fa && fb) return (posicaoFixado.get(ia) ?? FIM) - (posicaoFixado.get(ib) ?? FIM);
     return (posicao.get(ia) ?? FIM) - (posicao.get(ib) ?? FIM);
@@ -70,16 +72,16 @@ export function aplicarOrdem<T>(jogos: T[], pref: OrdemDosJogos, idDe: (j: T) =>
  */
 export function mover(pref: OrdemDosJogos, visiveis: string[], id: string, direcao: -1 | 1): OrdemDosJogos {
   const fixado = (pref.fixados ?? []).includes(id);
-  const grupo = visiveis.filter(x => (pref.fixados ?? []).includes(x) === fixado);
+  const grupo = visiveis.filter((x) => (pref.fixados ?? []).includes(x) === fixado);
   const i = grupo.indexOf(id);
   const j = i + direcao;
-  if (i < 0 || j < 0 || j >= grupo.length) return pref;   // já está na ponta: nada a fazer
+  if (i < 0 || j < 0 || j >= grupo.length) return pref; // já está na ponta: nada a fazer
   const novo = [...grupo];
   [novo[i], novo[j]] = [novo[j], novo[i]];
   return fixado
     ? { ...pref, fixados: novo }
-    // Os não-fixados que não estão visíveis (outra página) mantêm a posição relativa depois.
-    : { ...pref, ordem: [...novo, ...(pref.ordem ?? []).filter(x => !novo.includes(x))] };
+    : // Os não-fixados que não estão visíveis (outra página) mantêm a posição relativa depois.
+      { ...pref, ordem: [...novo, ...(pref.ordem ?? []).filter((x) => !novo.includes(x))] };
 }
 
 /**
@@ -89,9 +91,9 @@ export function mover(pref: OrdemDosJogos, visiveis: string[], id: string, direc
 export function alternarFixado(pref: OrdemDosJogos, id: string): OrdemDosJogos {
   const fixados = pref.fixados ?? [];
   if (fixados.includes(id)) {
-    return { fixados: fixados.filter(x => x !== id), ordem: [id, ...(pref.ordem ?? []).filter(x => x !== id)] };
+    return { fixados: fixados.filter((x) => x !== id), ordem: [id, ...(pref.ordem ?? []).filter((x) => x !== id)] };
   }
-  return { fixados: [...fixados, id], ordem: (pref.ordem ?? []).filter(x => x !== id) };
+  return { fixados: [...fixados, id], ordem: (pref.ordem ?? []).filter((x) => x !== id) };
 }
 
 export function lerOrdem(): OrdemDosJogos {
@@ -102,13 +104,18 @@ export function lerOrdem(): OrdemDosJogos {
     // Validação defensiva: um `localStorage` corrompido (ou de outra versão) não pode derrubar a
     // tela de jogos inteira. Na dúvida, ignora a preferência e mostra a ordem padrão.
     return {
-      fixados: Array.isArray(o?.fixados) ? o.fixados.filter(x => typeof x === 'string') : [],
-      ordem: Array.isArray(o?.ordem) ? o.ordem.filter(x => typeof x === 'string') : [],
+      fixados: Array.isArray(o?.fixados) ? o.fixados.filter((x) => typeof x === 'string') : [],
+      ordem: Array.isArray(o?.ordem) ? o.ordem.filter((x) => typeof x === 'string') : [],
     };
-  } catch { return ORDEM_VAZIA; }
+  } catch {
+    return ORDEM_VAZIA;
+  }
 }
 
 export function gravarOrdem(pref: OrdemDosJogos): void {
-  try { localStorage.setItem(CHAVE, JSON.stringify(pref)); } catch { /* storage bloqueado: vale só nesta sessão */ }
+  try {
+    localStorage.setItem(CHAVE, JSON.stringify(pref));
+  } catch {
+    /* storage bloqueado: vale só nesta sessão */
+  }
 }
-

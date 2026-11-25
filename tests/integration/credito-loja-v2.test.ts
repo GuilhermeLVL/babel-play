@@ -36,7 +36,12 @@ async function declarar(sub: string, anos: number) {
 /** Saldo pelo caminho legítimo: uma compra confirmada (como faria o webhook). */
 async function darCreditos(sub: string, quanto: number) {
   const id = `pay-${sub}`
-  await creditsRepo.registrarCompra(asUserId(sub), { sku: 'c700', creditos: quanto, valorCentavos: 4990, providerPaymentId: id })
+  await creditsRepo.registrarCompra(asUserId(sub), {
+    sku: 'c700',
+    creditos: quanto,
+    valorCentavos: 4990,
+    providerPaymentId: id,
+  })
   await creditsRepo.confirmarPagamento(id)
 }
 async function gastar(sub: string, corpo: Record<string, unknown>) {
@@ -60,14 +65,22 @@ describe('adulto compra um item da vitrine', () => {
   it('debita o preço do catálogo e o item entra na posse', async () => {
     await declarar('lc-adulto', 30)
     await darCreditos('lc-adulto', 700)
-    const r = await gastar('lc-adulto', { spendId: 'lc-compra-0001', amount: ITEM.precoCreditos, reason: `premium:${ITEM.id}` })
+    const r = await gastar('lc-adulto', {
+      spendId: 'lc-compra-0001',
+      amount: ITEM.precoCreditos,
+      reason: `premium:${ITEM.id}`,
+    })
     expect(r.status).toBe(200)
     expect(r.body).toMatchObject({ jaExistia: false, gasto: ITEM.precoCreditos, saldo: 700 - ITEM.precoCreditos! })
     expect(await creditsRepo.itensPremium(asUserId('lc-adulto'))).toContain(ITEM.id)
   })
 
   it('o reenvio do mesmo spendId é idempotente: não cobra de novo', async () => {
-    const r = await gastar('lc-adulto', { spendId: 'lc-compra-0001', amount: ITEM.precoCreditos, reason: `premium:${ITEM.id}` })
+    const r = await gastar('lc-adulto', {
+      spendId: 'lc-compra-0001',
+      amount: ITEM.precoCreditos,
+      reason: `premium:${ITEM.id}`,
+    })
     expect(r.status).toBe(200)
     expect(r.body.jaExistia).toBe(true)
     expect(await saldo('lc-adulto')).toBe(700 - ITEM.precoCreditos!)
@@ -105,7 +118,11 @@ describe('perfil protegido não compra com Créditos (403 no servidor)', () => {
   it('menor de 18 com saldo recebe 403 e nada é debitado', async () => {
     await declarar('lc-menor', 15)
     await darCreditos('lc-menor', 300)
-    const r = await gastar('lc-menor', { spendId: 'lc-menor-0001', amount: ITEM.precoCreditos, reason: `premium:${ITEM.id}` })
+    const r = await gastar('lc-menor', {
+      spendId: 'lc-menor-0001',
+      amount: ITEM.precoCreditos,
+      reason: `premium:${ITEM.id}`,
+    })
     expect(r.status).toBe(403)
     expect(r.body.code).toBe('menor_nao_compra')
     expect(await saldo('lc-menor')).toBe(300)
@@ -124,14 +141,22 @@ describe('perfil protegido não compra com Créditos (403 no servidor)', () => {
 
   it('idade não declarada conta como protegida (a configuração mais protetiva é a padrão)', async () => {
     await darCreditos('lc-sem-idade', 300)
-    const r = await gastar('lc-sem-idade', { spendId: 'lc-semidade-01', amount: ITEM.precoCreditos, reason: `premium:${ITEM.id}` })
+    const r = await gastar('lc-sem-idade', {
+      spendId: 'lc-semidade-01',
+      amount: ITEM.precoCreditos,
+      reason: `premium:${ITEM.id}`,
+    })
     expect(r.status).toBe(403)
     expect(r.body.code).toBe('idade_nao_informada')
     expect(await saldo('lc-sem-idade')).toBe(300)
   })
 
   it('o 403 vem antes de tudo: nem o reenvio de um spendId nem um motivo inválido passam', async () => {
-    const reenvio = await gastar('lc-menor', { spendId: 'lc-compra-0001', amount: ITEM.precoCreditos, reason: `premium:${ITEM.id}` })
+    const reenvio = await gastar('lc-menor', {
+      spendId: 'lc-compra-0001',
+      amount: ITEM.precoCreditos,
+      reason: `premium:${ITEM.id}`,
+    })
     expect(reenvio.status).toBe(403)
     const lixo = await gastar('lc-menor', { spendId: 'lc-menor-0002', amount: 1, reason: 'bau' })
     expect(lixo.status).toBe(403)

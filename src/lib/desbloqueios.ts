@@ -37,7 +37,7 @@ export type { TipoDesbloqueavel };
    
    `nivelNecessario` foi para onde o dado dela está (o catálogo); a liberação foi para um módulo
    que não importa nada. Os dois lados passam a depender dele, e ele não depende de ninguém. */
-export { ativarLiberacaoTotal,liberadoTudo } from './liberacaoDev';
+export { ativarLiberacaoTotal, liberadoTudo } from './liberacaoDev';
 export { nivelNecessario } from './loja';
 
 /**
@@ -60,7 +60,10 @@ export function desbloqueado(nivel: number, tipo: TipoDesbloqueavel, id: string,
   return estadoPorAlvo(tipo, id, nivel, 0, escolhaAtual).estado === 'equipavel';
 }
 
-export interface Recompensa { tipo: TipoDesbloqueavel; id: string }
+export interface Recompensa {
+  tipo: TipoDesbloqueavel;
+  id: string;
+}
 
 /**
  * O que o nível `n` libera (para o toast de "subiu de nível") — lido do catálogo.
@@ -71,9 +74,10 @@ export interface Recompensa { tipo: TipoDesbloqueavel; id: string }
  */
 export function recompensasDoNivel(n: number): Recompensa[] {
   const TIPOS_DE_APARENCIA: TipoDesbloqueavel[] = ['tema', 'fonte', 'posicao', 'estudio'];
-  return CATALOGO_DA_LOJA
-    .filter((i) => i.nivel === n && !i.exclusivoDe && !soPorSeeds(i) && TIPOS_DE_APARENCIA.includes(i.tipo as TipoDesbloqueavel))
-    .map((i) => ({ tipo: i.tipo as TipoDesbloqueavel, id: i.alvo }));
+  return CATALOGO_DA_LOJA.filter(
+    (i) =>
+      i.nivel === n && !i.exclusivoDe && !soPorSeeds(i) && TIPOS_DE_APARENCIA.includes(i.tipo as TipoDesbloqueavel),
+  ).map((i) => ({ tipo: i.tipo as TipoDesbloqueavel, id: i.alvo }));
 }
 
 /** Rótulo humano das recompensas (para o toast). */
@@ -81,6 +85,13 @@ export function rotuloDaRecompensa(r: Recompensa): string {
   if (r.tipo === 'fonte') return 'fonte Arcade (pixel)';
   if (r.tipo === 'estudio') return 'estúdio de cores e layout';
   if (r.tipo === 'posicao') return r.id === 'right' ? 'menu à direita' : 'menu embaixo';
-  const nomes: Record<string, string> = { linear: 'tema Linear Indigo', vercel: 'tema Vercel Geist', mochi: 'tema Mochi Parchment', notion: 'tema Notion Charcoal', premium: 'tema Instrument Premium', custom: 'tema Customizado' };
+  const nomes: Record<string, string> = {
+    linear: 'tema Linear Indigo',
+    vercel: 'tema Vercel Geist',
+    mochi: 'tema Mochi Parchment',
+    notion: 'tema Notion Charcoal',
+    premium: 'tema Instrument Premium',
+    custom: 'tema Customizado',
+  };
   return nomes[r.id] ?? r.id;
 }

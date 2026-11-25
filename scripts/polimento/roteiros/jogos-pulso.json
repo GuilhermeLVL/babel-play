@@ -92,9 +92,5 @@
     ],
     "depois": 250
   },
-  "seletores": [
-    ".ajuda-jogo.pj-chama",
-    ".ganho:not(.good):not(.erro)",
-    ".hud-ajudas .ajuda-jogo"
-  ]
+  "seletores": [".ajuda-jogo.pj-chama", ".ganho:not(.good):not(.erro)", ".hud-ajudas .ajuda-jogo"]
 }

@@ -27,7 +27,9 @@ export default function AvisoDoTradutorLocal({
     <div className="aviso-info warn" role="status" data-testid="aviso-do-tradutor-local" style={{ marginBottom: 12 }}>
       <TriangleAlert aria-hidden />
       <span style={{ flex: 1 }}>
-        {t('O tradutor deste aparelho não carregou (pouca memória ou navegador sem suporte). As falas seguem sem tradução.')}
+        {t(
+          'O tradutor deste aparelho não carregou (pouca memória ou navegador sem suporte). As falas seguem sem tradução.',
+        )}
         {oferecer && ' '}
         {oferecer && t('Dá para traduzir pela internet com o MyMemory: o texto das falas sai do aparelho.')}
       </span>

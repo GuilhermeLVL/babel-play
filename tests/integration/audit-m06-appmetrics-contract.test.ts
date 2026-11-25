@@ -3,10 +3,10 @@
  * contrato ÚNICO em src/core/learning/contract.ts. O typecheck impede divergência de TIPO; este
  * teste garante que o servidor (`computeProfile`) REALMENTE devolve todos os campos do contrato.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const OWNER = asUserId('m06-owner')
 
@@ -15,15 +15,39 @@ let computeProfile: (userId: ReturnType<typeof asUserId>) => Promise<Record<stri
 
 beforeAll(async () => {
   h = await setupEphemeralDb()
-  ;({ computeProfile } = await h.load<{ computeProfile: typeof computeProfile }>('../../server/db/repositories/metrics'))
+  ;({ computeProfile } = await h.load<{ computeProfile: typeof computeProfile }>(
+    '../../server/db/repositories/metrics',
+  ))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 const CAMPOS = [
-  'sessions', 'wordsCaptured', 'deckSize', 'newCards', 'dueToday', 'reviews', 'correctReviews',
-  'drillItems', 'drillCorrect', 'accuracy', 'accuracyConfidence', 'streakDays', 'seedsGastas',
-  'avgStability', 'avgRetention', 'avgRetentionConfidence', 'vocabByWeek', 'speakingMs', 'wpm',
-  'wpmConfidence', 'uniqueWords', 'levelDistribution', 'levelConfidence', 'asOf',
+  'sessions',
+  'wordsCaptured',
+  'deckSize',
+  'newCards',
+  'dueToday',
+  'reviews',
+  'correctReviews',
+  'drillItems',
+  'drillCorrect',
+  'accuracy',
+  'accuracyConfidence',
+  'streakDays',
+  'seedsGastas',
+  'avgStability',
+  'avgRetention',
+  'avgRetentionConfidence',
+  'vocabByWeek',
+  'speakingMs',
+  'wpm',
+  'wpmConfidence',
+  'uniqueWords',
+  'levelDistribution',
+  'levelConfidence',
+  'asOf',
 ]
 
 describe('M-06 — contrato AppMetrics único', () => {

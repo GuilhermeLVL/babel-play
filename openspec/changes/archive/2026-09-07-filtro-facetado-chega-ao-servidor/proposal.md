@@ -12,6 +12,7 @@ O seletor facetado foi implementado nas duas pontas e nao se falam: `Play.tsx:16
 ## Capabilities
 
 ### Modified Capabilities
+
 - `filtro-facetado` (change `seletor-facetado`): o requirement de paridade SQL x predicado passa a incluir "o cliente envia o filtro ao servidor".
 
 ## Impact

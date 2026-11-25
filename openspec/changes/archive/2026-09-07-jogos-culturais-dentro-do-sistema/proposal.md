@@ -22,9 +22,11 @@ Em qualquer entrega: nenhum card na grade sem dado real; nenhuma rodada sem regi
 ## Capabilities
 
 ### New Capabilities
+
 - `jogo-so-entra-pelo-sistema`: um jogo aparece na grade apenas se e um `MinigameDef`, monta rodada pelo pipeline e registra o resultado pelo funil unico.
 
 ### Modified Capabilities
+
 - `tela-de-jogos` (change `tela-de-jogos-v2`): a grade nao exibe estado "funcional" que o sistema nao garante.
 
 ## Impact

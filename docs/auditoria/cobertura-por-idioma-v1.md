@@ -5,24 +5,24 @@ máquina em 02/09/2026, depois das correções do G1 multi-idioma.
 
 ## Níveis
 
-| Nível | Significado |
-|---|---|
-| **Completo** | Trilha + níveis + voz + os 9 jogos elegíveis |
-| **Parcial** | Vocabulário funciona, mas falta trilha, nível ou voz; parte dos jogos indisponível |
-| **Só seu conteúdo** | Funciona apenas com o que você importa ou grava |
-| **Não suportado** | Detecção, comparação de resposta ou entrada não funcionam |
+| Nível               | Significado                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| **Completo**        | Trilha + níveis + voz + os 9 jogos elegíveis                                       |
+| **Parcial**         | Vocabulário funciona, mas falta trilha, nível ou voz; parte dos jogos indisponível |
+| **Só seu conteúdo** | Funciona apenas com o que você importa ou grava                                    |
+| **Não suportado**   | Detecção, comparação de resposta ou entrada não funcionam                          |
 
 ## Estado hoje
 
-| Idioma | Nível | Trilha | Voz TTS¹ | Jogos elegíveis | O que falta para subir |
-|---|---|---|---|---:|---|
-| **inglês** | Completo | 2.784 palavras (CEFR-J + Octanove) | sim | 9 | — |
-| **português** | Parcial | não | sim | 9 | trilha |
-| espanhol, francês, alemão, italiano, holandês, polonês, turco, indonésio, vietnamita, sueco, dinamarquês, norueguês, finlandês, húngaro, tcheco, romeno | Só seu conteúdo | não | depende do SO | 9 (6 sem voz) | trilha + voz |
-| **russo, ucraniano, grego** | Só seu conteúdo | não | depende do SO | 7 | trilha + voz + gate de alfabeto² |
-| **japonês, coreano, chinês** | Só seu conteúdo | não | depende do SO | 7 | trilha + voz + gate de alfabeto² |
-| **árabe, hebraico** | Só seu conteúdo | não | depende do SO | 7 | trilha + voz + RTL exercitado em uso real |
-| **hindi, tailandês** | Só seu conteúdo | não | depende do SO | 7 | trilha + voz + validar a detecção nova sobre baralho real |
+| Idioma                                                                                                                                                  | Nível           | Trilha                             | Voz TTS¹      | Jogos elegíveis | O que falta para subir                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ---------------------------------- | ------------- | --------------: | --------------------------------------------------------- |
+| **inglês**                                                                                                                                              | Completo        | 2.784 palavras (CEFR-J + Octanove) | sim           |               9 | —                                                         |
+| **português**                                                                                                                                           | Parcial         | não                                | sim           |               9 | trilha                                                    |
+| espanhol, francês, alemão, italiano, holandês, polonês, turco, indonésio, vietnamita, sueco, dinamarquês, norueguês, finlandês, húngaro, tcheco, romeno | Só seu conteúdo | não                                | depende do SO |   9 (6 sem voz) | trilha + voz                                              |
+| **russo, ucraniano, grego**                                                                                                                             | Só seu conteúdo | não                                | depende do SO |               7 | trilha + voz + gate de alfabeto²                          |
+| **japonês, coreano, chinês**                                                                                                                            | Só seu conteúdo | não                                | depende do SO |               7 | trilha + voz + gate de alfabeto²                          |
+| **árabe, hebraico**                                                                                                                                     | Só seu conteúdo | não                                | depende do SO |               7 | trilha + voz + RTL exercitado em uso real                 |
+| **hindi, tailandês**                                                                                                                                    | Só seu conteúdo | não                                | depende do SO |               7 | trilha + voz + validar a detecção nova sobre baralho real |
 
 ¹ **Voz é do sistema operacional, não do app.** Medido neste navegador: **2 dos 28** idiomas têm
 voz (pt e en). Sem voz, os três jogos de áudio ficam bloqueados com motivo `sem-voz`, a menos que

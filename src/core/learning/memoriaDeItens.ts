@@ -55,18 +55,33 @@ export function estadoDoItem(h: HistoricoDoItem | undefined): EstadoDoItem {
   if (!h || h.vezes === 0) return { tag: 'nova', errosSeguidos: 0, janela: 0, motivo: 'nova para você' };
   const seguidos = h.errosSeguidos ?? (h.ultimoAcerto ? 0 : Math.min(h.erros, 1));
   if (seguidos >= LEECH_APOS) {
-    return { tag: 'leech', errosSeguidos: seguidos, janela: 'amanha', motivo: `${seguidos} erros seguidos: difícil para você` };
+    return {
+      tag: 'leech',
+      errosSeguidos: seguidos,
+      janela: 'amanha',
+      motivo: `${seguidos} erros seguidos: difícil para você`,
+    };
   }
   if (seguidos > 0) {
-    return { tag: 'errando', errosSeguidos: seguidos, janela: janelaDeRetorno(seguidos), motivo: seguidos === 1 ? 'você errou' : `você errou ${seguidos}×` };
+    return {
+      tag: 'errando',
+      errosSeguidos: seguidos,
+      janela: janelaDeRetorno(seguidos),
+      motivo: seguidos === 1 ? 'você errou' : `você errou ${seguidos}×`,
+    };
   }
   const acertos = h.vezes - h.erros;
-  if (h.erros === 0 && acertos >= FIRME_APOS) return { tag: 'firme', errosSeguidos: 0, janela: 0, motivo: `${acertos} acertos, nenhum erro` };
+  if (h.erros === 0 && acertos >= FIRME_APOS)
+    return { tag: 'firme', errosSeguidos: 0, janela: 0, motivo: `${acertos} acertos, nenhum erro` };
   return { tag: 'aprendendo', errosSeguidos: 0, janela: 0, motivo: h.erros ? 'já errou, acertou depois' : 'já viu' };
 }
 
 /** A janela venceu? (rodadas desde o último erro ≥ janela; 'amanha' = dia local diferente). */
-export function prontoParaVoltar(h: HistoricoDoItem | undefined, agora: number, diaDe: (ts: number) => number): boolean {
+export function prontoParaVoltar(
+  h: HistoricoDoItem | undefined,
+  agora: number,
+  diaDe: (ts: number) => number,
+): boolean {
   const e = estadoDoItem(h);
   if (e.tag !== 'errando') return e.tag !== 'leech';
   if (e.janela === 'amanha') return h?.ultimaEm ? diaDe(agora) > diaDe(h.ultimaEm) : true;
@@ -139,16 +154,30 @@ export function ordenarPorMemoria<T>(
     const h = opts.memoria.get(ref);
     const e = estadoDoItem(h);
     motivos.set(ref, e.motivo);
-    if (e.tag === 'leech') { excluidos.push(it); continue; }
-    if (e.tag === 'errando') {
-      if (prontoParaVoltar(h, opts.agora, opts.diaDe)) camadas[0].push(it); else adiadas.push(it);
+    if (e.tag === 'leech') {
+      excluidos.push(it);
       continue;
     }
-    if (opts.urgente?.(it)) { camadas[1].push(it); continue; }
+    if (e.tag === 'errando') {
+      if (prontoParaVoltar(h, opts.agora, opts.diaDe)) camadas[0].push(it);
+      else adiadas.push(it);
+      continue;
+    }
+    if (opts.urgente?.(it)) {
+      camadas[1].push(it);
+      continue;
+    }
     camadas[e.tag === 'nova' ? 2 : e.tag === 'aprendendo' ? 3 : 4].push(it);
   }
   const emb = camadas.map((c, i) => embaralharComSemente(c, `${opts.semente}:${i}`));
-  let ordenados = [...emb[0], ...emb[1], ...emb[2], ...emb[3], ...emb[4], ...embaralharComSemente(adiadas, `${opts.semente}:adiadas`)];
+  let ordenados = [
+    ...emb[0],
+    ...emb[1],
+    ...emb[2],
+    ...emb[3],
+    ...emb[4],
+    ...embaralharComSemente(adiadas, `${opts.semente}:adiadas`),
+  ];
   // Cota de novas: garante amplitude de vocabulário quando o limite corta a lista.
   if (opts.limite && opts.cotaDeNovas && emb[2].length) {
     const querNovas = Math.min(emb[2].length, Math.ceil(opts.limite * opts.cotaDeNovas));
@@ -157,7 +186,11 @@ export function ordenarPorMemoria<T>(
     if (novasNaCabeca < querNovas) {
       const faltam = emb[2].filter((x) => !cabeca.includes(x)).slice(0, querNovas - novasNaCabeca);
       const semElas = ordenados.filter((x) => !faltam.includes(x));
-      ordenados = [...semElas.slice(0, opts.limite - faltam.length), ...faltam, ...semElas.slice(opts.limite - faltam.length)];
+      ordenados = [
+        ...semElas.slice(0, opts.limite - faltam.length),
+        ...faltam,
+        ...semElas.slice(opts.limite - faltam.length),
+      ];
     }
   }
   return { ordenados, excluidos, motivos };

@@ -243,7 +243,13 @@ describe('resolverMotorDoMic — pergunta ao navegador e instala só quando pedi
 
   it('a pergunta "Rápido ou Privado?" sabe quando o Privado é o pacote do navegador', async () => {
     const perguntar = vi.fn(async () => 'privado' as const)
-    await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: escopo('downloadable').escopo, escolha: null, perguntar })
+    await resolverMotorDoMic({
+      ...BASE,
+      lang: 'pt-BR',
+      escopo: escopo('downloadable').escopo,
+      escolha: null,
+      perguntar,
+    })
     expect(perguntar).toHaveBeenCalledWith({ pacoteDoNavegador: true })
     perguntar.mockClear()
     await resolverMotorDoMic({ ...BASE, lang: 'pt-BR', escopo: escopo('unavailable').escopo, escolha: null, perguntar })

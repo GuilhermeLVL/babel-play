@@ -1,10 +1,10 @@
 ---
-titulo: "Aprender inglês com podcasts: por onde começar e como evoluir"
-descricao: "Como escolher podcasts em inglês pelo seu nível, ouvir em camadas, usar transcrições e transformar o que você ouve em vocabulário que fica."
-slug: "aprender-ingles-com-podcasts"
-publicado: "2026-10-25"
+titulo: 'Aprender inglês com podcasts: por onde começar e como evoluir'
+descricao: 'Como escolher podcasts em inglês pelo seu nível, ouvir em camadas, usar transcrições e transformar o que você ouve em vocabulário que fica.'
+slug: 'aprender-ingles-com-podcasts'
+publicado: '2026-10-25'
 revisado: false
-palavrasChave: ["podcasts em inglês", "aprender inglês ouvindo", "listening", "shadowing"]
+palavrasChave: ['podcasts em inglês', 'aprender inglês ouvindo', 'listening', 'shadowing']
 ---
 
 Podcasts têm uma vantagem enorme para quem estuda inglês: cabem em qualquer espaço do dia. No ônibus, caminhando, lavando a louça, esperando a aula começar. São minutos que, somados, viram horas de contato com a língua.

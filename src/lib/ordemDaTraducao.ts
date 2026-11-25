@@ -21,16 +21,16 @@
  */
 export class OrdemDasTraducoes {
   /** Último selo emitido por segmento — quem não bate com ele perdeu a vez. */
-  private ultimoSelo = new Map<string, number>()
+  private ultimoSelo = new Map<string, number>();
   /** Quantos pedidos ainda estão em voo por segmento. */
-  private abertos = new Map<string, number>()
+  private abertos = new Map<string, number>();
 
   /** Registra um novo pedido e devolve o selo que o identifica. */
   abrir(segId: string): number {
-    const selo = (this.ultimoSelo.get(segId) ?? 0) + 1
-    this.ultimoSelo.set(segId, selo)
-    this.abertos.set(segId, (this.abertos.get(segId) ?? 0) + 1)
-    return selo
+    const selo = (this.ultimoSelo.get(segId) ?? 0) + 1;
+    this.ultimoSelo.set(segId, selo);
+    this.abertos.set(segId, (this.abertos.get(segId) ?? 0) + 1);
+    return selo;
   }
 
   /**
@@ -42,31 +42,31 @@ export class OrdemDasTraducoes {
    * parcial seguinte é descartado.
    */
   encerrar(segId: string, selo: number): boolean {
-    const restantes = (this.abertos.get(segId) ?? 1) - 1
-    if (restantes > 0) this.abertos.set(segId, restantes)
-    else this.abertos.delete(segId)
-    return this.ultimoSelo.get(segId) === selo
+    const restantes = (this.abertos.get(segId) ?? 1) - 1;
+    if (restantes > 0) this.abertos.set(segId, restantes);
+    else this.abertos.delete(segId);
+    return this.ultimoSelo.get(segId) === selo;
   }
 
   /** Há tradução em voo para este segmento? */
   ocupado(segId: string): boolean {
-    return (this.abertos.get(segId) ?? 0) > 0
+    return (this.abertos.get(segId) ?? 0) > 0;
   }
 
   /** Esquece o segmento (ele saiu da tela). */
   esquecer(segId: string): void {
-    this.ultimoSelo.delete(segId)
-    this.abertos.delete(segId)
+    this.ultimoSelo.delete(segId);
+    this.abertos.delete(segId);
   }
 
   /** Sessão nova não herda a anterior. */
   limpar(): void {
-    this.ultimoSelo.clear()
-    this.abertos.clear()
+    this.ultimoSelo.clear();
+    this.abertos.clear();
   }
 
   /** Segmentos rastreados — só para teste/diagnóstico de vazamento. */
   get tamanho(): number {
-    return this.ultimoSelo.size
+    return this.ultimoSelo.size;
   }
 }

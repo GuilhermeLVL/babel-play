@@ -126,7 +126,10 @@ describe('aplicarAcess', () => {
     aplicarAcess()
     let escritas = 0
     let texto = a.media.mediaText
-    Object.defineProperty(a.media, 'mediaText', { get: () => texto, set: (v: string) => void (escritas++, (texto = v)) })
+    Object.defineProperty(a.media, 'mediaText', {
+      get: () => texto,
+      set: (v: string) => void (escritas++, (texto = v)),
+    })
     aplicarAcess()
     expect(escritas).toBe(0)
     document.body.className = ''

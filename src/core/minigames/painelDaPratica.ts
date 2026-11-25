@@ -39,10 +39,14 @@ export interface JogosAgrupados {
  * o que fazia a tela parecer quebrada quando na verdade faltava material.
  */
 export function agruparJogos(estados: readonly EstadoDoJogo[]): JogosAgrupados {
-  const prontos = estados.filter((s) => s.ok)
-    .sort((a, b) => (b.tamanhoDaRodada ?? b.disponiveis) - (a.tamanhoDaRodada ?? a.disponiveis) || a.id.localeCompare(b.id));
+  const prontos = estados
+    .filter((s) => s.ok)
+    .sort(
+      (a, b) => (b.tamanhoDaRodada ?? b.disponiveis) - (a.tamanhoDaRodada ?? a.disponiveis) || a.id.localeCompare(b.id),
+    );
 
-  const presos = estados.filter((s) => !s.ok)
+  const presos = estados
+    .filter((s) => !s.ok)
     .sort((a, b) => (a.faltam || Infinity) - (b.faltam || Infinity) || a.id.localeCompare(b.id))
     .map((estado) => {
       const rotulo = estado.motivo ? ROTULO_DO_MOTIVO[estado.motivo] : null;
@@ -51,9 +55,10 @@ export function agruparJogos(estados: readonly EstadoDoJogo[]): JogosAgrupados {
       return {
         estado,
         titulo: `faltam ${estado.faltam}`,
-        conserto: estado.disponiveis > 0
-          ? `este recorte tem ${estado.disponiveis} ${estado.disponiveis === 1 ? 'palavra pronta' : 'palavras prontas'} para este jogo, e ele precisa de ${min}`
-          : `nenhuma palavra deste recorte serve a este jogo, que precisa de ${min}`,
+        conserto:
+          estado.disponiveis > 0
+            ? `este recorte tem ${estado.disponiveis} ${estado.disponiveis === 1 ? 'palavra pronta' : 'palavras prontas'} para este jogo, e ele precisa de ${min}`
+            : `nenhuma palavra deste recorte serve a este jogo, que precisa de ${min}`,
       };
     });
 

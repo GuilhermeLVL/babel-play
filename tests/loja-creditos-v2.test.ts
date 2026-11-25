@@ -80,7 +80,10 @@ describe('a vitrine de Créditos', () => {
 
   it('as douradas que saíram da vitrine viram um equivalente da vitrine — nenhum Crédito se perde', () => {
     for (const id of ['dourada-1', 'dourada-4', 'dourada-9']) {
-      expect(CATALOGO_DA_LOJA.some((i) => i.id === id), id).toBe(false)
+      expect(
+        CATALOGO_DA_LOJA.some((i) => i.id === id),
+        id,
+      ).toBe(false)
       expect(VITRINE_ESPERADA, id).toContain(equivalenteDe(id))
       expect(ehRecusa(autorizarGastoDeCredito(`premium:${id}`)), id).toBe(true)
     }
@@ -90,7 +93,11 @@ describe('a vitrine de Créditos', () => {
 describe('autorizarGastoDeCredito — o que o servidor aceita', () => {
   it('item da vitrine: o preço é o do catálogo', () => {
     for (const i of VITRINE_DE_CREDITOS) {
-      expect(autorizarGastoDeCredito(`premium:${i.id}`)).toEqual({ tipo: 'premium', itemId: i.id, preco: i.precoCreditos })
+      expect(autorizarGastoDeCredito(`premium:${i.id}`)).toEqual({
+        tipo: 'premium',
+        itemId: i.id,
+        preco: i.precoCreditos,
+      })
     }
   })
 
@@ -111,7 +118,15 @@ describe('autorizarGastoDeCredito — o que o servidor aceita', () => {
   })
 
   it('a régua recusa mesmo se um item mal cadastrado tiver `precoCreditos` (defesa em profundidade)', () => {
-    const base: ItemDaLoja = { id: 'x', tipo: 'tema', alvo: 'x', nome: 'x', desc: '', raridade: 'lendario', precoCreditos: 150 }
+    const base: ItemDaLoja = {
+      id: 'x',
+      tipo: 'tema',
+      alvo: 'x',
+      nome: 'x',
+      desc: '',
+      raridade: 'lendario',
+      precoCreditos: 150,
+    }
     expect(vendavelEmCreditos(base)).toBe(true)
     expect(vendavelEmCreditos({ ...base, precoCreditos: undefined })).toBe(false)
     expect(vendavelEmCreditos({ ...base, precoSeeds: 100 })).toBe(false)
@@ -132,7 +147,10 @@ describe('edição estática: sem cobrança', () => {
     ] as const) {
       const res = await servidorEfemero(rota, {
         method: metodo,
-        body: metodo === 'GET' ? undefined : JSON.stringify({ spendId: 'estatica-001', amount: 150, reason: 'premium:dourada-2' }),
+        body:
+          metodo === 'GET'
+            ? undefined
+            : JSON.stringify({ spendId: 'estatica-001', amount: 150, reason: 'premium:dourada-2' }),
       })
       expect(res.ok, rota).toBe(false)
       expect(res.status, rota).toBe(501)

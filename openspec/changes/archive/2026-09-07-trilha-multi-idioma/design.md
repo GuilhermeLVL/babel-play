@@ -81,7 +81,7 @@ Casos de borda, na ordem:
 
 - **Par de glosas ausente**: a Trilha é oferecida em modo monolíngue; os jogos que dependem da
   pista aparecem trancados com o motivo real ("ainda não há glossário inglês→espanhol"). **Não**
-  cai para `en-pt` — isso *é* o F26.
+  cai para `en-pt` — isso _é_ o F26.
 - **Palavra sem glosa dentro de um par que existe**: joga (a frase basta para os jogos de frase),
   mas **não promove**. Promover com verso vazio criaria cartão que a própria régua reprova.
 - **`cefrLevel` só é escrito quando `escala === 'cefr'`.** Idioma com faixa de frequência promove
@@ -107,15 +107,15 @@ resposta `ausente` já é o comportamento documentado.
 
 `.mjs` puro, como `audit-gate.mjs` e `fetch-models.mjs`.
 
-| módulo | o quê |
-|---|---|
-| `fontes.mjs` | baixa e cacheia; manifesto com URL + sha256. hermitdave/FrequencyWords (MIT/CC-BY-SA), Leipzig (CC-BY), Tatoeba (CC-BY 2.0 FR), Wiktextract |
-| `filtrar.mjs` | as regras de `FONTES.md:136-156` literalmente: 3–14 letras, sem classes funcionais, variantes colapsadas, nível mais baixo vence |
-| `faixas.mjs` | 6 buckets por **cobertura cumulativa do corpus**, não por contagem igual — bucket de tamanho igual é arbitrário; cobertura é defensável |
-| `frases.mjs` | Tatoeba, 5–12 palavras, contém a palavra, preferindo a com menos palavras fora do bucket |
-| `glosas.mjs` | Wikidata SPARQL (P5137, CC0) → Wiktextract como preenchimento; **importa `quality.ts`** para aplicar a régua real do app, em vez de reimplementá-la |
-| `gerar.mjs` | orquestra, escreve os artefatos + índice + relatório |
-| `verificar.mjs` | contagens batem, toda chave de glosa existe na trilha, `trilhaHash` confere, nenhuma glosa igual à palavra. Plugado em `audit-gate.mjs` |
+| módulo          | o quê                                                                                                                                               |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fontes.mjs`    | baixa e cacheia; manifesto com URL + sha256. hermitdave/FrequencyWords (MIT/CC-BY-SA), Leipzig (CC-BY), Tatoeba (CC-BY 2.0 FR), Wiktextract         |
+| `filtrar.mjs`   | as regras de `FONTES.md:136-156` literalmente: 3–14 letras, sem classes funcionais, variantes colapsadas, nível mais baixo vence                    |
+| `faixas.mjs`    | 6 buckets por **cobertura cumulativa do corpus**, não por contagem igual — bucket de tamanho igual é arbitrário; cobertura é defensável             |
+| `frases.mjs`    | Tatoeba, 5–12 palavras, contém a palavra, preferindo a com menos palavras fora do bucket                                                            |
+| `glosas.mjs`    | Wikidata SPARQL (P5137, CC0) → Wiktextract como preenchimento; **importa `quality.ts`** para aplicar a régua real do app, em vez de reimplementá-la |
+| `gerar.mjs`     | orquestra, escreve os artefatos + índice + relatório                                                                                                |
+| `verificar.mjs` | contagens batem, toda chave de glosa existe na trilha, `trilhaHash` confere, nenhuma glosa igual à palavra. Plugado em `audit-gate.mjs`             |
 
 **Custo por idioma.** Máquina: download de 5–15 MB (frequência) + 20–40 MB (Wiktextract) + dump
 Tatoeba compartilhado; ~2–5 min de processamento. O custo real é **humano**: o `FONTES.md` atual

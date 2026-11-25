@@ -11,11 +11,11 @@
 
 ## Resultado da matriz (2026-09-09)
 
-| projeto | passou | pulou | falhou | duracao |
-|---|---:|---:|---:|---:|
-| mobile-375 | 33 | 5 | 0 | 133 s |
-| tablet-768 | 33 | 5 | 0 | 133 s |
-| desktop-1280 | 33 | 5 | 0 | 134 s |
+| projeto      | passou | pulou | falhou | duracao |
+| ------------ | -----: | ----: | -----: | ------: |
+| mobile-375   |     33 |     5 |      0 |   133 s |
+| tablet-768   |     33 |     5 |      0 |   133 s |
+| desktop-1280 |     33 |     5 |      0 |   134 s |
 
 Nenhum seletor precisou de correcao por viewport: a dock inferior e a barra superior expoem os
 mesmos papeis e nomes acessiveis, e os testes ja falavam por `getByRole`.

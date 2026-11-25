@@ -3,10 +3,10 @@
  * Leitner nunca migravam. Agora migrarLeitnerParaFsrs (server/db/manutencao) roda no boot (idempotente/não-destrutivo).
  * Testado em banco SINTÉTICO (harness); não toca o babel.db real.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const OWNER = asUserId('m04-owner')
 
@@ -23,14 +23,24 @@ beforeAll(async () => {
   ;({ vocabRepo } = await h.load<{ vocabRepo: any }>('../../server/db/repositories/vocab'))
   ;({ randomUUID } = await import('node:crypto'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 async function inserir(box: number, stability: number | null) {
   const id = randomUUID()
   const now = Date.now()
   await db.insert(vocabCards).values({
-    id, createdAt: now, updatedAt: now, userId: OWNER, word: 'w-' + id.slice(0, 6), box,
-    stability, dueAt: now, inDeck: 1, addedAt: now,
+    id,
+    createdAt: now,
+    updatedAt: now,
+    userId: OWNER,
+    word: 'w-' + id.slice(0, 6),
+    box,
+    stability,
+    dueAt: now,
+    inDeck: 1,
+    addedAt: now,
   })
   return id
 }
@@ -38,8 +48,8 @@ async function inserir(box: number, stability: number | null) {
 describe('M-04 — migração Leitner→FSRS no boot', () => {
   it('migra cartas Leitner (box>1, sem stability) e é idempotente', async () => {
     const leitner = await inserir(3, null) // Leitner, box 3
-    const nova = await inserir(1, null)    // carta nova (box 1) — não migra
-    const jaFsrs = await inserir(2, 5.0)   // já tem FSRS — não migra
+    const nova = await inserir(1, null) // carta nova (box 1) — não migra
+    const jaFsrs = await inserir(2, 5.0) // já tem FSRS — não migra
 
     const n1 = await migrarLeitnerParaFsrs()
     expect(n1).toBe(1) // só a Leitner box>1

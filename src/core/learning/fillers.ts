@@ -31,24 +31,24 @@
 const MARCADORES: Readonly<Record<string, readonly string[]>> = {
   pt: ['ah', 'ahn', 'ahm', 'hum', 'hmm', 'uhm', 'eh', 'ehh', 'né', 'tipo assim'],
   en: ['uh', 'uhh', 'um', 'umm', 'er', 'erm', 'hmm', 'mmm', 'you know', 'i mean'],
-}
+};
 
 export interface ViciosContados {
   /** Total de ocorrências de marcador. */
-  total: number
+  total: number;
   /** Palavras consideradas — o denominador, para a taxa ser conferível. */
-  palavras: number
+  palavras: number;
   /** Ocorrências por mil palavras, 1 casa decimal. Comparável entre gravações de tamanhos diferentes. */
-  porMilPalavras: number
+  porMilPalavras: number;
   /** Quais marcadores apareceram, do mais frequente ao menos. Só os que apareceram. */
-  detalhe: Array<{ marcador: string; vezes: number }>
+  detalhe: Array<{ marcador: string; vezes: number }>;
   /** Qual lista foi usada — a tela mostra, para o número ter procedência. */
-  idioma: string
+  idioma: string;
 }
 
 /** Idiomas para os quais existe lista. A tela usa para explicar a ausência. */
 export function idiomasComVicios(): string[] {
-  return Object.keys(MARCADORES)
+  return Object.keys(MARCADORES);
 }
 
 /**
@@ -60,24 +60,27 @@ export function idiomasComVicios(): string[] {
  * `lang` aceita tanto `pt` quanto `pt-BR`: só os dois primeiros caracteres importam.
  */
 export function contarVicios(texto: string, lang: string | null | undefined): ViciosContados | null {
-  const idioma = (lang ?? '').slice(0, 2).toLowerCase()
-  const lista = MARCADORES[idioma]
-  if (!lista) return null
+  const idioma = (lang ?? '').slice(0, 2).toLowerCase();
+  const lista = MARCADORES[idioma];
+  if (!lista) return null;
 
-  const t = (texto ?? '').toLowerCase()
-  const palavras = (t.match(/[\p{L}\p{N}']+/gu) ?? []).length
+  const t = (texto ?? '').toLowerCase();
+  const palavras = (t.match(/[\p{L}\p{N}']+/gu) ?? []).length;
 
-  const detalhe: Array<{ marcador: string; vezes: number }> = []
-  let total = 0
+  const detalhe: Array<{ marcador: string; vezes: number }> = [];
+  let total = 0;
   for (const m of lista) {
     /* Fronteira por `\p{L}` e NÃO por `\b`: o `\b` do JavaScript é definido por [A-Za-z0-9_], então
        um acento conta como fronteira de palavra e `/né\b/` casaria dentro de "nébula". É o mesmo
        defeito que `pistaUtil` tinha, achado em quality.ts. */
-    const re = new RegExp('(?<!\\p{L})' + escaparRegex(m) + '(?!\\p{L})', 'giu')
-    const vezes = (t.match(re) ?? []).length
-    if (vezes > 0) { detalhe.push({ marcador: m, vezes }); total += vezes }
+    const re = new RegExp('(?<!\\p{L})' + escaparRegex(m) + '(?!\\p{L})', 'giu');
+    const vezes = (t.match(re) ?? []).length;
+    if (vezes > 0) {
+      detalhe.push({ marcador: m, vezes });
+      total += vezes;
+    }
   }
-  detalhe.sort((a, b) => b.vezes - a.vezes || a.marcador.localeCompare(b.marcador))
+  detalhe.sort((a, b) => b.vezes - a.vezes || a.marcador.localeCompare(b.marcador));
 
   return {
     total,
@@ -85,11 +88,11 @@ export function contarVicios(texto: string, lang: string | null | undefined): Vi
     porMilPalavras: palavras > 0 ? Math.round((total / palavras) * 1000 * 10) / 10 : 0,
     detalhe,
     idioma,
-  }
+  };
 }
 
 function escaparRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -100,30 +103,35 @@ function escaparRegex(s: string): string {
  * erro do `um`. Aqui cada fala é contada com a lista do próprio idioma e os totais se somam; o que
  * não tem lista entra em `palavrasSemLista`, que a tela mostra para o total não parecer completo.
  */
-export function contarViciosDasFalas(
-  falas: ReadonlyArray<{ text: string; lang?: string | null }>,
-): { total: number; palavras: number; porMilPalavras: number; detalhe: Array<{ marcador: string; vezes: number }>; idiomas: string[]; palavrasSemLista: number } {
-  const somaPorMarcador = new Map<string, number>()
-  const idiomas = new Set<string>()
-  let total = 0
-  let palavras = 0
-  let palavrasSemLista = 0
+export function contarViciosDasFalas(falas: ReadonlyArray<{ text: string; lang?: string | null }>): {
+  total: number;
+  palavras: number;
+  porMilPalavras: number;
+  detalhe: Array<{ marcador: string; vezes: number }>;
+  idiomas: string[];
+  palavrasSemLista: number;
+} {
+  const somaPorMarcador = new Map<string, number>();
+  const idiomas = new Set<string>();
+  let total = 0;
+  let palavras = 0;
+  let palavrasSemLista = 0;
 
   for (const f of falas) {
-    const c = contarVicios(f.text, f.lang)
+    const c = contarVicios(f.text, f.lang);
     if (!c) {
-      palavrasSemLista += ((f.text ?? '').toLowerCase().match(/[\p{L}\p{N}']+/gu) ?? []).length
-      continue
+      palavrasSemLista += ((f.text ?? '').toLowerCase().match(/[\p{L}\p{N}']+/gu) ?? []).length;
+      continue;
     }
-    idiomas.add(c.idioma)
-    total += c.total
-    palavras += c.palavras
-    for (const d of c.detalhe) somaPorMarcador.set(d.marcador, (somaPorMarcador.get(d.marcador) ?? 0) + d.vezes)
+    idiomas.add(c.idioma);
+    total += c.total;
+    palavras += c.palavras;
+    for (const d of c.detalhe) somaPorMarcador.set(d.marcador, (somaPorMarcador.get(d.marcador) ?? 0) + d.vezes);
   }
 
   const detalhe = [...somaPorMarcador.entries()]
     .map(([marcador, vezes]) => ({ marcador, vezes }))
-    .sort((a, b) => b.vezes - a.vezes || a.marcador.localeCompare(b.marcador))
+    .sort((a, b) => b.vezes - a.vezes || a.marcador.localeCompare(b.marcador));
 
   return {
     total,
@@ -132,5 +140,5 @@ export function contarViciosDasFalas(
     detalhe,
     idiomas: [...idiomas].sort(),
     palavrasSemLista,
-  }
+  };
 }

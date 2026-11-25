@@ -16,23 +16,23 @@
  *
  * O timer é `unref()`: a sonda nunca segura o processo vivo.
  */
-'use strict'
-const { appendFileSync } = require('node:fs')
-const { monitorEventLoopDelay } = require('node:perf_hooks')
+'use strict';
+const { appendFileSync } = require('node:fs');
+const { monitorEventLoopDelay } = require('node:perf_hooks');
 
-const arquivo = process.env.SONDA_ARQUIVO
+const arquivo = process.env.SONDA_ARQUIVO;
 if (arquivo) {
-  const passo = Number(process.env.SONDA_MS || 250)
-  const h = monitorEventLoopDelay({ resolution: 1 })
-  h.enable()
-  let cpu0 = process.cpuUsage()
-  let t0 = process.hrtime.bigint()
-  let esperado = Date.now() + passo
+  const passo = Number(process.env.SONDA_MS || 250);
+  const h = monitorEventLoopDelay({ resolution: 1 });
+  h.enable();
+  let cpu0 = process.cpuUsage();
+  let t0 = process.hrtime.bigint();
+  let esperado = Date.now() + passo;
   const tick = setInterval(() => {
-    const t1 = process.hrtime.bigint()
-    const d = process.cpuUsage(cpu0)
-    const paredeUs = Number(t1 - t0) / 1000
-    const m = process.memoryUsage()
+    const t1 = process.hrtime.bigint();
+    const d = process.cpuUsage(cpu0);
+    const paredeUs = Number(t1 - t0) / 1000;
+    const m = process.memoryUsage();
     const linha = {
       t: Date.now(),
       rss: m.rss,
@@ -43,16 +43,16 @@ if (arquivo) {
       loopP99: Math.round(h.percentile(99) / 1e4) / 100,
       loopMax: Math.round(h.max / 1e4) / 100,
       atraso: Math.max(0, Date.now() - esperado),
-    }
-    h.reset()
-    esperado = Date.now() + passo
-    cpu0 = process.cpuUsage()
-    t0 = t1
+    };
+    h.reset();
+    esperado = Date.now() + passo;
+    cpu0 = process.cpuUsage();
+    t0 = t1;
     try {
-      appendFileSync(arquivo, JSON.stringify(linha) + '\n')
+      appendFileSync(arquivo, JSON.stringify(linha) + '\n');
     } catch {
       /* sonda nunca derruba o servidor */
     }
-  }, passo)
-  tick.unref()
+  }, passo);
+  tick.unref();
 }

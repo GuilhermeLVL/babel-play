@@ -22,16 +22,28 @@ import { isNull } from 'drizzle-orm'
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import {
-exerciseResults,
-providerCredentials, reviewLogs,   seedSpends,   sessions, settings,
-utterances, vocabCards, } from '../schema'
+  exerciseResults,
+  providerCredentials,
+  reviewLogs,
+  seedSpends,
+  sessions,
+  settings,
+  utterances,
+  vocabCards,
+} from '../schema'
 
 /* Todas as tabelas com `user_id`, EXCETO `secrets` (o dono dela é o da credencial). `profiles`
    era a outra exceção — tabela global, sem dono — e saiu junto com a tabela na migração 0026;
    `analyses` estava na lista e nunca teve uma linha para carimbar. */
 const TABELAS: any[] = [
-  sessions, utterances, vocabCards, reviewLogs, exerciseResults,
-  seedSpends, providerCredentials, settings,
+  sessions,
+  utterances,
+  vocabCards,
+  reviewLogs,
+  exerciseResults,
+  seedSpends,
+  providerCredentials,
+  settings,
 ]
 
 export async function backfillNullOwner(ownerId: UserId): Promise<number> {

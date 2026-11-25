@@ -41,18 +41,51 @@ const IDS_ANTIGOS = [
 
 function metricas(p: Partial<AppMetrics> = {}): AppMetrics {
   return {
-    sessions: 0, wordsCaptured: 0, reviews: 0, correctReviews: 0, drillItems: 0, drillCorrect: 0,
-    seedsGastas: 0, streakDays: 0, dueToday: 0, newCards: 0, deckSize: 0, uniqueWords: 0,
-    speakingMs: 0, wpm: 0, wpmConfidence: 0, accuracy: 0, accuracyConfidence: 0, avgStability: 0,
-    avgRetention: 0, avgRetentionConfidence: 0, levelConfidence: 0, levelDistribution: [], vocabByWeek: [],
-    asOf: 0, escopo: 'global', base: { considerados: 0, total: 0 }, ...p,
+    sessions: 0,
+    wordsCaptured: 0,
+    reviews: 0,
+    correctReviews: 0,
+    drillItems: 0,
+    drillCorrect: 0,
+    seedsGastas: 0,
+    streakDays: 0,
+    dueToday: 0,
+    newCards: 0,
+    deckSize: 0,
+    uniqueWords: 0,
+    speakingMs: 0,
+    wpm: 0,
+    wpmConfidence: 0,
+    accuracy: 0,
+    accuracyConfidence: 0,
+    avgStability: 0,
+    avgRetention: 0,
+    avgRetentionConfidence: 0,
+    levelConfidence: 0,
+    levelDistribution: [],
+    vocabByWeek: [],
+    asOf: 0,
+    escopo: 'global',
+    base: { considerados: 0, total: 0 },
+    ...p,
   }
 }
 function ctx(p: Partial<AppMetrics> = {}, extra: Partial<ContextoDeConquistas> = {}): ContextoDeConquistas {
-  return { metricas: metricas(p), nivel: 0, melhorComboPorJogo: {}, eventosVistos: 0, totalDeEventos: 11, idiomas: 0, compras: 0, ...extra }
+  return {
+    metricas: metricas(p),
+    nivel: 0,
+    melhorComboPorJogo: {},
+    eventosVistos: 0,
+    totalDeEventos: 11,
+    idiomas: 0,
+    compras: 0,
+    ...extra,
+  }
 }
 const feitas = (c: ContextoDeConquistas) =>
-  progressoDasConquistas(c).filter((p) => p.conquistada).map((p) => p.conquista.id)
+  progressoDasConquistas(c)
+    .filter((p) => p.conquistada)
+    .map((p) => p.conquista.id)
 
 describe('catálogo v2', () => {
   it('~40 conquistas, ids únicos, 4 pilares com pelo menos 8 cada', () => {
@@ -117,16 +150,22 @@ describe('nenhuma condição por tempo de tela', () => {
       listeningMs: 1e12,
       presencas: 1e5,
     })
-    const andou = progressoDasConquistas(c).filter((p) => p.atual > 0).map((p) => p.conquista.id)
+    const andou = progressoDasConquistas(c)
+      .filter((p) => p.atual > 0)
+      .map((p) => p.conquista.id)
     expect(andou).toEqual([])
   })
 })
 
 describe('condições', () => {
   it('séries: 50/300/1.000 palavras; 100/500/2.000 revisões', () => {
-    expect(feitas(ctx({ deckSize: 300 }))).toEqual(expect.arrayContaining(['primeira-palavra', 'caderno-cheio', 'caderno-300']))
+    expect(feitas(ctx({ deckSize: 300 }))).toEqual(
+      expect.arrayContaining(['primeira-palavra', 'caderno-cheio', 'caderno-300']),
+    )
     expect(feitas(ctx({ deckSize: 999 }))).not.toContain('caderno-1000')
-    expect(feitas(ctx({ correctReviews: 2000 }))).toEqual(expect.arrayContaining(['revisor', 'revisor-500', 'revisor-2000']))
+    expect(feitas(ctx({ correctReviews: 2000 }))).toEqual(
+      expect.arrayContaining(['revisor', 'revisor-500', 'revisor-2000']),
+    )
   })
 
   it('ouvinte conta sessões gravadas, não minutos', () => {
@@ -144,9 +183,24 @@ describe('condições', () => {
 
   it('jogos: bronze em 4/8/12 jogos e Mestre num jogo', () => {
     const maestria = Object.fromEntries(
-      ['memory', 'wordsearch', 'blitz', 'termo', 'scramble', 'karaoke', 'escuta', 'ditado', 'conectores', 'karuta', 'tenis', 'koffer'].map((j) => [j, 1]),
+      [
+        'memory',
+        'wordsearch',
+        'blitz',
+        'termo',
+        'scramble',
+        'karaoke',
+        'escuta',
+        'ditado',
+        'conectores',
+        'karuta',
+        'tenis',
+        'koffer',
+      ].map((j) => [j, 1]),
     )
-    expect(feitas(ctx({}, { maestria }))).toEqual(expect.arrayContaining(['primeiro-bronze', 'explorador', 'versatil', 'arcade']))
+    expect(feitas(ctx({}, { maestria }))).toEqual(
+      expect.arrayContaining(['primeiro-bronze', 'explorador', 'versatil', 'arcade']),
+    )
     expect(feitas(ctx({}, { maestria: { termo: 5 } }))).toContain('mestre-de-um')
   })
 
@@ -154,7 +208,9 @@ describe('condições', () => {
     expect(feitas(ctx({ reviews: 200, correctReviews: 190 }))).toContain('mira-fina')
     expect(feitas(ctx({ reviews: 200, correctReviews: 189 }))).not.toContain('mira-fina')
     expect(feitas(ctx({ reviews: 199, correctReviews: 199 }))).not.toContain('mira-fina')
-    expect(feitas(ctx({}, { melhorComboPorJogo: { blitz: 20 } }))).toEqual(expect.arrayContaining(['duelista', 'imparavel']))
+    expect(feitas(ctx({}, { melhorComboPorJogo: { blitz: 20 } }))).toEqual(
+      expect.arrayContaining(['duelista', 'imparavel']),
+    )
     expect(feitas(ctx({ maiorSequenciaPresenca: 100 }))).toEqual(
       expect.arrayContaining(['tres-dias', 'maratonista', 'constante', 'inabalavel']),
     )

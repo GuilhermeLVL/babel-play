@@ -171,17 +171,15 @@ describe('sessao e rodada (self-host)', () => {
     origem: 'baralho',
     score: 120,
     melhorSequencia: 2,
-    itens: semente.cartoes
-      .slice(0, 2)
-      .map((c: { id: string; word: string }) => ({
-        cardId: c.id,
-        itemRef: c.word,
-        correct: 1,
-        attempts: 1,
-        ms: 800,
-        hinted: 0,
-        kind: 'srs',
-      })),
+    itens: semente.cartoes.slice(0, 2).map((c: { id: string; word: string }) => ({
+      cardId: c.id,
+      itemRef: c.word,
+      correct: 1,
+      attempts: 1,
+      ms: 800,
+      hinted: 0,
+      kind: 'srs',
+    })),
     ...extra,
   })
 

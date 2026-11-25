@@ -27,12 +27,12 @@ os nove jogos culturais viram jogos de verdade (entram em `MinigameId`, `montarR
 
 ## O que sai, o que fica
 
-| Sai | Fica |
-|---|---|
-| Os nove cards da grade `/jogar`, a aba "Jogos do Mundo" e o separador | Os nove componentes, movidos para `minigames/culturais/` |
-| Os nove no sorteio da Partida Rapida | O `README.md` da pasta, com a divida por jogo |
-| `JogoAtivo`, `JogoCulturalMeta`, `JOGOS_CULTURAIS` e o bloco de render (`Play.tsx`) | A spec `jogo-so-entra-pelo-sistema`, para a entrega A |
-| `MinigamesShowcase.tsx` (segundo roteador, sem importador desde sempre) | Os testes existentes (nenhum citava os nove) |
+| Sai                                                                                 | Fica                                                     |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Os nove cards da grade `/jogar`, a aba "Jogos do Mundo" e o separador               | Os nove componentes, movidos para `minigames/culturais/` |
+| Os nove no sorteio da Partida Rapida                                                | O `README.md` da pasta, com a divida por jogo            |
+| `JogoAtivo`, `JogoCulturalMeta`, `JOGOS_CULTURAIS` e o bloco de render (`Play.tsx`) | A spec `jogo-so-entra-pelo-sistema`, para a entrega A    |
+| `MinigamesShowcase.tsx` (segundo roteador, sem importador desde sempre)             | Os testes existentes (nenhum citava os nove)             |
 
 ## O que isso muda para quem usa
 

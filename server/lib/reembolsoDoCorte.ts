@@ -37,7 +37,12 @@ export async function reembolsarCorteDoCatalogo(userId: UserId): Promise<Resulta
   const [gastos, ja] = await Promise.all([seedSpendsRepo.gastos(userId), economiaRepo.reembolsos(userId)])
   let creditado = 0
   for (const d of reembolsosDevidos(gastos, new Set(ja.map((r) => r.creditoId)))) {
-    const { jaExistia } = await economiaRepo.creditar(userId, { creditoId: d.creditoId, amount: d.seeds, xp: 0, reason: d.creditoId })
+    const { jaExistia } = await economiaRepo.creditar(userId, {
+      creditoId: d.creditoId,
+      amount: d.seeds,
+      xp: 0,
+      reason: d.creditoId,
+    })
     if (!jaExistia) creditado += d.seeds
   }
   let creditosDevolvidos = 0
@@ -48,7 +53,10 @@ export async function reembolsarCorteDoCatalogo(userId: UserId): Promise<Resulta
     ...reembolsosDoPasse(passe.compras, passe.concedido),
   ]
   for (const r of devolucoes) {
-    const { jaExistia } = await creditsRepo.registrarConcessao(userId, { concessaoId: r.concessaoId, creditos: r.creditos })
+    const { jaExistia } = await creditsRepo.registrarConcessao(userId, {
+      concessaoId: r.concessaoId,
+      creditos: r.creditos,
+    })
     if (!jaExistia) creditosDevolvidos += r.creditos
   }
   const reembolsado = (await economiaRepo.reembolsos(userId)).reduce((n, r) => n + r.amount, 0)

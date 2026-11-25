@@ -26,12 +26,12 @@ a marcação está em `src/components/views/revisao/` e as contas em `src/lib/re
 
 ## O que cada prática grava
 
-| Prática | O que vai ao servidor |
-| --- | --- |
-| Falar, Ouvir e escrever, Completar | No fim da prática, uma nota por cartão em `POST /api/vocab/:id/review`: Bom (3) se lembrou, Errei (1) se não, com `origem: 'pratica:<tipo>'` e `formato: <tipo>`. Sair no meio não grava nada. |
-| Jogo rápido | A rodada abre no Jogar com `semAgenda`: nenhuma nota vai ao agendador. O resultado do jogo (`/rodada`) e o XP dele continuam valendo. |
-| Minha voz, Dizer antes de virar | Nada. |
-| Deixar para amanhã, Descansar 30 dias | `PATCH /api/vocab/:id` com `adiarAte`: só a data de vencer. Sem linha em `review_logs`. |
+| Prática                               | O que vai ao servidor                                                                                                                                                                          |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Falar, Ouvir e escrever, Completar    | No fim da prática, uma nota por cartão em `POST /api/vocab/:id/review`: Bom (3) se lembrou, Errei (1) se não, com `origem: 'pratica:<tipo>'` e `formato: <tipo>`. Sair no meio não grava nada. |
+| Jogo rápido                           | A rodada abre no Jogar com `semAgenda`: nenhuma nota vai ao agendador. O resultado do jogo (`/rodada`) e o XP dele continuam valendo.                                                          |
+| Minha voz, Dizer antes de virar       | Nada.                                                                                                                                                                                          |
+| Deixar para amanhã, Descansar 30 dias | `PATCH /api/vocab/:id` com `adiarAte`: só a data de vencer. Sem linha em `review_logs`.                                                                                                        |
 
 ## Como abrir a folha das práticas de outra tela
 

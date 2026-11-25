@@ -57,10 +57,7 @@
     "borderTopStyle",
     "textTransform"
   ],
-  "seletores": [
-    ".px-faixas",
-    ".px-trilha"
-  ],
+  "seletores": [".px-faixas", ".px-trilha"],
   "gravar": {
     "app": [
       {

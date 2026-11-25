@@ -77,9 +77,19 @@ async function revisarESalvar(u: string) {
   const { cards } = await vocabRepo.bulkAdd(
     asUserId(u),
     [
-      ['leverage', 'alavancar'], ['synergy', 'sinergia'], ['volatility', 'volatilidade'],
-      ['heuristics', 'heurística'], ['resilience', 'resiliência'],
-    ].map(([word, back]) => ({ word, back, sentence: `we discuss ${word} here`, srcLang: 'en', tgtLang: 'pt', sessionId: s.id })),
+      ['leverage', 'alavancar'],
+      ['synergy', 'sinergia'],
+      ['volatility', 'volatilidade'],
+      ['heuristics', 'heurística'],
+      ['resilience', 'resiliência'],
+    ].map(([word, back]) => ({
+      word,
+      back,
+      sentence: `we discuss ${word} here`,
+      srcLang: 'en',
+      tgtLang: 'pt',
+      sessionId: s.id,
+    })),
   )
   for (let i = 0; i < 20; i++) await vocabRepo.review(asUserId(u), cards[i % cards.length].id, 3)
 }
@@ -159,7 +169,12 @@ describe('congelamento da ofensiva', () => {
     vi.setSystemTime(meioDia(5))
     await rodada(u, 'c-5', 'blitz', 10)
     // A meta de 05/10 creditada (o valor e a conferência são de outro teste; aqui importa o razão).
-    await economiaRepo.creditar(asUserId(u), { creditoId: 'meta:2026-10-05', amount: 15, xp: 20, reason: 'meta:2026-10-05' })
+    await economiaRepo.creditar(asUserId(u), {
+      creditoId: 'meta:2026-10-05',
+      amount: 15,
+      xp: 20,
+      reason: 'meta:2026-10-05',
+    })
     vi.setSystemTime(meioDia(6))
     await rodada(u, 'c-6', 'blitz', 10)
     // 07/10: nada.

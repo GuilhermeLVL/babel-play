@@ -13,11 +13,11 @@ chave saiu junto com a decisão.
 A branch `gamificacao-v2-wip` tem **três** organizações, não duas, e a diferença entre elas não é
 estética:
 
-| Organização | Portas | Superfícies alcançáveis |
-|---|---|---|
-| `main`, quatro abas | Passe · Meu visual · Loja · Desafios | 4 de 4 |
-| branch, modo `legado` | Recompensas (Passe + Desafios em sub-abas) · Loja · Meu Estilo | 4 de 4, em 3 portas |
-| branch, modo `pro` (o padrão) | Vestiário · Relíquias do Cofre | **2 de 4** |
+| Organização                   | Portas                                                         | Superfícies alcançáveis |
+| ----------------------------- | -------------------------------------------------------------- | ----------------------- |
+| `main`, quatro abas           | Passe · Meu visual · Loja · Desafios                           | 4 de 4                  |
+| branch, modo `legado`         | Recompensas (Passe + Desafios em sub-abas) · Loja · Meu Estilo | 4 de 4, em 3 portas     |
+| branch, modo `pro` (o padrão) | Vestiário · Relíquias do Cofre                                 | **2 de 4**              |
 
 O modo `pro` é o que `Loja.tsx:151` da branch fixa em `useState<'pro' \| 'legado'>('pro')`, e
 `setModoVisual` não é chamado em lugar nenhum. Ou seja: **a única organização alcançável da branch

@@ -49,7 +49,9 @@ type FabricaDeContexto = () => AudioContext | null;
  * segundo plano) e, com o elemento já preso ao grafo, a voz some até um gesto retomar. O som da tradução vale mais que
  * a boca sincronizada, então ali o analisador NÃO é ligado e a boca anda pela cadência.
  */
-export function ehWebKitDeToque(nav: Pick<Navigator, 'userAgent' | 'maxTouchPoints'> | undefined = globalThis.navigator): boolean {
+export function ehWebKitDeToque(
+  nav: Pick<Navigator, 'userAgent' | 'maxTouchPoints'> | undefined = globalThis.navigator,
+): boolean {
   if (!nav) return false;
   if (/iPhone|iPad|iPod/.test(nav.userAgent)) return true;
   // iPadOS se apresenta como Mac, mas tem toque.

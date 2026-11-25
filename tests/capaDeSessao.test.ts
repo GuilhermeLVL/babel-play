@@ -12,12 +12,13 @@
  * A imagem continua exatamente onde estava no banco. O que muda é o caminho de entrega — e com
  * ele o cache, que data-URI não tem.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { aliviarListagem,aliviarMeta, ehCapaEmbutida, lerCapaEmbutida } from '../server/lib/capaDeSessao'
+import { aliviarListagem, aliviarMeta, ehCapaEmbutida, lerCapaEmbutida } from '../server/lib/capaDeSessao'
 
 /** PNG 1×1 transparente — o menor data-URI de imagem válido. */
-const PNG_1X1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+const PNG_1X1 =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
 
 describe('reconhecer a capa embutida', () => {
   it('decodifica um data-URI de imagem', () => {
@@ -86,7 +87,10 @@ describe('aliviar a listagem', () => {
   })
 
   it('nenhum data-URI sobrevive à listagem — é a garantia que importa', () => {
-    const saida = aliviarListagem([{ id: 'a', meta: metaCom }, { id: 'b', meta: metaCom }])
+    const saida = aliviarListagem([
+      { id: 'a', meta: metaCom },
+      { id: 'b', meta: metaCom },
+    ])
     expect(JSON.stringify(saida)).not.toContain('data:image')
   })
 })

@@ -73,7 +73,8 @@ export const tempoAteAVoz = {
       motor: motor || 'desconhecido',
       ...(audioMs && audioMs > 0 ? { audioMs } : {}),
     });
-    if (etapas.size > TETO_DE_AMOSTRAS * ETAPAS_DO_INTERPRETE.length) etapas.delete(etapas.keys().next().value as string);
+    if (etapas.size > TETO_DE_AMOSTRAS * ETAPAS_DO_INTERPRETE.length)
+      etapas.delete(etapas.keys().next().value as string);
   },
 
   /** p50/p95/média de todas e por motor; `null` sem amostra (nunca um zero inventado). */
@@ -83,10 +84,12 @@ export const tempoAteAVoz = {
     const porEtapa: Partial<Record<EtapaDoInterprete, ResumoDaEtapa>> = {};
     for (const nome of ETAPAS_DO_INTERPRETE) {
       const dela = [...etapas.values()].filter((e) => e.etapa === nome);
-      if (dela.length) porEtapa[nome] = { ...resumir(dela.map((e) => e.ms)), motores: [...new Set(dela.map((e) => e.motor))] };
+      if (dela.length)
+        porEtapa[nome] = { ...resumir(dela.map((e) => e.ms)), motores: [...new Set(dela.map((e) => e.motor))] };
     }
     const stts = [...etapas.values()].filter((e) => e.etapa === 'stt');
-    const minutosNaNuvem = stts.filter((e) => e.motor === MOTOR_DA_NUVEM).reduce((s, e) => s + (e.audioMs ?? 0), 0) / 60000;
+    const minutosNaNuvem =
+      stts.filter((e) => e.motor === MOTOR_DA_NUVEM).reduce((s, e) => s + (e.audioMs ?? 0), 0) / 60000;
     return {
       ...resumir(amostras.map((a) => a.ms)),
       motores,

@@ -16,7 +16,11 @@ const rodada = (roundId: string, score: number, melhorSequencia: number, itens: 
   servidorEfemero('/api/exercises/rodada', {
     method: 'POST',
     body: JSON.stringify({
-      roundId, exerciseKind: 'blitz', origem: 'baralho', score, melhorSequencia,
+      roundId,
+      exerciseKind: 'blitz',
+      origem: 'baralho',
+      score,
+      melhorSequencia,
       itens: itens.map((c, i) => ({ itemRef: 'w' + i, correct: c, attempts: 1, ms: 900, hinted: 0, kind: 'drill' })),
     }),
   })

@@ -181,10 +181,12 @@ describe('a posição do ponteiro dentro do alvo (`--mx`, `--my`)', () => {
     vi.stubGlobal('requestAnimationFrame', (f: () => void) => quadros.push(f))
     vi.stubGlobal('cancelAnimationFrame', () => undefined)
     porControles([])
-    document.querySelector('main')!.insertAdjacentHTML(
-      'beforeend',
-      '<button id="cartao" class="q-tile">Jogar</button><button id="linha" class="q-linha">Linha</button>',
-    )
+    document
+      .querySelector('main')!
+      .insertAdjacentHTML(
+        'beforeend',
+        '<button id="cartao" class="q-tile">Jogar</button><button id="linha" class="q-linha">Linha</button>',
+      )
     for (const id of ['cartao', 'linha', 'a'])
       el(id).getBoundingClientRect = () => ({ left: 10, top: 20, width: 200, height: 100 }) as DOMRect
   })

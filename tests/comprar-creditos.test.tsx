@@ -26,8 +26,7 @@ async function montar(opts: { configurado?: boolean; auth?: boolean; link?: stri
   vi.doMock('../src/data/api', () => ({
     apiFetch: vi.fn(async (url: string) => {
       if (url.includes('/status')) return { ok: true, json: async () => ({ configurado }) }
-      if (url.includes('/creditos'))
-        return { ok: true, json: async () => ({ saldo: 120, compras: [] }) }
+      if (url.includes('/creditos')) return { ok: true, json: async () => ({ saldo: 120, compras: [] }) }
       if (url.includes('/comprar')) return { ok: true, json: async () => ({ linkDePagamento: link }) }
       return { ok: false, status: 404, json: async () => ({}) }
     }),

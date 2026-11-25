@@ -1,6 +1,7 @@
 # desempenho-da-captura Specification
 
 ## Purpose
+
 Change retroativa da Fase A (grátis leve): menos renders, threads e mensagens na captura gratuita. Criada pela change `gratis-sem-travar` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-gratis-sem-travar/proposal.md` para o porquê.
 
 ## Requirements

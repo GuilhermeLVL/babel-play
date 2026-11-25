@@ -20,7 +20,9 @@ const CHAVE_AVISO = 'babel.missao_avisada';
  * Pede o crédito da meta do dia se o servidor diz que ela fechou e ainda não foi creditada.
  * Devolve a recompensa quando o servidor creditou AGORA (não num reenvio), ou `null`.
  */
-export async function reivindicarMetaDoDia(estado: EstadoDasMissoes | null): Promise<{ seeds: number; xp: number } | null> {
+export async function reivindicarMetaDoDia(
+  estado: EstadoDasMissoes | null,
+): Promise<{ seeds: number; xp: number } | null> {
   if (!estado?.metaConcluida || estado.metaCreditada) return null;
   const r = await creditarSeeds({ creditoId: `meta:${estado.dia}` });
   if (!r || r.jaExistia) return null;

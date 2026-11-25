@@ -62,11 +62,23 @@ describe('decidirBau — a regra pura', () => {
   })
 
   it('elegíveis vazios: vira Seeds com o valor da raridade sorteada', () => {
-    expect(decidirBau({ ...base, elegiveis: [], sorteio: 0.1 })).toEqual({ tipo: 'seeds', seeds: SEEDS_DO_REPETIDO.comum, raridade: 'comum' })
-    expect(decidirBau({ ...base, elegiveis: [], sorteio: 0.9 })).toEqual({ tipo: 'seeds', seeds: SEEDS_DO_REPETIDO.raro, raridade: 'raro' })
+    expect(decidirBau({ ...base, elegiveis: [], sorteio: 0.1 })).toEqual({
+      tipo: 'seeds',
+      seeds: SEEDS_DO_REPETIDO.comum,
+      raridade: 'comum',
+    })
+    expect(decidirBau({ ...base, elegiveis: [], sorteio: 0.9 })).toEqual({
+      tipo: 'seeds',
+      seeds: SEEDS_DO_REPETIDO.raro,
+      raridade: 'raro',
+    })
     // Faixa sorteada vazia não devolve a chance à outra: a taxa anunciada não muda sozinha.
     const soComuns = TODOS.filter((i) => i.raridade === 'comum')
-    expect(decidirBau({ ...base, elegiveis: soComuns, sorteio: 0.9 })).toEqual({ tipo: 'seeds', seeds: 40, raridade: 'raro' })
+    expect(decidirBau({ ...base, elegiveis: soComuns, sorteio: 0.9 })).toEqual({
+      tipo: 'seeds',
+      seeds: 40,
+      raridade: 'raro',
+    })
   })
 
   it('o repetido não atesta posse: o razão não é `drop:`', () => {
@@ -84,7 +96,10 @@ describe('situacaoDoBau — dia local e sequência sem raro', () => {
   it('baús às 23:59 e às 00:01 contam em dias diferentes', () => {
     const t2359 = Date.UTC(2026, 8, 28, 2, 59) // 27/09 23:59 em -03
     const t0001 = Date.UTC(2026, 8, 28, 3, 1) // 28/09 00:01 em -03
-    const baus = [{ em: t2359, reason: `drop:${comum.id}` }, { em: t0001, reason: `drop:${comum.id}` }]
+    const baus = [
+      { em: t2359, reason: `drop:${comum.id}` },
+      { em: t0001, reason: `drop:${comum.id}` },
+    ]
     expect(situacaoDoBau(baus, '2026-09-27', diaDe).bausHoje).toBe(1)
     expect(situacaoDoBau(baus, '2026-09-28', diaDe).bausHoje).toBe(1)
   })
@@ -118,7 +133,14 @@ describe('o baú pela rota (espelho sem conta)', () => {
       origem: 'baralho',
       score: 10,
       melhorSequencia: 4,
-      itens: Array.from({ length: 4 }, (_, i) => ({ itemRef: `b${i}`, correct: 1, attempts: 1, ms: 400, hinted: 0, kind: 'drill' })),
+      itens: Array.from({ length: 4 }, (_, i) => ({
+        itemRef: `b${i}`,
+        correct: 1,
+        attempts: 1,
+        ms: 400,
+        hinted: 0,
+        kind: 'drill',
+      })),
     })
   const abrir = async (roundId: string) => {
     await rodada(roundId)

@@ -9,7 +9,7 @@
  *
  * Achado F08 de `docs/auditoria/tela-de-jogos-v1.md`.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import type { DadoTrilha } from '../src/core/learning/trilha'
 import { niveisEmJogo } from '../src/core/learning/trilha'
@@ -52,7 +52,9 @@ describe('niveisEmJogo', () => {
 
   it('a ordem é a do CEFR, não a de inserção do objeto', () => {
     const foraDeOrdem: DadoTrilha = {
-      lang: 'en', fonte: 'teste', versao: '1',
+      lang: 'en',
+      fonte: 'teste',
+      versao: '1',
       niveis: { B1: [['x', 'x']], A1: [['y', 'y']] },
     }
     expect(niveisEmJogo(foraDeOrdem)).toEqual(['A1', 'B1'])

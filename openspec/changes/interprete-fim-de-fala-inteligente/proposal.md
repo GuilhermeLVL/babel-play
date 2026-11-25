@@ -27,12 +27,14 @@ tradução e a voz só começam depois da fala inteira, e o app não mostra nada
 ## Capabilities
 
 ### New Capabilities
+
 - `fim-de-fala-inteligente`: decidir o fim da fala por modelo de áudio, com piso dinâmico, teto e queda para o VAD fixo.
 - `traducao-parcial-estavel`: tradução em trechos a partir do parcial estável, mostrada em cinza e substituída pelo final.
 - `voz-por-frase`: leitura da tradução frase a frase, em streaming, com cancelamento e ordem garantida.
 - `medidor-da-sessao-de-voz`: tempos por etapa, motor e custo estimado por fala e por sessão.
 
 ### Modified Capabilities
+
 <!-- Nenhuma: o comportamento do modo intérprete ainda mora na change `modo-interprete` (não arquivada). -->
 
 ## Impact

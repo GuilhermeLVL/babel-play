@@ -10,10 +10,5 @@
       }
     ]
   },
-  "seletores": [
-    ".q-palco",
-    ".q-vazio",
-    ".q-vazio h1",
-    ".q-vazio .q-ctl"
-  ]
+  "seletores": [".q-palco", ".q-vazio", ".q-vazio h1", ".q-vazio .q-ctl"]
 }

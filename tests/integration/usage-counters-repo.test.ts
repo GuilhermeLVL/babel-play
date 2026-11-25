@@ -1,8 +1,8 @@
 /** SaaS — repositório de contadores de uso (fair-use). get() começa em 0; increment() faz upsert idempotente por (user,metric,window). */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let repo: any
@@ -11,7 +11,9 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ usageCountersRepo: repo } = await h.load('../../server/db/repositories/usageCounters'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('usageCountersRepo', () => {
   it('get() sem linha → 0', async () => {

@@ -1,6 +1,7 @@
 # stt-ingles-na-nuvem Specification
 
 ## Purpose
+
 Normalizar volume antes do STT na nuvem (flag) e revisar a rota do inglês. Criada pela change `stt-ingles-volume-e-rota` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-stt-ingles-volume-e-rota/proposal.md` para o porquê.
 
 ## Requirements

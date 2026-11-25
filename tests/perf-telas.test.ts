@@ -72,8 +72,12 @@ describe('TBT e a célula antes → depois', () => {
 describe('nome do módulo no bundle', () => {
   it('agrupa node_modules por pacote (com escopo) e relativiza o resto', () => {
     const raiz = 'C:\\repo'
-    expect(nomeDoModulo('C:/repo/node_modules/lucide-react/dist/esm/icons/x.js', raiz)).toBe('node_modules/lucide-react')
-    expect(nomeDoModulo('\0C:/repo/node_modules/@supabase/auth-js/x.js?commonjs', raiz)).toBe('node_modules/@supabase/auth-js')
+    expect(nomeDoModulo('C:/repo/node_modules/lucide-react/dist/esm/icons/x.js', raiz)).toBe(
+      'node_modules/lucide-react',
+    )
+    expect(nomeDoModulo('\0C:/repo/node_modules/@supabase/auth-js/x.js?commonjs', raiz)).toBe(
+      'node_modules/@supabase/auth-js',
+    )
     expect(nomeDoModulo('C:\\repo\\src\\App.tsx', raiz)).toBe('src/App.tsx')
   })
 })

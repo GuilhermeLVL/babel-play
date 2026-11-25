@@ -1,6 +1,7 @@
 # traducao-do-chines Specification
 
 ## Purpose
+
 Traduzir zh→pt pelo pivô inglês quando não há rota direta, e separar frases com 。！？. Criada pela change `traducao-do-chines-pelo-ingles` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-traducao-do-chines-pelo-ingles/proposal.md` para o porquê.
 
 ## Requirements

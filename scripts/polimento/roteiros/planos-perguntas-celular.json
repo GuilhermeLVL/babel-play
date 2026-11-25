@@ -42,12 +42,7 @@
       }
     ]
   },
-  "seletores": [
-    ".px-faq",
-    ".px-faq details",
-    ".px-faq summary",
-    ".px-faq summary svg"
-  ],
+  "seletores": [".px-faq", ".px-faq details", ".px-faq summary", ".px-faq summary svg"],
   "props": [
     "borderTopStyle",
     "alignItems",

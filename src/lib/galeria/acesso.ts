@@ -41,7 +41,6 @@ export const ITEM_DA_FORMA_DE_RASTRO: Record<string, string> = {
   arcoiris: 'ras-arcoiris',
 };
 
-
 export interface Acesso {
   liberado: boolean;
   /** O caminho quando trancado ("Nível 3 ou 60 Seeds", "Conquista: Colecionador"). */
@@ -58,7 +57,12 @@ export function acessoAoItem(id: string | undefined, nivel: number, saldo: numbe
   if (!item) return { liberado: true };
   const e = estadoDoItem(item, nivel, saldo);
   if (e.estado === 'equipavel') return { liberado: true, item };
-  return { liberado: false, item, motivo: e.motivo ?? (item.precoSeeds ? `Nível ${item.nivel} ou ${item.precoSeeds} Seeds` : `Nível ${item.nivel}`), compravel: e.estado === 'compravel' };
+  return {
+    liberado: false,
+    item,
+    motivo: e.motivo ?? (item.precoSeeds ? `Nível ${item.nivel} ou ${item.precoSeeds} Seeds` : `Nível ${item.nivel}`),
+    compravel: e.estado === 'compravel',
+  };
 }
 
 /**
@@ -68,8 +72,10 @@ export function acessoAoItem(id: string | undefined, nivel: number, saldo: numbe
  * `tema-custom`, nível 10), com porta própria. Por isso o gate de paleta é o do ESTILO, aqui,
  * e o de cores livres é o do Estúdio — os dois fail-closed nas próprias funções.
  */
-export const acessoAoEstilo = (estilo: EstiloDePaleta, nivel: number, saldo: number) => acessoAoItem(ITEM_DO_ESTILO[estilo], nivel, saldo);
-export const acessoAFormaDeRastro = (forma: string, nivel: number, saldo: number) => acessoAoItem(ITEM_DA_FORMA_DE_RASTRO[forma], nivel, saldo);
+export const acessoAoEstilo = (estilo: EstiloDePaleta, nivel: number, saldo: number) =>
+  acessoAoItem(ITEM_DO_ESTILO[estilo], nivel, saldo);
+export const acessoAFormaDeRastro = (forma: string, nivel: number, saldo: number) =>
+  acessoAoItem(ITEM_DA_FORMA_DE_RASTRO[forma], nivel, saldo);
 
 /**
  * O que FALTA para um perfil inteiro: paleta (estilo), rastro (item ou forma), partículas, tema.
@@ -80,11 +86,25 @@ export function faltaParaOPerfil(
   ctx: { nivel: number; saldo: number; estiloDaPaleta: (id: string) => EstiloDePaleta | undefined },
 ): string[] {
   const falta = new Set<string>();
-  const checa = (a: Acesso) => { if (!a.liberado && a.motivo) falta.add(`${a.item?.nome ?? 'item'}: ${a.motivo}`); };
-  if (p.paleta) { const est = ctx.estiloDaPaleta(p.paleta); if (est) checa(acessoAoEstilo(est, ctx.nivel, ctx.saldo)); }
-  if (p.tema) { const item = CATALOGO_DA_LOJA.find((i) => i.tipo === 'tema' && i.alvo === p.tema); if (item) checa(acessoAoItem(item.id, ctx.nivel, ctx.saldo)); }
-  if (p.rastro.startsWith('gen:')) { const forma = p.rastro.split(':')[1]; checa(acessoAFormaDeRastro(forma, ctx.nivel, ctx.saldo)); }
-  else if (p.rastro !== 'off') { const item = CATALOGO_DA_LOJA.find((i) => i.tipo === 'rastro' && i.alvo === p.rastro); if (item) checa(acessoAoItem(item.id, ctx.nivel, ctx.saldo)); }
-  const partItem = CATALOGO_DA_LOJA.find((i) => i.tipo === 'particulas' && i.alvo === p.particulas); if (partItem) checa(acessoAoItem(partItem.id, ctx.nivel, ctx.saldo));
+  const checa = (a: Acesso) => {
+    if (!a.liberado && a.motivo) falta.add(`${a.item?.nome ?? 'item'}: ${a.motivo}`);
+  };
+  if (p.paleta) {
+    const est = ctx.estiloDaPaleta(p.paleta);
+    if (est) checa(acessoAoEstilo(est, ctx.nivel, ctx.saldo));
+  }
+  if (p.tema) {
+    const item = CATALOGO_DA_LOJA.find((i) => i.tipo === 'tema' && i.alvo === p.tema);
+    if (item) checa(acessoAoItem(item.id, ctx.nivel, ctx.saldo));
+  }
+  if (p.rastro.startsWith('gen:')) {
+    const forma = p.rastro.split(':')[1];
+    checa(acessoAFormaDeRastro(forma, ctx.nivel, ctx.saldo));
+  } else if (p.rastro !== 'off') {
+    const item = CATALOGO_DA_LOJA.find((i) => i.tipo === 'rastro' && i.alvo === p.rastro);
+    if (item) checa(acessoAoItem(item.id, ctx.nivel, ctx.saldo));
+  }
+  const partItem = CATALOGO_DA_LOJA.find((i) => i.tipo === 'particulas' && i.alvo === p.particulas);
+  if (partItem) checa(acessoAoItem(partItem.id, ctx.nivel, ctx.saldo));
   return [...falta];
 }

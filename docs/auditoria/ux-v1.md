@@ -19,18 +19,18 @@ leve para a edição completa** — que é o que esta rodada começou a fazer.
 
 ## O que foi medido e corrigido (verificado no navegador, antes e depois)
 
-| Achado | Antes | Depois |
-|---|---|---|
-| Dois tutores para UM painel | "BabelBot" no cabeçalho + "iChat" flutuante abriam o MESMO chat com nomes diferentes | Uma porta só (o balão, que carrega contexto); rótulo corrigido — dizia "Business English" num app de qualquer idioma |
-| Enxame de ícones no cabeçalho | 8 botões de ícone soltos | 6 — som/animações/desempenho viraram um popover "Conforto visual" com rótulos e estado EM PALAVRAS |
-| Jargão corporativo no Hub | "PAINEL DE PERFORMANCE", "20 palavras **venceram no agendador**" | "Seu estudo", "20 palavras **prontas para revisar**" |
-| Botão gritado triplo | "RELATÓRIO EXECUTIVO" + "VISUALIZAR RELATÓRIO DE PERFORMANCE DETALHADA" + "Expandir" — o leitor de tela lia os três | "Estatísticas detalhadas · Retenção, tempo de estudo e evolução semanal" |
-| **Planos inalcançáveis** | Só atrás do menu do avatar — nem o dono do produto achou | Botão "Ver planos e preços" no bloco Plano de Ajustes + linha discreta no Hub para quem está no Grátis |
+| Achado                        | Antes                                                                                                               | Depois                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Dois tutores para UM painel   | "BabelBot" no cabeçalho + "iChat" flutuante abriam o MESMO chat com nomes diferentes                                | Uma porta só (o balão, que carrega contexto); rótulo corrigido — dizia "Business English" num app de qualquer idioma |
+| Enxame de ícones no cabeçalho | 8 botões de ícone soltos                                                                                            | 6 — som/animações/desempenho viraram um popover "Conforto visual" com rótulos e estado EM PALAVRAS                   |
+| Jargão corporativo no Hub     | "PAINEL DE PERFORMANCE", "20 palavras **venceram no agendador**"                                                    | "Seu estudo", "20 palavras **prontas para revisar**"                                                                 |
+| Botão gritado triplo          | "RELATÓRIO EXECUTIVO" + "VISUALIZAR RELATÓRIO DE PERFORMANCE DETALHADA" + "Expandir" — o leitor de tela lia os três | "Estatísticas detalhadas · Retenção, tempo de estudo e evolução semanal"                                             |
+| **Planos inalcançáveis**      | Só atrás do menu do avatar — nem o dono do produto achou                                                            | Botão "Ver planos e preços" no bloco Plano de Ajustes + linha discreta no Hub para quem está no Grátis               |
 
 ## O que a auditoria REFUTOU (e vale registrar)
 
 **"355 botões na tela de Sessão" exagerava o problema visual.** Os 240 botões por trecho (3 × 80)
-já são revelados só no *hover*, com `tabIndex={-1}` e razão documentada (correção F7 de uma
+já são revelados só no _hover_, com `tabIndex={-1}` e razão documentada (correção F7 de uma
 auditoria anterior). Eles existem na árvore de acessibilidade, mas não na tela — a poluição visual
 ali é menor do que a contagem sugeria. Medir pela árvore superestima; olhar só a tela subestima; é
 preciso os dois.

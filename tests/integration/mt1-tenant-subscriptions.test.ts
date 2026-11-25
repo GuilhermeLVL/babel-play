@@ -3,10 +3,10 @@
  * resto do Marco 1: `getActive` só devolve a assinatura do próprio dono; `upsert` é idempotente
  * por usuário (unique user_id) e não vaza para outro.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')
@@ -20,7 +20,9 @@ beforeAll(async () => {
   await repo.upsert(A, { plan: 'pro', status: 'active' })
   await repo.upsert(B, { plan: 'free', status: 'active' })
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('SaaS Fatia 1a — isolamento subscriptions', () => {
   it('getActive retorna só a assinatura do próprio usuário', async () => {

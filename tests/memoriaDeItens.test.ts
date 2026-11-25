@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-embaralharComSemente,   estadoDoItem,   type HistoricoDoItem,
-janelaDeRetorno, LEECH_APOS,
-ordenarPorMemoria, prontoParaVoltar, } from '../src/core/learning/memoriaDeItens'
+  embaralharComSemente,
+  estadoDoItem,
+  type HistoricoDoItem,
+  janelaDeRetorno,
+  LEECH_APOS,
+  ordenarPorMemoria,
+  prontoParaVoltar,
+} from '../src/core/learning/memoriaDeItens'
 
 const dia = (ts: number) => Math.floor(ts / 86_400_000)
 const h = (p: Partial<HistoricoDoItem>): HistoricoDoItem => ({ vezes: 0, erros: 0, ultimoAcerto: false, ...p })
@@ -29,10 +34,16 @@ describe('estado do item — a memória única dos 9 jogos', () => {
 
   it('prontoParaVoltar respeita rodadas e o dia local', () => {
     const agora = 10 * 86_400_000 + 1000
-    expect(prontoParaVoltar(h({ vezes: 1, erros: 1, errosSeguidos: 1, rodadasDesdeUltimoErro: 1 }), agora, dia)).toBe(false)
-    expect(prontoParaVoltar(h({ vezes: 1, erros: 1, errosSeguidos: 1, rodadasDesdeUltimoErro: 2 }), agora, dia)).toBe(true)
+    expect(prontoParaVoltar(h({ vezes: 1, erros: 1, errosSeguidos: 1, rodadasDesdeUltimoErro: 1 }), agora, dia)).toBe(
+      false,
+    )
+    expect(prontoParaVoltar(h({ vezes: 1, erros: 1, errosSeguidos: 1, rodadasDesdeUltimoErro: 2 }), agora, dia)).toBe(
+      true,
+    )
     const ontem = agora - 86_400_000
-    expect(prontoParaVoltar(h({ vezes: 3, erros: 3, errosSeguidos: 3, ultimaEm: agora - 1000 }), agora, dia)).toBe(false)
+    expect(prontoParaVoltar(h({ vezes: 3, erros: 3, errosSeguidos: 3, ultimaEm: agora - 1000 }), agora, dia)).toBe(
+      false,
+    )
     expect(prontoParaVoltar(h({ vezes: 3, erros: 3, errosSeguidos: 3, ultimaEm: ontem }), agora, dia)).toBe(true)
     expect(prontoParaVoltar(h({ vezes: 4, erros: 4, errosSeguidos: 4, ultimaEm: ontem }), agora, dia)).toBe(false) // leech nunca volta sozinha
   })
@@ -76,7 +87,14 @@ describe('ordenarPorMemoria — camadas, leeches fora, semente por jogo', () => 
     const firmes = Array.from({ length: 10 }, (_, i) => `f${i}`)
     const mem = new Map(firmes.map((f) => [f, h({ vezes: 5, ultimoAcerto: true })]))
     const lista = [...firmes, 'novaA', 'novaB']
-    const { ordenados } = ordenarPorMemoria(lista, (x) => x, { memoria: mem, agora, diaDe: dia, semente: 's', cotaDeNovas: 0.3, limite: 4 })
+    const { ordenados } = ordenarPorMemoria(lista, (x) => x, {
+      memoria: mem,
+      agora,
+      diaDe: dia,
+      semente: 's',
+      cotaDeNovas: 0.3,
+      limite: 4,
+    })
     expect(ordenados.slice(0, 4).filter((x) => x.startsWith('nova')).length).toBeGreaterThanOrEqual(2)
   })
 

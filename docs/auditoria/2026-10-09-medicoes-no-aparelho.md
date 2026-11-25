@@ -10,11 +10,11 @@ pago.
 
 ## Resumo
 
-| Pergunta | Resposta | Número principal |
-|---|---|---|
-| 1. O defeito do fp16 no WebGPU nos atinge? | **Sim. Não usar `hybrid-fp16` no WebGPU.** | Whisper base, português: 99,5% de erro em fp16 contra 18,2% em fp32, nas mesmas 100 falas. O mesmo arquivo fp16 fora da GPU dá texto idêntico ao fp32 em 100 de 100 falas. |
-| 2. O Parakeet v3 roda no navegador e vale a troca? | **Roda (com onnxruntime-web direto, não com a nossa biblioteca). Adotar em português e espanhol no computador, depois de medir num notebook fraco.** | Português: 5,8% [4,6–7,1] em WASM contra 10,8% do Whisper small e 18,2% do base. 11 vezes mais rápido que a fala em 4 threads. |
-| 3. Moonshine v2 abre na nossa biblioteca? | **Abre só por um export de terceiro, sem o fluxo. Não adotar agora.** | Inglês: 11,7% contra 13,6% do Moonshine atual; diferença −1,8 [−4,7; +0,6], empate. Duas vezes mais lento e 2,5 vezes maior. |
+| Pergunta                                           | Resposta                                                                                                                                             | Número principal                                                                                                                                                           |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. O defeito do fp16 no WebGPU nos atinge?         | **Sim. Não usar `hybrid-fp16` no WebGPU.**                                                                                                           | Whisper base, português: 99,5% de erro em fp16 contra 18,2% em fp32, nas mesmas 100 falas. O mesmo arquivo fp16 fora da GPU dá texto idêntico ao fp32 em 100 de 100 falas. |
+| 2. O Parakeet v3 roda no navegador e vale a troca? | **Roda (com onnxruntime-web direto, não com a nossa biblioteca). Adotar em português e espanhol no computador, depois de medir num notebook fraco.** | Português: 5,8% [4,6–7,1] em WASM contra 10,8% do Whisper small e 18,2% do base. 11 vezes mais rápido que a fala em 4 threads.                                             |
+| 3. Moonshine v2 abre na nossa biblioteca?          | **Abre só por um export de terceiro, sem o fluxo. Não adotar agora.**                                                                                | Inglês: 11,7% contra 13,6% do Moonshine atual; diferença −1,8 [−4,7; +0,6], empate. Duas vezes mais lento e 2,5 vezes maior.                                               |
 
 ## 1. Como foi medido
 
@@ -44,11 +44,11 @@ FLEURS já guardado em `%LOCALAPPDATA%\babel-bancada\cache\fleurs-raw`, e confer
 100 textos de referência batem com `docs/auditoria/eval/bancada-2026-09/stt_local_dtypes.json`.
 Espanhol: FLEURS `es_419`, 100 falas, amostra nova (não havia espanhol na bancada de transcrição).
 
-| Conjunto | Falas | Áudio | Palavras | Fala mais longa |
-|---|---|---|---|---|
-| fleurs_pt | 100 | 21,0 min | 2.378 | 29,9 s |
-| fleurs_en | 100 | 16,8 min | 2.238 | 23,6 s |
-| fleurs_es | 100 | 20,5 min | 2.620 | 25,0 s |
+| Conjunto  | Falas | Áudio    | Palavras | Fala mais longa |
+| --------- | ----- | -------- | -------- | --------------- |
+| fleurs_pt | 100   | 21,0 min | 2.378    | 29,9 s          |
+| fleurs_en | 100   | 16,8 min | 2.238    | 23,6 s          |
+| fleurs_es | 100   | 20,5 min | 2.620    | 25,0 s          |
 
 **Métricas.** Erro por palavra (WER) com a normalização de `src/core/eval/wer.ts`; intervalo de 95%
 por bootstrap de 1000 reamostras e diferença **pareada** fala a fala (`src/core/eval/bootstrap.ts`),
@@ -59,6 +59,7 @@ mais rápido que a fala); não inclui carga nem aquecimento.
 100 falas: 18,2% [15,8–20,6] aqui (Chrome, WebGPU) e 18,2% [15,8–20,6] em setembro (Node, CPU).
 
 **Ressalvas que valem para tudo abaixo.**
+
 - Uma máquina só, e é um computador com placa de vídeo boa. Nada aqui foi medido em celular, Quest,
   notebook sem GPU, GPU Intel, Adreno, Mali ou Apple.
 - Fala lida e limpa (FLEURS). Não é conversa, vídeo nem áudio com ruído.
@@ -71,23 +72,23 @@ mais rápido que a fala); não inclui carga nem aquecimento.
 
 Mesmas 100 falas por idioma, mesmo decoder (q4), mesmas opções. Só muda o encoder e onde ele roda.
 
-| Sistema | Português, WER % [IC 95%] | Inglês, WER % [IC 95%] | Fator de tempo real (pt / en) |
-|---|---|---|---|
-| Whisper base, `hybrid` (encoder fp32), WebGPU | 18,2 [15,8–20,6] | 21,5 [18,4–24,5] | 0,069 / 0,062 |
-| Whisper base, `hybrid-fp16` (encoder fp16), **WebGPU** | **99,5 [99,2–99,8]** | **98,0 [97,5–98,4]** | 0,016 / 0,021 |
-| Whisper base, `hybrid-fp16`, WASM (controle) | 18,2 [15,8–20,6] | 21,5 [18,4–24,5] | 0,160 / 0,169 |
-| Whisper base, `q8`, WASM (referência) | 18,8 [16,4–21,1] | 22,6 [19,4–25,8] | 0,139 / 0,122 |
-| Whisper tiny, `hybrid`, WebGPU | 29,1 [25,6–33,0] | 20,0 [17,0–22,7] | 0,051 / 0,048 |
-| Whisper tiny, `hybrid-fp16`, **WebGPU** | **82,2 [77,2–87,6]** | **54,9 [47,9–62,7]** | 0,039 / 0,047 |
+| Sistema                                                | Português, WER % [IC 95%] | Inglês, WER % [IC 95%] | Fator de tempo real (pt / en) |
+| ------------------------------------------------------ | ------------------------- | ---------------------- | ----------------------------- |
+| Whisper base, `hybrid` (encoder fp32), WebGPU          | 18,2 [15,8–20,6]          | 21,5 [18,4–24,5]       | 0,069 / 0,062                 |
+| Whisper base, `hybrid-fp16` (encoder fp16), **WebGPU** | **99,5 [99,2–99,8]**      | **98,0 [97,5–98,4]**   | 0,016 / 0,021                 |
+| Whisper base, `hybrid-fp16`, WASM (controle)           | 18,2 [15,8–20,6]          | 21,5 [18,4–24,5]       | 0,160 / 0,169                 |
+| Whisper base, `q8`, WASM (referência)                  | 18,8 [16,4–21,1]          | 22,6 [19,4–25,8]       | 0,139 / 0,122                 |
+| Whisper tiny, `hybrid`, WebGPU                         | 29,1 [25,6–33,0]          | 20,0 [17,0–22,7]       | 0,051 / 0,048                 |
+| Whisper tiny, `hybrid-fp16`, **WebGPU**                | **82,2 [77,2–87,6]**      | **54,9 [47,9–62,7]**   | 0,039 / 0,047                 |
 
 Diferenças pareadas (100 falas cada):
 
-| Comparação | Português | Inglês |
-|---|---|---|
-| base fp16 WebGPU − base fp32 WebGPU | +81,3 pontos [78,9; 83,8] | +76,4 pontos [73,4; 79,6] |
-| tiny fp16 WebGPU − tiny fp32 WebGPU | +53,2 pontos [48,0; 58,7] | +35,0 pontos [28,5; 42,1] |
+| Comparação                            | Português                         | Inglês                            |
+| ------------------------------------- | --------------------------------- | --------------------------------- |
+| base fp16 WebGPU − base fp32 WebGPU   | +81,3 pontos [78,9; 83,8]         | +76,4 pontos [73,4; 79,6]         |
+| tiny fp16 WebGPU − tiny fp32 WebGPU   | +53,2 pontos [48,0; 58,7]         | +35,0 pontos [28,5; 42,1]         |
 | base fp16 **WASM** − base fp32 WebGPU | 0,0; texto idêntico em 100 de 100 | 0,0; texto idêntico em 100 de 100 |
-| base q8 WASM − base fp32 WebGPU | +0,6 [−1,0; +2,0], empate | +1,1 [−1,1; +3,3], empate |
+| base q8 WASM − base fp32 WebGPU       | +0,6 [−1,0; +2,0], empate         | +1,1 [−1,1; +3,3], empate         |
 
 **O que sai na tela.** No base em fp16 no WebGPU, o texto de cada fala inteira é uma palavra só: em
 português, "A" em 65 falas, "que" em 34 e "V" em 1; em inglês, "The" em 53, "I" em 17, "And" em 10.
@@ -117,6 +118,7 @@ q8 (0,160 contra 0,139).
 usa, e não é perda de alguns pontos: a legenda fica inutilizável.
 
 O que isto prova e o que não prova:
+
 - Prova: Chrome 154, Windows, GPU AMD (D3D12), transformers.js 4.2.0, Whisper base e tiny.
 - Não prova: que a GPU do celular ou do Quest erra igual. A rota `hybrid-fp16` hoje só é escolhida
   fora do computador (`usarGpuNoAparelho` em `sttRouter.ts`), e nenhum desses aparelhos foi medido.
@@ -133,12 +135,12 @@ Alternativas medidas aqui para a mesma rota: `hybrid` (encoder fp32) no WebGPU, 
 
 ### 3.1 O que existe no Hugging Face (consultado em 09/10/2026)
 
-| Repositório | Licença | Arquivos e tamanho | Data |
-|---|---|---|---|
-| `istupakov/parakeet-tdt-0.6b-v3-onnx` (commit `8f23f0c0`) | CC-BY-4.0 | `encoder-model.int8.onnx` 652,2 MB; `decoder_joint-model.int8.onnx` 18,2 MB; `nemo128.onnx` 0,14 MB; `vocab.txt` 0,09 MB. Também fp32: `encoder-model.onnx` 41,8 MB + `encoder-model.onnx.data` 2.435 MB; `decoder_joint-model.onnx` 72,5 MB | criado em 16/08/2025, último commit em 17/02/2026 |
-| `striimit/parakeet-tdt-0.6b-v3-webgpu` (commit `d233168f`) | CC-BY-4.0 | `encoder-model.fp16.onnx` 1.239,2 MB; `decoder_joint-model.onnx` 72,5 MB; `nemo128_conv.onnx` 1,19 MB; `vocab.txt` 0,09 MB | 27/08/2026 |
-| `jimmy927/parakeet-tdt-0.6b-v3-onnx-fp16` | CC-BY-4.0 | encoder fp16 1.239,0 MB; decoder fp16 36,3 MB | 05/10/2026, não testado |
-| `Olicorne/parakeet-tdt-0.6b-v3-optimized-onnx` | não conferida | várias quantizações, entre elas `w4a8/encoder-model.w4a8.onnx` 383,4 MB | 07/10/2026, não testado |
+| Repositório                                                | Licença       | Arquivos e tamanho                                                                                                                                                                                                                           | Data                                              |
+| ---------------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `istupakov/parakeet-tdt-0.6b-v3-onnx` (commit `8f23f0c0`)  | CC-BY-4.0     | `encoder-model.int8.onnx` 652,2 MB; `decoder_joint-model.int8.onnx` 18,2 MB; `nemo128.onnx` 0,14 MB; `vocab.txt` 0,09 MB. Também fp32: `encoder-model.onnx` 41,8 MB + `encoder-model.onnx.data` 2.435 MB; `decoder_joint-model.onnx` 72,5 MB | criado em 16/08/2025, último commit em 17/02/2026 |
+| `striimit/parakeet-tdt-0.6b-v3-webgpu` (commit `d233168f`) | CC-BY-4.0     | `encoder-model.fp16.onnx` 1.239,2 MB; `decoder_joint-model.onnx` 72,5 MB; `nemo128_conv.onnx` 1,19 MB; `vocab.txt` 0,09 MB                                                                                                                   | 27/08/2026                                        |
+| `jimmy927/parakeet-tdt-0.6b-v3-onnx-fp16`                  | CC-BY-4.0     | encoder fp16 1.239,0 MB; decoder fp16 36,3 MB                                                                                                                                                                                                | 05/10/2026, não testado                           |
+| `Olicorne/parakeet-tdt-0.6b-v3-optimized-onnx`             | não conferida | várias quantizações, entre elas `w4a8/encoder-model.w4a8.onnx` 383,4 MB                                                                                                                                                                      | 07/10/2026, não testado                           |
 
 A licença CC-BY-4.0 exige atribuição (NVIDIA pelo modelo; istupakov pelo export).
 
@@ -180,54 +182,54 @@ Parakeet sem dica de idioma (ele detecta sozinho); Whisper com o idioma informad
 
 **Português (100 falas)**
 
-| Sistema | WER % [IC 95%] | Fator de tempo real | Download | Memória do Chrome |
-|---|---|---|---|---|
-| **Parakeet v3 int8, WASM** | **5,8 [4,6–7,1]** | 0,089 | 672 MB | 2,0 GB |
-| **Parakeet v3 fp16, WebGPU** | **5,0 [3,8–6,4]** | 0,016 | 1.313 MB | 5,0 GB |
-| Parakeet v3 int8, WebGPU | 5,7 [4,6–7,0] | 0,203 | 672 MB | 3,5 GB |
-| Whisper small `hybrid`, WebGPU | 10,8 [9,1–12,5] | 0,108 | 589 MB | 2,9 GB |
-| Whisper base `hybrid`, WebGPU | 18,2 [15,8–20,6] | 0,069 | 209 MB | 2,2 GB |
-| Whisper base `q8`, WASM | 18,8 [16,4–21,1] | 0,139 | 80 MB | 1,0 GB |
+| Sistema                        | WER % [IC 95%]    | Fator de tempo real | Download | Memória do Chrome |
+| ------------------------------ | ----------------- | ------------------- | -------- | ----------------- |
+| **Parakeet v3 int8, WASM**     | **5,8 [4,6–7,1]** | 0,089               | 672 MB   | 2,0 GB            |
+| **Parakeet v3 fp16, WebGPU**   | **5,0 [3,8–6,4]** | 0,016               | 1.313 MB | 5,0 GB            |
+| Parakeet v3 int8, WebGPU       | 5,7 [4,6–7,0]     | 0,203               | 672 MB   | 3,5 GB            |
+| Whisper small `hybrid`, WebGPU | 10,8 [9,1–12,5]   | 0,108               | 589 MB   | 2,9 GB            |
+| Whisper base `hybrid`, WebGPU  | 18,2 [15,8–20,6]  | 0,069               | 209 MB   | 2,2 GB            |
+| Whisper base `q8`, WASM        | 18,8 [16,4–21,1]  | 0,139               | 80 MB    | 1,0 GB            |
 
 **Espanhol (100 falas)**
 
-| Sistema | WER % [IC 95%] | Fator de tempo real |
-|---|---|---|
-| **Parakeet v3 int8, WASM** | **4,5 [3,6–5,6]** | 0,090 |
-| **Parakeet v3 fp16, WebGPU** | **4,2 [3,2–5,3]** | 0,016 |
-| Whisper small `hybrid`, WebGPU | 9,3 [7,9–10,8] | 0,110 |
-| Whisper base `hybrid`, WebGPU | 15,5 [13,6–17,4] | 0,073 |
-| Whisper base `q8`, WASM | 16,0 [13,9–18,1] | 0,165 |
+| Sistema                        | WER % [IC 95%]    | Fator de tempo real |
+| ------------------------------ | ----------------- | ------------------- |
+| **Parakeet v3 int8, WASM**     | **4,5 [3,6–5,6]** | 0,090               |
+| **Parakeet v3 fp16, WebGPU**   | **4,2 [3,2–5,3]** | 0,016               |
+| Whisper small `hybrid`, WebGPU | 9,3 [7,9–10,8]    | 0,110               |
+| Whisper base `hybrid`, WebGPU  | 15,5 [13,6–17,4]  | 0,073               |
+| Whisper base `q8`, WASM        | 16,0 [13,9–18,1]  | 0,165               |
 
 **Inglês (100 falas)**
 
-| Sistema | WER % [IC 95%] | Fator de tempo real |
-|---|---|---|
-| Parakeet v3 int8, WASM | 7,1 [5,6–8,5] | 0,094 |
-| Parakeet v3 fp16, WebGPU | 6,3 [5,0–7,7] | 0,017 |
-| Moonshine base `q8`, WASM (o de hoje) | 13,6 [10,5–17,2] | 0,069 |
-| Whisper base `hybrid`, WebGPU | 21,5 [18,4–24,5] | 0,062 |
+| Sistema                               | WER % [IC 95%]   | Fator de tempo real |
+| ------------------------------------- | ---------------- | ------------------- |
+| Parakeet v3 int8, WASM                | 7,1 [5,6–8,5]    | 0,094               |
+| Parakeet v3 fp16, WebGPU              | 6,3 [5,0–7,7]    | 0,017               |
+| Moonshine base `q8`, WASM (o de hoje) | 13,6 [10,5–17,2] | 0,069               |
+| Whisper base `hybrid`, WebGPU         | 21,5 [18,4–24,5] | 0,062               |
 
 **Diferenças pareadas (negativo = Parakeet erra menos)**
 
-| Comparação | Português | Espanhol | Inglês |
-|---|---|---|---|
-| Parakeet int8 WASM − Whisper small WebGPU | −5,0 [−6,5; −3,5] | −4,8 [−6,0; −3,5] | não medido |
-| Parakeet int8 WASM − Whisper base WebGPU | −12,5 [−14,5; −10,5] | −10,9 [−12,8; −9,1] | −14,5 [−17,5; −11,2] |
-| Parakeet int8 WASM − Whisper base q8 WASM | −13,1 [−15,0; −11,1] | −11,4 [−13,4; −9,6] | −15,6 [−19,0; −12,1] |
-| Parakeet fp16 WebGPU − Whisper small WebGPU | −5,8 [−7,2; −4,3] | −5,1 [−6,2; −4,0] | não medido |
-| Parakeet fp16 WebGPU − Parakeet int8 WASM | −0,7 [−1,5; +0,04], empate | −0,3 [−0,9; +0,2], empate | −0,8 [−2,1; +0,6], empate |
-| Parakeet int8 WASM − Moonshine base | | | −6,5 [−9,7; −3,7] |
+| Comparação                                  | Português                  | Espanhol                  | Inglês                    |
+| ------------------------------------------- | -------------------------- | ------------------------- | ------------------------- |
+| Parakeet int8 WASM − Whisper small WebGPU   | −5,0 [−6,5; −3,5]          | −4,8 [−6,0; −3,5]         | não medido                |
+| Parakeet int8 WASM − Whisper base WebGPU    | −12,5 [−14,5; −10,5]       | −10,9 [−12,8; −9,1]       | −14,5 [−17,5; −11,2]      |
+| Parakeet int8 WASM − Whisper base q8 WASM   | −13,1 [−15,0; −11,1]       | −11,4 [−13,4; −9,6]       | −15,6 [−19,0; −12,1]      |
+| Parakeet fp16 WebGPU − Whisper small WebGPU | −5,8 [−7,2; −4,3]          | −5,1 [−6,2; −4,0]         | não medido                |
+| Parakeet fp16 WebGPU − Parakeet int8 WASM   | −0,7 [−1,5; +0,04], empate | −0,3 [−0,9; +0,2], empate | −0,8 [−2,1; +0,6], empate |
+| Parakeet int8 WASM − Moonshine base         |                            |                           | −6,5 [−9,7; −3,7]         |
 
 Todas as diferenças contra o Whisper e contra o Moonshine são significativas (o intervalo não cruza
 zero). A diferença entre as duas versões do Parakeet não é.
 
 **Com menos threads (só 30 falas de português: indicativo de velocidade, não de erro)**
 
-| Sistema | 1 thread | 2 threads | 4 threads (100 falas) |
-|---|---|---|---|
-| Parakeet v3 int8, WASM | 0,265 | 0,145 | 0,089 |
-| Whisper base `q8`, WASM | 0,247 | 0,166 | 0,139 |
+| Sistema                 | 1 thread | 2 threads | 4 threads (100 falas) |
+| ----------------------- | -------- | --------- | --------------------- |
+| Parakeet v3 int8, WASM  | 0,265    | 0,145     | 0,089                 |
+| Whisper base `q8`, WASM | 0,247    | 0,166     | 0,139                 |
 
 Com uma thread só, o Parakeet int8 ainda roda quase 4 vezes mais rápido que a fala neste processador,
 e empata em velocidade com o Whisper base q8.
@@ -246,6 +248,7 @@ rápido que o small na GPU mesmo rodando só no processador; não depende de pla
 o computador sem GPU que hoje fica no base; download parecido com o do small (672 MB contra 589 MB).
 
 As duas condições, que esta medição não cobre:
+
 1. **Medir num notebook comum sem placa de vídeo.** O Ryzen 5 5600 é um processador de mesa forte.
    O fator 0,265 com uma thread sugere folga, mas é desta máquina.
 2. **Medir memória e áudio real.** 2,0 GB de RAM somando os processos do Chrome é o dobro do Whisper
@@ -289,10 +292,10 @@ de 383 MB.
 
 ### 4.2 Resultado (inglês, 100 falas, WASM, q8)
 
-| Sistema | WER % [IC 95%] | Fator de tempo real | p95 por fala | Download |
-|---|---|---|---|---|
-| Moonshine base (o de hoje) | 13,6 [10,5–17,2] | 0,069 | 1,2 s | 67 MB |
-| Moonshine v2 small (export Workmind) | 11,7 [9,2–14,8] | 0,136 | 2,9 s | 170 MB |
+| Sistema                              | WER % [IC 95%]   | Fator de tempo real | p95 por fala | Download |
+| ------------------------------------ | ---------------- | ------------------- | ------------ | -------- |
+| Moonshine base (o de hoje)           | 13,6 [10,5–17,2] | 0,069               | 1,2 s        | 67 MB    |
+| Moonshine v2 small (export Workmind) | 11,7 [9,2–14,8]  | 0,136               | 2,9 s        | 170 MB   |
 
 Diferença pareada: −1,8 pontos [−4,7; +0,6]. **Empate** (o intervalo cruza zero).
 
@@ -319,15 +322,26 @@ microfone). Passo a passo para o dono, no Chrome normal e depois no Edge:
 2. Cole e rode:
 
    ```js
-   const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-   console.log('tem available():', typeof SR?.available, '| tem phrases:', 'phrases' in SR.prototype,
-     '| tem processLocally:', 'processLocally' in SR.prototype)
+   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+   console.log(
+     'tem available():',
+     typeof SR?.available,
+     '| tem phrases:',
+     'phrases' in SR.prototype,
+     '| tem processLocally:',
+     'processLocally' in SR.prototype,
+   );
    for (const lang of ['pt-BR', 'pt-PT', 'en-US', 'es-ES', 'es-MX', 'fr-FR', 'de-DE']) {
      for (const processLocally of [true, false]) {
        try {
-         console.log(lang, processLocally ? 'no aparelho' : 'padrão',
-           await SR.available({ langs: [lang], processLocally }))
-       } catch (e) { console.log(lang, processLocally, 'ERRO', e.name, e.message) }
+         console.log(
+           lang,
+           processLocally ? 'no aparelho' : 'padrão',
+           await SR.available({ langs: [lang], processLocally }),
+         );
+       } catch (e) {
+         console.log(lang, processLocally, 'ERRO', e.name, e.message);
+       }
      }
    }
    ```
@@ -341,27 +355,32 @@ microfone). Passo a passo para o dono, no Chrome normal e depois no Edge:
 6. Teste de verdade, com o Wi-Fi desligado, se o passo 3 deu `available`:
 
    ```js
-   const r = new SR(); r.lang = 'pt-BR'; r.processLocally = true; r.interimResults = true
-   r.onresult = (e) => console.log([...e.results].map((x) => x[0].transcript).join(' '))
-   r.onerror = (e) => console.log('erro', e.error); r.start()
+   const r = new SR();
+   r.lang = 'pt-BR';
+   r.processLocally = true;
+   r.interimResults = true;
+   r.onresult = (e) => console.log([...e.results].map((x) => x[0].transcript).join(' '));
+   r.onerror = (e) => console.log('erro', e.error);
+   r.start();
    ```
 
    Fale uma frase. Se o texto aparecer sem internet, o reconhecimento é mesmo local.
+
 7. Repita no Edge estável e no Edge Dev. O que decide é a linha `pt-BR no aparelho`.
 
 ## 6. O que não foi medido, e por quê
 
-| Item | Motivo |
-|---|---|
-| fp16 no WebGPU em celular e Quest | Só havia esta máquina. É a medição que falta para a pergunta 1 ficar fechada nos aparelhos onde a rota é usada. |
-| Parakeet em francês e alemão | Sem áudio na bancada; fora do tempo. O script aceita `--extras fr_fr,de_de`. |
-| Parakeet em notebook sem GPU, celular, Quest | Só havia esta máquina. |
-| Trechos sem fala (alucinação) no navegador | Os sons do ESC-50 da bancada não estão mais no disco; não refiz. |
-| Pico de memória e memória de vídeo | Medi só a foto da RAM dos processos do Chrome no fim de cada conjunto. |
-| Tempo de primeira carga pela rede | Os pesos do Parakeet foram servidos do disco local; os do Whisper vieram do Hugging Face, mas não cronometrei o download em separado. |
-| 30 trechos reais de pt-BR com gabarito à mão | Não existem ainda (2 horas de trabalho do dono, previstas no relatório de 09/10). |
-| Sessão longa (30 min), texto parcial, atraso até a primeira palavra | Fora do escopo desta rodada. |
-| `SpeechRecognition.available()` | Precisa de navegador com interface; roteiro na seção 5. |
+| Item                                                                | Motivo                                                                                                                                |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| fp16 no WebGPU em celular e Quest                                   | Só havia esta máquina. É a medição que falta para a pergunta 1 ficar fechada nos aparelhos onde a rota é usada.                       |
+| Parakeet em francês e alemão                                        | Sem áudio na bancada; fora do tempo. O script aceita `--extras fr_fr,de_de`.                                                          |
+| Parakeet em notebook sem GPU, celular, Quest                        | Só havia esta máquina.                                                                                                                |
+| Trechos sem fala (alucinação) no navegador                          | Os sons do ESC-50 da bancada não estão mais no disco; não refiz.                                                                      |
+| Pico de memória e memória de vídeo                                  | Medi só a foto da RAM dos processos do Chrome no fim de cada conjunto.                                                                |
+| Tempo de primeira carga pela rede                                   | Os pesos do Parakeet foram servidos do disco local; os do Whisper vieram do Hugging Face, mas não cronometrei o download em separado. |
+| 30 trechos reais de pt-BR com gabarito à mão                        | Não existem ainda (2 horas de trabalho do dono, previstas no relatório de 09/10).                                                     |
+| Sessão longa (30 min), texto parcial, atraso até a primeira palavra | Fora do escopo desta rodada.                                                                                                          |
+| `SpeechRecognition.available()`                                     | Precisa de navegador com interface; roteiro na seção 5.                                                                               |
 
 ## 7. Como repetir
 
@@ -403,14 +422,14 @@ grafo do ONNX Runtime. O servidor local só escuta em 127.0.0.1 e é encerrado n
 
 **Onde está cada coisa**
 
-| O quê | Onde |
-|---|---|
-| Scripts | `scripts/eval-fala/bancada/navegador/` (`preparar-audio.py`, `servidor.mjs`, `pagina.html`, `rodar.mjs`, `pontuar.mjs`) |
-| Resultado pontuado | `docs/auditoria/eval/bancada-2026-10-navegador/resumo.json` (números) e `casos.json` (texto de cada fala) |
-| Bruto por sistema e conjunto | `%LOCALAPPDATA%\babel-bancada\navegador\resultados\` |
-| Falas e manifestos | `%LOCALAPPDATA%\babel-bancada\navegador\stt\` (108 MB) |
-| Pesos do Whisper e do Moonshine | cache do perfil do Chrome da bancada, `%LOCALAPPDATA%\babel-bancada\navegador\perfil-chrome\` (1,8 GB em disco) |
-| Pesos do Parakeet | `%LOCALAPPDATA%\babel-bancada\cache\modelos\parakeet\` (1,9 GB) |
+| O quê                           | Onde                                                                                                                    |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Scripts                         | `scripts/eval-fala/bancada/navegador/` (`preparar-audio.py`, `servidor.mjs`, `pagina.html`, `rodar.mjs`, `pontuar.mjs`) |
+| Resultado pontuado              | `docs/auditoria/eval/bancada-2026-10-navegador/resumo.json` (números) e `casos.json` (texto de cada fala)               |
+| Bruto por sistema e conjunto    | `%LOCALAPPDATA%\babel-bancada\navegador\resultados\`                                                                    |
+| Falas e manifestos              | `%LOCALAPPDATA%\babel-bancada\navegador\stt\` (108 MB)                                                                  |
+| Pesos do Whisper e do Moonshine | cache do perfil do Chrome da bancada, `%LOCALAPPDATA%\babel-bancada\navegador\perfil-chrome\` (1,8 GB em disco)         |
+| Pesos do Parakeet               | `%LOCALAPPDATA%\babel-bancada\cache\modelos\parakeet\` (1,9 GB)                                                         |
 
 Baixado nesta rodada: cerca de 3,3 GB (1,98 GB do Parakeet; cerca de 1,3 GB de Whisper tiny, base e
 small e dos dois Moonshine). Nada disso está no repositório. Para liberar o espaço, basta apagar as

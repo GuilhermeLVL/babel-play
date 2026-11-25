@@ -94,9 +94,5 @@
     ".pj-ouvindo .pj-eq i",
     ".pj-frase span"
   ],
-  "props": [
-    "textDecorationLine",
-    "borderTopStyle",
-    "animationDelay"
-  ]
+  "props": ["textDecorationLine", "borderTopStyle", "animationDelay"]
 }

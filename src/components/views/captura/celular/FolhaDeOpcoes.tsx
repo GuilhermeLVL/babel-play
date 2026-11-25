@@ -82,8 +82,18 @@ export default function FolhaDeOpcoes({
         />
       )}
       <Linha icone={Languages} titulo={t('Idiomas')} sub={par} aoTocar={aoAbrirIdiomas} />
-      <Linha icone={Type} titulo={t('Texto e tradução')} sub={t('Tamanho, ordem e quando traduzir')} aoTocar={aoAbrirVisual} />
-      <Linha icone={Maximize2} titulo={t('Foco cheio')} sub={t('Só a legenda, na tela inteira')} aoTocar={aoFocoCheio} />
+      <Linha
+        icone={Type}
+        titulo={t('Texto e tradução')}
+        sub={t('Tamanho, ordem e quando traduzir')}
+        aoTocar={aoAbrirVisual}
+      />
+      <Linha
+        icone={Maximize2}
+        titulo={t('Foco cheio')}
+        sub={t('Só a legenda, na tela inteira')}
+        aoTocar={aoFocoCheio}
+      />
       {telaAcesa && (
         <Linha
           icone={Smartphone}
@@ -98,7 +108,12 @@ export default function FolhaDeOpcoes({
           }
         />
       )}
-      <Linha icone={Cpu} titulo={t('Modelos no aparelho')} sub={t('O que foi baixado e o tamanho')} aoTocar={aoAbrirModelos} />
+      <Linha
+        icone={Cpu}
+        titulo={t('Modelos no aparelho')}
+        sub={t('O que foi baixado e o tamanho')}
+        aoTocar={aoAbrirModelos}
+      />
       <Linha icone={CircleHelp} titulo={t('Ajuda')} aoTocar={aoAbrirAjuda} />
     </FolhaDeBaixo>
   );

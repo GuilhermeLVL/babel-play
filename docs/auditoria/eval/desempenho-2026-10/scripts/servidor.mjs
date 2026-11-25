@@ -7,14 +7,38 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 const RAIZ = resolve(process.argv[2]);
 const PORTA = Number(process.argv[3]);
-const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.wasm': 'application/wasm', '.onnx': 'application/octet-stream', '.webmanifest': 'application/manifest+json', '.txt': 'text/plain; charset=utf-8', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg' };
+const TIPOS = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+  '.wasm': 'application/wasm',
+  '.onnx': 'application/octet-stream',
+  '.webmanifest': 'application/manifest+json',
+  '.txt': 'text/plain; charset=utf-8',
+  '.mp3': 'audio/mpeg',
+  '.ogg': 'audio/ogg',
+};
 const GLOBAIS = {};
 {
   let noBloco = false;
   for (const linha of readFileSync(join(RAIZ, '_headers'), 'utf8').split(/\r?\n/)) {
     if (!linha.trim() || linha.trim().startsWith('#')) continue;
-    if (!/^\s/.test(linha)) { noBloco = linha.trim() === '/*'; continue; }
-    if (noBloco) { const i = linha.indexOf(':'); if (i > 0) GLOBAIS[linha.slice(0, i).trim()] = linha.slice(i + 1).trim(); }
+    if (!/^\s/.test(linha)) {
+      noBloco = linha.trim() === '/*';
+      continue;
+    }
+    if (noBloco) {
+      const i = linha.indexOf(':');
+      if (i > 0) GLOBAIS[linha.slice(0, i).trim()] = linha.slice(i + 1).trim();
+    }
   }
 }
 function arquivoDe(caminho) {

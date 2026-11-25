@@ -6,7 +6,9 @@ await page.goto(URL0 + '/', { waitUntil: 'load', timeout: 90000 });
 await sossegar(s, 1500);
 await page.waitForTimeout(5000);
 const r = await page.evaluate(async () => {
-  const tiles = [...document.querySelectorAll('button.q-tile:not(.apagado):not(.em-linha)')].filter((e) => e.offsetParent);
+  const tiles = [...document.querySelectorAll('button.q-tile:not(.apagado):not(.em-linha)')].filter(
+    (e) => e.offsetParent,
+  );
   /* as luzes que o laco poe (uma por cartao, ate 4) */
   const luzes = tiles.map((t) => {
     if (getComputedStyle(t).position === 'static') t.style.position = 'relative';
@@ -28,20 +30,31 @@ const r = await page.evaluate(async () => {
     }
     return Math.round(med(ts) * 1000) / 1000;
   };
-  const semTransicao = (sim) => tiles.forEach((t) => (t.style.transitionProperty = sim ? 'box-shadow, border-color, background-color' : ''));
+  const semTransicao = (sim) =>
+    tiles.forEach((t) => (t.style.transitionProperty = sim ? 'box-shadow, border-color, background-color' : ''));
   const zerar = () => {
     tiles.forEach((t) => (t.style.transform = ''));
     forcar();
   };
   const out = { cartoes: tiles.length, descendentes: tiles.map((t) => t.querySelectorAll('*').length) };
   out.nada = medir(() => {});
-  out.transform_com_transicao = medir((i) => tiles.forEach((t) => (t.style.transform = `perspective(800px) rotateY(${(i % 7) * 0.3}deg) rotateX(${(i % 5) * 0.2}deg)`)));
+  out.transform_com_transicao = medir((i) =>
+    tiles.forEach(
+      (t) => (t.style.transform = `perspective(800px) rotateY(${(i % 7) * 0.3}deg) rotateX(${(i % 5) * 0.2}deg)`),
+    ),
+  );
   zerar();
   semTransicao(true);
   forcar();
-  out.transform_sem_transicao = medir((i) => tiles.forEach((t) => (t.style.transform = `perspective(800px) rotateY(${(i % 7) * 0.3}deg) rotateX(${(i % 5) * 0.2}deg)`)));
+  out.transform_sem_transicao = medir((i) =>
+    tiles.forEach(
+      (t) => (t.style.transform = `perspective(800px) rotateY(${(i % 7) * 0.3}deg) rotateX(${(i % 5) * 0.2}deg)`),
+    ),
+  );
   zerar();
-  out.so_rotate_sem_perspective = medir((i) => tiles.forEach((t) => (t.style.transform = `rotateY(${(i % 7) * 0.3}deg)`)));
+  out.so_rotate_sem_perspective = medir((i) =>
+    tiles.forEach((t) => (t.style.transform = `rotateY(${(i % 7) * 0.3}deg)`)),
+  );
   zerar();
   out.translate_sem_transicao = medir((i) => tiles.forEach((t) => (t.style.transform = `translateY(${i % 7}px)`)));
   zerar();

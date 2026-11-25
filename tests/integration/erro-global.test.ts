@@ -14,9 +14,9 @@
 import type { AddressInfo } from 'node:net'
 
 import express, { Router } from 'express'
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { capturarAssincrono,erroGlobal } from '../../server/lib/erroGlobal'
+import { capturarAssincrono, erroGlobal } from '../../server/lib/erroGlobal'
 
 /** Sobe um app efêmero e devolve a URL base + como derrubá-lo. */
 async function subir(montar: (app: express.Express) => void) {
@@ -82,11 +82,15 @@ function rotaQueRejeitaObservada(vazamentos: unknown[]): Router {
 describe('D7 — error handler global', () => {
   it('SEM as duas peças, o request pendura (é o defeito que se está consertando)', async () => {
     const vazamentos: unknown[] = []
-    const { base, fechar } = await subir((app) => { app.use('/api', rotaQueRejeitaObservada(vazamentos)) })
+    const { base, fechar } = await subir((app) => {
+      app.use('/api', rotaQueRejeitaObservada(vazamentos))
+    })
     try {
       const r = await comPrazo(`${base}/api/explode`, 1200)
       expect(r.status, 'sem o handler o request deveria pendurar').toBeNull()
-    } finally { await fechar() }
+    } finally {
+      await fechar()
+    }
     // A rejeição TEM de ter acontecido: se ela sumisse, o teste passaria por pendurar por outro
     // motivo qualquer e deixaria de descrever o defeito que nomeia.
     const capturadas = await Promise.all(vazamentos)
@@ -112,12 +116,16 @@ describe('D7 — error handler global', () => {
       expect(corpo.detalhes).toHaveProperty('requestId')
       // A causa NUNCA vai na resposta: carrega nome de coluna, caminho e às vezes o valor.
       expect(r.corpo).not.toMatch(/SQLITE_BUSY|falhou a consulta/)
-    } finally { await fechar() }
+    } finally {
+      await fechar()
+    }
   }, 20_000)
 
   it('não atrapalha a rota que funciona', async () => {
     const r = Router()
-    r.get('/ok', async (_req, res) => { res.json({ ok: true }) })
+    r.get('/ok', async (_req, res) => {
+      res.json({ ok: true })
+    })
     const { base, fechar } = await subir((app) => {
       app.use('/api', capturarAssincrono(r))
       app.use(erroGlobal)
@@ -126,6 +134,8 @@ describe('D7 — error handler global', () => {
       const resp = await comPrazo(`${base}/api/ok`, 5000)
       expect(resp.status).toBe(200)
       expect(JSON.parse(resp.corpo!)).toEqual({ ok: true })
-    } finally { await fechar() }
+    } finally {
+      await fechar()
+    }
   }, 20_000)
 })

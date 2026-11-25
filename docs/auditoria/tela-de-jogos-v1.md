@@ -12,18 +12,18 @@ merece crédito no que acertou.
 
 Números colhidos na tela rodando, não estimados:
 
-| Medida | Valor |
-|---|---|
-| Palavras de texto no lobby | 317 |
-| Botões interativos | 57 |
-| Jogos | 9 |
-| Botões que existem só para reordenar cartas | **27 (47% do total)** |
-| Palavras antes do título "Escolha um jogo" | 90 |
-| Bandas de conteúdo antes da primeira carta | 10 |
-| Telas cheias entre abrir "Jogar" e ver o primeiro item | 3 (2 no caso mínimo) |
-| Linhas de `Play.tsx` | 2.611 |
-| Idiomas que o app oferece | 32 |
-| Idiomas com trilha | **1** |
+| Medida                                                 | Valor                 |
+| ------------------------------------------------------ | --------------------- |
+| Palavras de texto no lobby                             | 317                   |
+| Botões interativos                                     | 57                    |
+| Jogos                                                  | 9                     |
+| Botões que existem só para reordenar cartas            | **27 (47% do total)** |
+| Palavras antes do título "Escolha um jogo"             | 90                    |
+| Bandas de conteúdo antes da primeira carta             | 10                    |
+| Telas cheias entre abrir "Jogar" e ver o primeiro item | 3 (2 no caso mínimo)  |
+| Linhas de `Play.tsx`                                   | 2.611                 |
+| Idiomas que o app oferece                              | 32                    |
+| Idiomas com trilha                                     | **1**                 |
 
 ## O achado que resume os outros
 
@@ -209,7 +209,7 @@ _As nove artes: o que comunicam, o que confundem._
 
 **Consequência.** A grade de 9 jogos e nove variacoes da mesma paleta de tres cores. Cor deixa de ser um canal de reconhecimento e todo o peso cai na forma — que tambem se repete (ver achado seguinte). Um iniciante nao consegue construir memoria visual de nenhum jogo: nao ha 'o jogo azul', 'o jogo roxo'. E a tela vizinha Personalizar/Loja ja usa borda por raridade para diferenciar item de item, ou seja, o vocabulario de 'cor identifica a coisa' existe no app e a tela de jogos e a unica que abre mao dele.
 
-**Proposta.** Derivar um matiz por jogo a partir do accent com cor relativa OKLCH, o que preserva a regra 'nenhuma cor literal' e sobrevive aos 7 temas: `--jogo-memory: oklch(from var(--accent) l c h); --jogo-wordsearch: oklch(from var(--accent) l c calc(h + 40)); ...` ate +320, e cada Arte* passa a usar `var(--jogo-<id>)` no lugar de var(--accent). Como accent pode ter croma zero (vercel), acrescentar um piso: `oklch(from var(--accent) l max(c, 0.12) calc(h + N))`, que injeta croma quando o tema e monocromatico. Alternativa mais barata e mais legivel para o usuario: 3 tokens de FAMILIA — LER (wordsearch, scramble, conectores), OUVIR (escuta, ditado, karaoke), RESPONDER (memory, termo, blitz) — porque 3 cores sao aprendiveis e 9 nao sao.
+**Proposta.** Derivar um matiz por jogo a partir do accent com cor relativa OKLCH, o que preserva a regra 'nenhuma cor literal' e sobrevive aos 7 temas: `--jogo-memory: oklch(from var(--accent) l c h); --jogo-wordsearch: oklch(from var(--accent) l c calc(h + 40)); ...` ate +320, e cada Arte\* passa a usar `var(--jogo-<id>)` no lugar de var(--accent). Como accent pode ter croma zero (vercel), acrescentar um piso: `oklch(from var(--accent) l max(c, 0.12) calc(h + N))`, que injeta croma quando o tema e monocromatico. Alternativa mais barata e mais legivel para o usuario: 3 tokens de FAMILIA — LER (wordsearch, scramble, conectores), OUVIR (escuta, ditado, karaoke), RESPONDER (memory, termo, blitz) — porque 3 cores sao aprendiveis e 9 nao sao.
 
 **Risco da mudança.** Cor relativa OKLCH (`oklch(from ...)`) e mais nova que o `color-mix` que index.css:752-757 ja usa; precisa de fallback. O piso de croma quebra deliberadamente a intencao monocromatica do tema vercel e do modo alto-contraste — quem escolheu vercel escolheu o preto-e-branco. E no tema custom o --accent e escolhido pelo usuario (index.css:749, gravado por appearance.ts:141), entao um accent quase-cinza continua produzindo 9 matizes fracos.
 
@@ -568,6 +568,7 @@ _O que acontece com quem usa teclado, leitor de tela, celular ou rede ruim._
 **Risco da mudança.** Um esqueleto com 9 blocos altos pode parecer conteúdo real e frustrar mais quando revela cartas bloqueadas. E reservar a altura certa acopla o esqueleto às medidas da carta — se a carta mudar, o esqueleto passa a mentir de novo.
 
 ---
+
 ## O achado refutado
 
 **F46 — "O texto que explica o bloqueio é o menos legível da carta: 3,55:1 em 11px no tema claro

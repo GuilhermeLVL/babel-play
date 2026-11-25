@@ -2,10 +2,10 @@
  * Marco 1 — Commit 6: isolamento de seed_spends.
  * A idempotência passa a ser por (userId, spendId) e o total é por usuário.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')
@@ -19,7 +19,9 @@ beforeAll(async () => {
   await repo.debitar(A, { spendId: 'sA', amount: 100, reason: 'pular' })
   await repo.debitar(B, { spendId: 'sB', amount: 50, reason: 'pular' })
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('Marco 1 — isolamento seedSpends', () => {
   it('totalGasto conta só o do próprio usuário', async () => {

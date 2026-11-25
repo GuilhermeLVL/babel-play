@@ -7,40 +7,40 @@
  * Licenças: FrequencyWords (hermitdave) MIT/CC-BY-SA — derivado de legendas OpenSubtitles.
  * Tatoeba: CC-BY 2.0 FR. As duas exigem atribuição na saída (`fonte` do JSON da trilha).
  */
-import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile, stat } from 'node:fs/promises';
-import { createGunzip } from 'node:zlib';
-import { pipeline } from 'node:stream/promises';
-import { createWriteStream, createReadStream } from 'node:fs';
-import path from 'node:path';
-import { Readable } from 'node:stream';
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, writeFile, stat } from 'node:fs/promises'
+import { createGunzip } from 'node:zlib'
+import { pipeline } from 'node:stream/promises'
+import { createWriteStream, createReadStream } from 'node:fs'
+import path from 'node:path'
+import { Readable } from 'node:stream'
 
-export const DIR_CACHE = path.resolve(process.cwd(), '.cache/trilha');
+export const DIR_CACHE = path.resolve(process.cwd(), '.cache/trilha')
 
 /**
  * Onde o código da fonte difere do nosso. O FrequencyWords separa o chinês por escrita
  * (`zh_cn` simplificado, `zh_tw` tradicional) e não publica um `zh` só; escolhemos o simplificado,
  * que é o do continente e o que o Tatoeba usa em `cmn`.
  */
-const CODIGO_DA_FREQUENCIA = { zh: 'zh_cn' };
+const CODIGO_DA_FREQUENCIA = { zh: 'zh_cn' }
 
 /**
  * Onde o repositório não publica o `_full`. O tailandês só tem a lista de 50 mil — o que é mais do
  * que a trilha usa (6 mil), então não custa nada além de dizer aqui por que o caminho é outro.
  */
-const CAMINHO_DA_FREQUENCIA = { th: '2018/th/th_50k.txt' };
+const CAMINHO_DA_FREQUENCIA = { th: '2018/th/th_50k.txt' }
 
 export const FONTE_FREQUENCIA = {
   nome: 'hermitdave/FrequencyWords',
   licenca: 'MIT (código) / CC-BY-SA (dados OpenSubtitles)',
   url: (lang) => {
-    const raiz = 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content';
-    if (CAMINHO_DA_FREQUENCIA[lang]) return `${raiz}/${CAMINHO_DA_FREQUENCIA[lang]}`;
-    const c = CODIGO_DA_FREQUENCIA[lang] ?? lang;
-    return `${raiz}/2018/${c}/${c}_full.txt`;
+    const raiz = 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content'
+    if (CAMINHO_DA_FREQUENCIA[lang]) return `${raiz}/${CAMINHO_DA_FREQUENCIA[lang]}`
+    const c = CODIGO_DA_FREQUENCIA[lang] ?? lang
+    return `${raiz}/2018/${c}/${c}_full.txt`
   },
   arquivo: (lang) => `frequencia-${lang}.txt`,
-};
+}
 
 export const FONTE_FRASES = {
   nome: 'Tatoeba',
@@ -48,62 +48,89 @@ export const FONTE_FRASES = {
   // Dump por idioma (código ISO-639-3). `<x>_sentences.tsv`: id \t lang \t texto.
   url: (iso3) => `https://downloads.tatoeba.org/exports/per_language/${iso3}/${iso3}_sentences.tsv.bz2`,
   arquivo: (iso3) => `tatoeba-${iso3}.tsv.bz2`,
-};
+}
 
 /** ISO-639-1 → ISO-639-3, que é o código dos dumps do Tatoeba. */
 export const ISO3 = {
-  en: 'eng', es: 'spa', fr: 'fra', de: 'deu', it: 'ita', pt: 'por',
-  ja: 'jpn', zh: 'cmn', ru: 'rus', ar: 'ara', he: 'heb', hi: 'hin', th: 'tha',
-  ko: 'kor', nl: 'nld', pl: 'pol', tr: 'tur', sv: 'swe',
-};
+  en: 'eng',
+  es: 'spa',
+  fr: 'fra',
+  de: 'deu',
+  it: 'ita',
+  pt: 'por',
+  ja: 'jpn',
+  zh: 'cmn',
+  ru: 'rus',
+  ar: 'ara',
+  he: 'heb',
+  hi: 'hin',
+  th: 'tha',
+  ko: 'kor',
+  nl: 'nld',
+  pl: 'pol',
+  tr: 'tur',
+  sv: 'swe',
+}
 
 export function sha256(buf) {
-  return createHash('sha256').update(buf).digest('hex');
+  return createHash('sha256').update(buf).digest('hex')
 }
 
 async function prepararCache() {
-  await mkdir(DIR_CACHE, { recursive: true });
-  const guarda = path.join(DIR_CACHE, '.gitignore');
-  try { await stat(guarda); } catch { await writeFile(guarda, '*\n'); }
+  await mkdir(DIR_CACHE, { recursive: true })
+  const guarda = path.join(DIR_CACHE, '.gitignore')
+  try {
+    await stat(guarda)
+  } catch {
+    await writeFile(guarda, '*\n')
+  }
 }
 
 export async function lerManifesto() {
-  try { return JSON.parse(await readFile(path.join(DIR_CACHE, 'manifesto.json'), 'utf8')); }
-  catch { return {}; }
+  try {
+    return JSON.parse(await readFile(path.join(DIR_CACHE, 'manifesto.json'), 'utf8'))
+  } catch {
+    return {}
+  }
 }
 
 async function gravarManifesto(m) {
-  await writeFile(path.join(DIR_CACHE, 'manifesto.json'), JSON.stringify(m, null, 2) + '\n');
+  await writeFile(path.join(DIR_CACHE, 'manifesto.json'), JSON.stringify(m, null, 2) + '\n')
 }
 
 /** Baixa `url` para `nomeArquivo` se ainda não houver cache. Devolve o caminho local. */
 export async function baixar(url, nomeArquivo, { forcar = false } = {}) {
-  await prepararCache();
-  const destino = path.join(DIR_CACHE, nomeArquivo);
-  const manifesto = await lerManifesto();
+  await prepararCache()
+  const destino = path.join(DIR_CACHE, nomeArquivo)
+  const manifesto = await lerManifesto()
   if (!forcar && manifesto[nomeArquivo]) {
-    try { await stat(destino); return destino; } catch { /* sumiu do disco: rebaixa */ }
+    try {
+      await stat(destino)
+      return destino
+    } catch {
+      /* sumiu do disco: rebaixa */
+    }
   }
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText} em ${url}`);
-  const buf = Buffer.from(await resp.arrayBuffer());
-  await writeFile(destino, buf);
-  manifesto[nomeArquivo] = { url, sha256: sha256(buf), bytes: buf.length, quando: new Date().toISOString() };
-  await gravarManifesto(manifesto);
-  return destino;
+  const resp = await fetch(url)
+  if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText} em ${url}`)
+  const buf = Buffer.from(await resp.arrayBuffer())
+  await writeFile(destino, buf)
+  manifesto[nomeArquivo] = { url, sha256: sha256(buf), bytes: buf.length, quando: new Date().toISOString() }
+  await gravarManifesto(manifesto)
+  return destino
 }
 
 /** Lista de frequência: `[{ palavra, contagem }]`, já na ordem da fonte (mais frequente antes). */
 export function lerFrequencia(texto) {
-  const fora = [];
+  const fora = []
   for (const linha of texto.split('\n')) {
-    const [palavra, n] = linha.trim().split(/\s+/);
-    if (!palavra || !n) continue;
-    const contagem = Number(n);
-    if (!Number.isFinite(contagem)) continue;
-    fora.push({ palavra, contagem });
+    const [palavra, n] = linha.trim().split(/\s+/)
+    if (!palavra || !n) continue
+    const contagem = Number(n)
+    if (!Number.isFinite(contagem)) continue
+    fora.push({ palavra, contagem })
   }
-  return fora;
+  return fora
 }
 
 /**
@@ -114,19 +141,19 @@ export function lerFrequencia(texto) {
  * jogos de frase bloqueados nos idiomas novos.
  */
 export function lerFrases(texto) {
-  const fora = [];
+  const fora = []
   for (const linha of texto.split('\n')) {
-    const col = linha.split('\t');
-    if (col.length < 3) continue;
-    const frase = col[2].trim();
-    if (frase) fora.push({ id: col[0].trim(), frase });
+    const col = linha.split('\t')
+    if (col.length < 3) continue
+    const frase = col[2].trim()
+    if (frase) fora.push({ id: col[0].trim(), frase })
   }
-  return fora;
+  return fora
 }
 
 export async function frequenciaDe(lang, opcoes) {
-  const caminho = await baixar(FONTE_FREQUENCIA.url(lang), FONTE_FREQUENCIA.arquivo(lang), opcoes);
-  return lerFrequencia(await readFile(caminho, 'utf8'));
+  const caminho = await baixar(FONTE_FREQUENCIA.url(lang), FONTE_FREQUENCIA.arquivo(lang), opcoes)
+  return lerFrequencia(await readFile(caminho, 'utf8'))
 }
 
 /**
@@ -135,16 +162,16 @@ export async function frequenciaDe(lang, opcoes) {
  * ele é usado direto.
  */
 export async function frasesDe(lang, opcoes) {
-  const iso3 = ISO3[lang];
-  if (!iso3) throw new Error(`sem código ISO-639-3 para "${lang}" — acrescente em ISO3`);
-  const tsv = path.join(DIR_CACHE, `tatoeba-${iso3}.tsv`);
+  const iso3 = ISO3[lang]
+  if (!iso3) throw new Error(`sem código ISO-639-3 para "${lang}" — acrescente em ISO3`)
+  const tsv = path.join(DIR_CACHE, `tatoeba-${iso3}.tsv`)
   try {
-    await stat(tsv);
+    await stat(tsv)
   } catch {
-    await baixar(FONTE_FRASES.url(iso3), FONTE_FRASES.arquivo(iso3), opcoes);
-    throw new Error(`baixei ${FONTE_FRASES.arquivo(iso3)}; descomprima para ${tsv} (bunzip2) e rode de novo`);
+    await baixar(FONTE_FRASES.url(iso3), FONTE_FRASES.arquivo(iso3), opcoes)
+    throw new Error(`baixei ${FONTE_FRASES.arquivo(iso3)}; descomprima para ${tsv} (bunzip2) e rode de novo`)
   }
-  return lerFrases(await readFile(tsv, 'utf8'));
+  return lerFrases(await readFile(tsv, 'utf8'))
 }
 
 /**
@@ -156,48 +183,50 @@ export async function frasesDe(lang, opcoes) {
  * sem tradução: os jogos de frase seguem bloqueados, dizendo isso.
  */
 export async function traducoesDasFrases(lang, nativo) {
-  const iso3 = ISO3[lang];
-  const iso3Nativo = ISO3[nativo];
-  if (!iso3 || !iso3Nativo) return new Map();
+  const iso3 = ISO3[lang]
+  const iso3Nativo = ISO3[nativo]
+  if (!iso3 || !iso3Nativo) return new Map()
 
-  const links = path.join(DIR_CACHE, `links-${iso3}-${iso3Nativo}.tsv`);
-  const frasesNativo = path.join(DIR_CACHE, `tatoeba-${iso3Nativo}.tsv`);
+  const links = path.join(DIR_CACHE, `links-${iso3}-${iso3Nativo}.tsv`)
+  const frasesNativo = path.join(DIR_CACHE, `tatoeba-${iso3Nativo}.tsv`)
   try {
-    await stat(links);
-    await stat(frasesNativo);
+    await stat(links)
+    await stat(frasesNativo)
   } catch {
-    return new Map();
+    return new Map()
   }
 
-  const porId = new Map();
-  for (const { id, frase } of lerFrases(await readFile(frasesNativo, 'utf8'))) porId.set(id, frase);
+  const porId = new Map()
+  for (const { id, frase } of lerFrases(await readFile(frasesNativo, 'utf8'))) porId.set(id, frase)
 
-  const fora = new Map();
+  const fora = new Map()
   for (const linha of (await readFile(links, 'utf8')).split('\n')) {
-    const [origem, destino] = linha.split('\t');
-    if (!origem || !destino) continue;
-    const traducao = porId.get(destino.trim());
+    const [origem, destino] = linha.split('\t')
+    if (!origem || !destino) continue
+    const traducao = porId.get(destino.trim())
     // Primeira tradução vence: o Tatoeba lista várias e a ordem dele é estável entre gerações.
-    if (traducao && !fora.has(origem.trim())) fora.set(origem.trim(), traducao);
+    if (traducao && !fora.has(origem.trim())) fora.set(origem.trim(), traducao)
   }
-  return fora;
+  return fora
 }
 
 /** Auxiliar para fonte já em `.gz` (Wiktextract, por exemplo). */
 export async function descomprimirGz(origem, destino) {
-  await pipeline(createReadStream(origem), createGunzip(), createWriteStream(destino));
-  return destino;
+  await pipeline(createReadStream(origem), createGunzip(), createWriteStream(destino))
+  return destino
 }
 
 export async function baixarStream(url, destino) {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`${resp.status} em ${url}`);
-  await pipeline(Readable.fromWeb(resp.body), createWriteStream(destino));
-  return destino;
+  const resp = await fetch(url)
+  if (!resp.ok) throw new Error(`${resp.status} em ${url}`)
+  await pipeline(Readable.fromWeb(resp.body), createWriteStream(destino))
+  return destino
 }
 
 /** Atribuição que vai no campo `fonte` do JSON da trilha. */
 export function atribuicao(lang) {
-  return `Frequência: ${FONTE_FREQUENCIA.nome} (${FONTE_FREQUENCIA.licenca}), ${FONTE_FREQUENCIA.url(lang)}. `
-    + `Frases: ${FONTE_FRASES.nome} (${FONTE_FRASES.licenca}), https://tatoeba.org.`;
+  return (
+    `Frequência: ${FONTE_FREQUENCIA.nome} (${FONTE_FREQUENCIA.licenca}), ${FONTE_FREQUENCIA.url(lang)}. ` +
+    `Frases: ${FONTE_FRASES.nome} (${FONTE_FRASES.licenca}), https://tatoeba.org.`
+  )
 }

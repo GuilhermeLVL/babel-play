@@ -36,7 +36,10 @@ describe('rastros — um por forma', () => {
 
   it('os duplicados saíram com reembolso das Seeds, e a conquista Duelista paga sem a peça', () => {
     for (const id of ['ras-bolhas', 'ras-matrix']) {
-      expect(CATALOGO_DA_LOJA.some((i) => i.id === id), id).toBe(false)
+      expect(
+        CATALOGO_DA_LOJA.some((i) => i.id === id),
+        id,
+      ).toBe(false)
       expect(ITENS_REMOVIDOS.has(id), id).toBe(true)
     }
     expect(reembolsosDevidos([{ reason: 'loja:ras-bolhas', amount: 1000 }], new Set())).toEqual([

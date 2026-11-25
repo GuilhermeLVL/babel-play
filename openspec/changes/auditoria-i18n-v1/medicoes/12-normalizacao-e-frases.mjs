@@ -20,12 +20,21 @@ import { andar, caminho, lerJSON, tabela, pct, publicar } from './comum.mjs';
 const chaveDoVerificador = (p) => p.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 
 const ESCRITA = {
-  ar: /\p{Script=Arabic}/u, de: /\p{Script=Latin}/u, en: /\p{Script=Latin}/u,
-  es: /\p{Script=Latin}/u, fr: /\p{Script=Latin}/u, he: /\p{Script=Hebrew}/u,
-  hi: /\p{Script=Devanagari}/u, it: /\p{Script=Latin}/u,
+  ar: /\p{Script=Arabic}/u,
+  de: /\p{Script=Latin}/u,
+  en: /\p{Script=Latin}/u,
+  es: /\p{Script=Latin}/u,
+  fr: /\p{Script=Latin}/u,
+  he: /\p{Script=Hebrew}/u,
+  hi: /\p{Script=Devanagari}/u,
+  it: /\p{Script=Latin}/u,
   ja: /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}/u,
-  ko: /\p{Script=Hangul}/u, nl: /\p{Script=Latin}/u, pl: /\p{Script=Latin}/u,
-  ru: /\p{Script=Cyrillic}/u, sv: /\p{Script=Latin}/u, tr: /\p{Script=Latin}/u,
+  ko: /\p{Script=Hangul}/u,
+  nl: /\p{Script=Latin}/u,
+  pl: /\p{Script=Latin}/u,
+  ru: /\p{Script=Cyrillic}/u,
+  sv: /\p{Script=Latin}/u,
+  tr: /\p{Script=Latin}/u,
   zh: /\p{Script=Han}/u,
 };
 
@@ -55,19 +64,25 @@ for (const arq of andar(caminho('public', 'trilha'), (p) => p.endsWith('.json'))
 
   // O que interessa para o runtime: a glosa é procurada pela palavra CRUA (verificar.mjs:41
   // faz `glosas?.[p]`). Então palavra e chave da glosa têm de bater byte a byte.
-  let glosasQueNaoBatem = 0, totalGlosas = 0;
+  let glosasQueNaoBatem = 0,
+    totalGlosas = 0;
   try {
     const g = lerJSON(caminho('public', 'glosas', `${lang}-pt.json`)).glosas ?? {};
     const doArquivo = new Set(palavras);
     totalGlosas = Object.keys(g).length;
     glosasQueNaoBatem = Object.keys(g).filter((k) => !doArquivo.has(k)).length;
-  } catch { /* inglês não tem arquivo de glosa: é v1, embutida */ }
+  } catch {
+    /* inglês não tem arquivo de glosa: é v1, embutida */
+  }
 
   normalizacao.push({
-    lang, palavras: palavras.length, mudamNaChave,
+    lang,
+    palavras: palavras.length,
+    mudamNaChave,
     colisoes: colisoes.length,
     exemplos: colisoes.slice(0, 3).map(([, s]) => [...s].join(' / ')),
-    totalGlosas, glosasQueNaoBatem,
+    totalGlosas,
+    glosasQueNaoBatem,
   });
 
   // (b) frases fora da escrita do idioma
@@ -75,15 +90,25 @@ for (const arq of andar(caminho('public', 'trilha'), (p) => p.endsWith('.json'))
   const comFrase = itens.map((i) => i[idxFrase]).filter((f) => typeof f === 'string' && f.trim());
   const foraDaEscrita = re ? comFrase.filter((f) => !re.test(f)) : [];
   frases.push({
-    lang, comFrase: comFrase.length,
+    lang,
+    comFrase: comFrase.length,
     foraDaEscrita: foraDaEscrita.length,
     exemplos: foraDaEscrita.slice(0, 3),
   });
 }
 
 let texto = '(a) NORMALIZAÇÃO — a chave do verificar.mjs sobre o vocabulário real:\n';
-texto += tabela(['lang', 'palavras', 'mudam na chave', 'colisões', 'glosas', 'glosas sem palavra correspondente'],
-  normalizacao.map((x) => [x.lang, x.palavras, `${x.mudamNaChave} (${pct(x.mudamNaChave, x.palavras)})`, x.colisoes, x.totalGlosas, x.glosasQueNaoBatem]));
+texto += tabela(
+  ['lang', 'palavras', 'mudam na chave', 'colisões', 'glosas', 'glosas sem palavra correspondente'],
+  normalizacao.map((x) => [
+    x.lang,
+    x.palavras,
+    `${x.mudamNaChave} (${pct(x.mudamNaChave, x.palavras)})`,
+    x.colisoes,
+    x.totalGlosas,
+    x.glosasQueNaoBatem,
+  ]),
+);
 
 texto += '\n\nColisões (duas palavras distintas viram a mesma chave):';
 let houve = false;
@@ -95,8 +120,10 @@ for (const x of normalizacao) {
 if (!houve) texto += ' nenhuma em nenhum idioma.';
 
 texto += '\n\n(b) FRASES DE EXEMPLO FORA DA ESCRITA DO IDIOMA:\n';
-texto += tabela(['lang', 'frases', 'fora da escrita', 'taxa'],
-  frases.map((x) => [x.lang, x.comFrase, x.foraDaEscrita, pct(x.foraDaEscrita, x.comFrase)]));
+texto += tabela(
+  ['lang', 'frases', 'fora da escrita', 'taxa'],
+  frases.map((x) => [x.lang, x.comFrase, x.foraDaEscrita, pct(x.foraDaEscrita, x.comFrase)]),
+);
 for (const x of frases) {
   if (!x.exemplos.length) continue;
   texto += `\n  [${x.lang}] ${x.exemplos.map((e) => JSON.stringify(e.slice(0, 70))).join('  ')}`;

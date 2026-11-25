@@ -1,22 +1,59 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { avaliarConquistas, conquistaDoCosmetico, CONQUISTAS, type ContextoDeConquistas,progressoDasConquistas } from '../src/core/learning/conquistas'
+import {
+  avaliarConquistas,
+  conquistaDoCosmetico,
+  CONQUISTAS,
+  type ContextoDeConquistas,
+  progressoDasConquistas,
+} from '../src/core/learning/conquistas'
 import type { AppMetrics } from '../src/core/learning/contract'
 import { conquistasDesbloqueadas } from '../src/lib/conquistasPosse'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 
 function metricas(p: Partial<AppMetrics> = {}): AppMetrics {
   return {
-    sessions: 0, wordsCaptured: 0, reviews: 0, correctReviews: 0, drillItems: 0, drillCorrect: 0,
-    seedsGastas: 0, streakDays: 0, dueToday: 0, newCards: 0, deckSize: 0, uniqueWords: 0,
-    speakingMs: 0, wpm: 0, wpmConfidence: 0, accuracy: 0, accuracyConfidence: 0, avgStability: 0,
-    avgRetention: 0, avgRetentionConfidence: 0, levelConfidence: 0, levelDistribution: [], vocabByWeek: [],
-    asOf: 0, escopo: 'global', base: { considerados: 0, total: 0 }, ...p,
+    sessions: 0,
+    wordsCaptured: 0,
+    reviews: 0,
+    correctReviews: 0,
+    drillItems: 0,
+    drillCorrect: 0,
+    seedsGastas: 0,
+    streakDays: 0,
+    dueToday: 0,
+    newCards: 0,
+    deckSize: 0,
+    uniqueWords: 0,
+    speakingMs: 0,
+    wpm: 0,
+    wpmConfidence: 0,
+    accuracy: 0,
+    accuracyConfidence: 0,
+    avgStability: 0,
+    avgRetention: 0,
+    avgRetentionConfidence: 0,
+    levelConfidence: 0,
+    levelDistribution: [],
+    vocabByWeek: [],
+    asOf: 0,
+    escopo: 'global',
+    base: { considerados: 0, total: 0 },
+    ...p,
   }
 }
 function ctx(p: Partial<AppMetrics> = {}, extra: Partial<ContextoDeConquistas> = {}): ContextoDeConquistas {
-  return { metricas: metricas(p), nivel: 1, melhorComboPorJogo: {}, eventosVistos: 0, totalDeEventos: 11, idiomas: 0, compras: 0, ...extra }
+  return {
+    metricas: metricas(p),
+    nivel: 1,
+    melhorComboPorJogo: {},
+    eventosVistos: 0,
+    totalDeEventos: 11,
+    idiomas: 0,
+    compras: 0,
+    ...extra,
+  }
 }
 
 describe('catálogo de conquistas', () => {
@@ -32,7 +69,8 @@ describe('catálogo de conquistas', () => {
       }
     }
     // e todo exclusivo da Loja aponta para uma conquista real
-    for (const i of CATALOGO_DA_LOJA.filter((x) => x.exclusivoDe)) expect(conquistaDoCosmetico(i.id)?.id).toBe(i.exclusivoDe)
+    for (const i of CATALOGO_DA_LOJA.filter((x) => x.exclusivoDe))
+      expect(conquistaDoCosmetico(i.id)?.id).toBe(i.exclusivoDe)
   })
 
   it('progresso é limitado à meta e vira conquistada no ≥', () => {
@@ -62,7 +100,11 @@ describe('catálogo de conquistas', () => {
 })
 
 describe('cliente: crédito antes da posse', () => {
-  beforeEach(() => { localStorage.removeItem('babel.conquistas'); localStorage.removeItem('babel.conquistas_datas'); vi.resetModules() })
+  beforeEach(() => {
+    localStorage.removeItem('babel.conquistas')
+    localStorage.removeItem('babel.conquistas_datas')
+    vi.resetModules()
+  })
 
   it('sem crédito no servidor, a conquista NÃO é marcada (fica para a próxima)', async () => {
     vi.doMock('../src/data/api', () => ({ creditarSeeds: vi.fn(async () => null), fetchRecordes: vi.fn() }))

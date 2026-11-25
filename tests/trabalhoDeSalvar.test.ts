@@ -32,7 +32,16 @@ import { lerSalvamento } from '../src/lib/captura/estadoDoSalvamento'
 import { lerRascunhos, type RascunhoDaCaptura } from '../src/lib/captura/rascunhoDaCaptura'
 import { salvarCaptura, tentarDeNovo } from '../src/lib/captura/trabalhoDeSalvar'
 
-const REC = { id: 's1', title: 'Aula', date: 'Hoje', durationStr: '0:10', wordCount: 3, type: 'audio' as const, tags: [], status: 'Processado' as const }
+const REC = {
+  id: 's1',
+  title: 'Aula',
+  date: 'Hoje',
+  durationStr: '0:10',
+  wordCount: 3,
+  type: 'audio' as const,
+  tags: [],
+  status: 'Processado' as const,
+}
 
 function rascunho(id = 'captura-aaaa0001'): RascunhoDaCaptura {
   return {
@@ -44,7 +53,9 @@ function rascunho(id = 'captura-aaaa0001'): RascunhoDaCaptura {
     sourceLang: 'en',
     targetLang: 'pt-BR',
     parConfigurado: { sourceLang: 'pt-BR', targetLang: 'en' },
-    utterances: [{ idx: 0, source: 'system', sourceLang: 'en', sourceText: 'good morning teacher', translatedText: 'bom dia' }],
+    utterances: [
+      { idx: 0, source: 'system', sourceLang: 'en', sourceText: 'good morning teacher', translatedText: 'bom dia' },
+    ],
     criadoEm: 1,
   }
 }
@@ -118,7 +129,11 @@ describe('salvarCaptura', () => {
 
   it('recusa do teto: falhou com o texto, teto=true, rascunho guardado e nada de navegar', async () => {
     api.criarSessaoEmLotes.mockRejectedValueOnce(
-      new ErroDeSessao('Esta é a edição de demonstração: ela guarda até 20 gravações neste navegador.', 507, 'TETO_ANONIMO'),
+      new ErroDeSessao(
+        'Esta é a edição de demonstração: ela guarda até 20 gravações neste navegador.',
+        507,
+        'TETO_ANONIMO',
+      ),
     )
     const aoSalvar = vi.fn()
     const r = await salvarCaptura({
@@ -140,7 +155,12 @@ describe('salvarCaptura', () => {
   it('tentar de novo reusa o mesmo origemLocalId e apaga o rascunho no sucesso', async () => {
     api.criarSessaoEmLotes.mockRejectedValueOnce(new ErroDeSessao('banco ocupado', 503))
     const base = { traduzir, aoSalvar: vi.fn() }
-    await salvarCaptura({ ...base, origemLocalId: 'captura-aaaa0005', titulo: 'Aula', preparar: async () => ({ rascunho: rascunho('captura-aaaa0005') }) })
+    await salvarCaptura({
+      ...base,
+      origemLocalId: 'captura-aaaa0005',
+      titulo: 'Aula',
+      preparar: async () => ({ rascunho: rascunho('captura-aaaa0005') }),
+    })
     const [guardado] = lerRascunhos()
     const r = await tentarDeNovo(guardado, base)
     expect(r.ok).toBe(true)

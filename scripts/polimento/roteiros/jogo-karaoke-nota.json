@@ -96,9 +96,5 @@
     ".pj-nota small",
     ".pj-frase span.certa"
   ],
-  "props": [
-    "textDecorationLine",
-    "borderTopStyle",
-    "animationDelay"
-  ]
+  "props": ["textDecorationLine", "borderTopStyle", "animationDelay"]
 }

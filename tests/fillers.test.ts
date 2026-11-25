@@ -5,7 +5,7 @@
  * medição que justifica a lista ser por idioma, então está travada aqui — se alguém unificar as
  * listas "para simplificar", este arquivo reprova.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { contarVicios, contarViciosDasFalas, idiomasComVicios } from '../src/core/learning/fillers'
 
@@ -88,9 +88,9 @@ describe('contarVicios', () => {
 describe('contarViciosDasFalas', () => {
   it('usa a lista do idioma de CADA fala numa gravação mista', () => {
     const r = contarViciosDasFalas([
-      { text: 'um, I think so', lang: 'en' },      // 1 (hesitação)
-      { text: 'eu quero um café', lang: 'pt' },    // 0 (artigo)
-      { text: 'ah, entendi', lang: 'pt' },         // 1
+      { text: 'um, I think so', lang: 'en' }, // 1 (hesitação)
+      { text: 'eu quero um café', lang: 'pt' }, // 0 (artigo)
+      { text: 'ah, entendi', lang: 'pt' }, // 1
     ])
     expect(r.total).toBe(2)
     expect(r.idiomas).toEqual(['en', 'pt'])
@@ -113,7 +113,10 @@ describe('contarViciosDasFalas', () => {
       { text: 'ah', lang: 'pt' },
       { text: 'hmm', lang: 'pt' },
     ])
-    expect(r.detalhe).toEqual([{ marcador: 'ah', vezes: 2 }, { marcador: 'hmm', vezes: 1 }])
+    expect(r.detalhe).toEqual([
+      { marcador: 'ah', vezes: 2 },
+      { marcador: 'hmm', vezes: 1 },
+    ])
   })
 
   it('lista vazia não divide por zero', () => {

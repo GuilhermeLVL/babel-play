@@ -87,9 +87,5 @@
     ".pj-tabu",
     ".hud-tempo span"
   ],
-  "props": [
-    "textDecorationLine",
-    "borderTopStyle",
-    "animationDelay"
-  ]
+  "props": ["textDecorationLine", "borderTopStyle", "animationDelay"]
 }

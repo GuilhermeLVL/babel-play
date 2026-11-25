@@ -20,23 +20,23 @@ A medição 08 precisa de `npm run build` rodado antes; sem `dist/` ela se anunc
 
 ## As medições, uma a uma
 
-| script | responde |
-|---|---|
-| `01-inventario.mjs` | stack, versões, estado do git, superfície de arquivos, ICU do runtime |
-| `02-chaves-catalogo.mjs` | quantas chaves cada catálogo **preenche** (não quantas declara) |
-| `03-chamadas-t.mjs` | `t(`/`tp(`/`<T`, e cobertura por dois denominadores diferentes |
-| `04-trilha-palavras.mjs` | recontagem das palavras: duplicata, caixa, NFC/NFD, escrita |
-| `05-glosas-cobertura.mjs` | glosa e frase traduzida **por par**, não global |
-| `06-telas-e-rotas.mjs` | censo de telas, quais traduzem, que fração o e2e cobre |
-| `07-locale-e-caixa.mjs` | locale cravado, `toLowerCase()` sem locale, classes direcionais |
-| `08-bundle.mjs` | peso do `dist/`, entrada real lida do HTML, projeção de catálogos |
-| `09-divida-de-codigo.mjs` | plurais no código, template literals, texto rico, chaves de storage |
-| `10-segmentacao.mjs` | erro da régua `contarPalavras` contra `Intl.Segmenter` |
-| `11-desenclitico-e-amostra.mjs` | falso positivo do desenclítico; IC e poder da amostra de 60 |
-| `12-normalizacao-e-frases.mjs` | consistência NFC/NFD ingestão × runtime; idioma das frases |
-| `13-censo-de-cobertura.mjs` | censo por superfície (aria-label, title, servidor, meta) e por área |
-| `14-estresse-por-escrita.mjs` | turco/caixa, ordenação, grafema, zh-Hans×Hant, fontes |
-| `montar-fixture-gate.mjs` | monta dados ruins para provar que o gate de publicação reprova |
+| script                          | responde                                                              |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `01-inventario.mjs`             | stack, versões, estado do git, superfície de arquivos, ICU do runtime |
+| `02-chaves-catalogo.mjs`        | quantas chaves cada catálogo **preenche** (não quantas declara)       |
+| `03-chamadas-t.mjs`             | `t(`/`tp(`/`<T`, e cobertura por dois denominadores diferentes        |
+| `04-trilha-palavras.mjs`        | recontagem das palavras: duplicata, caixa, NFC/NFD, escrita           |
+| `05-glosas-cobertura.mjs`       | glosa e frase traduzida **por par**, não global                       |
+| `06-telas-e-rotas.mjs`          | censo de telas, quais traduzem, que fração o e2e cobre                |
+| `07-locale-e-caixa.mjs`         | locale cravado, `toLowerCase()` sem locale, classes direcionais       |
+| `08-bundle.mjs`                 | peso do `dist/`, entrada real lida do HTML, projeção de catálogos     |
+| `09-divida-de-codigo.mjs`       | plurais no código, template literals, texto rico, chaves de storage   |
+| `10-segmentacao.mjs`            | erro da régua `contarPalavras` contra `Intl.Segmenter`                |
+| `11-desenclitico-e-amostra.mjs` | falso positivo do desenclítico; IC e poder da amostra de 60           |
+| `12-normalizacao-e-frases.mjs`  | consistência NFC/NFD ingestão × runtime; idioma das frases            |
+| `13-censo-de-cobertura.mjs`     | censo por superfície (aria-label, title, servidor, meta) e por área   |
+| `14-estresse-por-escrita.mjs`   | turco/caixa, ordenação, grafema, zh-Hans×Hant, fontes                 |
+| `montar-fixture-gate.mjs`       | monta dados ruins para provar que o gate de publicação reprova        |
 
 ## Os gates do repositório, cronometrados
 
@@ -118,7 +118,13 @@ await page.goto('http://localhost:3105/jogar?ui=../../termos.html%3f');
 await page.goto('http://localhost:3105/ajustes?ui=../../trilha/es');
 await page.evaluate(() => document.documentElement.lang);
 // → "../../trilha/es"
-await page.evaluate(() => { try { (1234.5).toLocaleString(document.documentElement.lang) } catch (e) { return e.message } });
+await page.evaluate(() => {
+  try {
+    (1234.5).toLocaleString(document.documentElement.lang);
+  } catch (e) {
+    return e.message;
+  }
+});
 // → "Incorrect locale information provided"
 ```
 

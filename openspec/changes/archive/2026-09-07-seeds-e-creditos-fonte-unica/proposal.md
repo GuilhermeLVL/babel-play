@@ -23,9 +23,11 @@ Achados A03, A14, A18, A26 e secao 4 (economia) de `openspec/audits/2026-09-07-c
 ## Capabilities
 
 ### New Capabilities
+
 - `credito-com-autoridade`: nenhum credito entra sem o servidor (ou o efemero, com a mesma funcao) decidir o valor.
 
 ### Modified Capabilities
+
 - `economia` (change `servidor-e-autoridade`): a autoridade cobre creditos de passe e drop, nao so conquistas e gastos.
 
 ## Impact

@@ -76,9 +76,7 @@
     ],
     "depois": 1200
   },
-  "seletores": [
-    ".qj-sugestao"
-  ],
+  "seletores": [".qj-sugestao"],
   "gravar": {
     "app": [
       {

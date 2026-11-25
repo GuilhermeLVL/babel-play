@@ -123,64 +123,65 @@ o harness `scripts/eval-ia/`:
 **Resultado.** As 84 rubricas foram válidas (42 por juiz). Na tabela, a coluna "Critérios divididos/reprovados" marca
 com ½ o critério em que os juízes discordaram e com ✗ o que os dois reprovaram.
 
-| # | Ideia | Contexto | Gatilho | Mistral | DeepSeek | Média | Critérios divididos/reprovados | US$/uso | US$/mês (20 h) |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 | Destacar expressões idiomáticas (`video-expressoes`) | video | auto | 7/7 | 7/7 | 7,0 | — | 0,00003 | 0,012 |
-| 2 | Palavras acima do meu nível em destaque (`video-nivel`) | video | auto | 7/7 | 7/7 | 7,0 | — | 0,00000 | 0,000 |
-| 3 | Pauta com tópicos cobertos e faltando (`consultoria-pauta`) | consultoria | auto | 7/7 | 6/7 | 6,5 | F½ | 0,00015 | 0,037 |
-| 4 | Correção gentil da minha fala (`presencial-correcao`) | presencial | auto | 7/7 | 6/7 | 6,5 | N½ | 0,00011 | 0,042 |
-| 5 | "Como respondo?" com 3 sugestões (`reuniao-como-respondo`) | reuniao | sob demanda | 6/7 | 7/7 | 6,5 | F½ | 0,00026 | 0,020 |
-| 6 | Termo técnico ou sigla explicado na hora (`reuniao-termo-tecnico`) | reuniao | auto | 7/7 | 6/7 | 6,5 | F½ | 0,00004 | 0,007 |
-| 7 | Conceitos-chave da aula (`aula-conceitos`) | aula | auto | 5/7 | 7/7 | 6,0 | F½ N½ | 0,00049 | 0,119 |
-| 8 | Rascunho do e-mail de follow-up (`consultoria-followup`) | consultoria | sob demanda | 6/7 | 6/7 | 6,0 | F½ P½ | 0,00069 | 0,014 |
-| 9 | Glossário da sessão (`consultoria-glossario`) | consultoria | auto | 7/7 | 5/7 | 6,0 | P½ D½ | 0,00022 | 0,004 |
-| 10 | Vocabulário do episódio no meu nível (`podcast-vocab`) | aula | auto | 7/7 | 5/7 | 6,0 | P½ D½ | 0,00029 | 0,006 |
-| 11 | Intérprete com resposta sugerida (`presencial-sugestao`) | presencial | sob demanda | 7/7 | 5/7 | 6,0 | P½ N½ | 0,00015 | 0,018 |
-| 12 | Polir minha frase antes de falar (`reuniao-polir-minha-fala`) | reuniao | sob demanda | 6/7 | 6/7 | 6,0 | F½ N½ | 0,00011 | 0,008 |
-| 13 | Frase do episódio (`video-frase-episodio`) | video | auto | 6/7 | 6/7 | 6,0 | F½ P½ | 0,00108 | 0,022 |
-| 14 | Sumário com marcas de tempo (`aula-topicos`) | aula | auto | 7/7 | 4/7 | 5,5 | V½ F½ D½ | 0,00019 | 0,046 |
-| 15 | Glossário de callouts da partida (`jogo-callouts`) | jogo | auto | 6/7 | 5/7 | 5,5 | V½ F½ D½ | 0,00019 | 0,004 |
-| 16 | "Como respondo?" no chat de voz do jogo (`jogo-como-respondo`) | jogo | sob demanda | 6/7 | 5/7 | 5,5 | F½ P½ N½ | 0,00018 | 0,014 |
-| 17 | Auditoria da conversa (`reuniao-auditoria`) | reuniao | sob demanda | 5/7 | 6/7 | 5,5 | F✗ P½ | 0,00162 | 0,032 |
-| 18 | Tarefas, prazos e responsáveis (`reuniao-tarefas`) | reuniao | auto | 6/7 | 5/7 | 5,5 | F½ P✗ | 0,00047 | 0,112 |
-| 19 | Explicar a piada ou referência da cena (`video-piada`) | video | sob demanda | 4/7 | 7/7 | 5,5 | V½ F½ D½ | 0,00017 | 0,010 |
-| 20 | "Quem é esse?" — personagens da sessão (`video-quem-e`) | video | sob demanda | 6/7 | 5/7 | 5,5 | F✗ P½ | 0,00075 | 0,015 |
-| 21 | Perguntar ao conteúdo (`aula-pergunta`) | aula | sob demanda | 5/7 | 5/7 | 5,0 | F✗ D½ N½ | 0,00087 | 0,052 |
-| 22 | Mini-quiz do que foi dito (`aula-quiz`) | aula | sob demanda | 4/7 | 6/7 | 5,0 | V½ F½ D✗ | 0,00114 | 0,023 |
-| 23 | Dica de gíria de jogo na hora (`jogo-giria`) | jogo | auto | 6/7 | 4/7 | 5,0 | V½ F✗ D½ | 0,00003 | 0,008 |
-| 24 | Alerta de falso cognato (`presencial-falso-cognato`) | presencial | auto | 5/7 | 5/7 | 5,0 | F✗ D✗ | 0,00000 | 0,000 |
-| 25 | Ata final exportável (`reuniao-ata`) | reuniao | auto | 6/7 | 4/7 | 5,0 | F½ P✗ D½ | 0,00186 | 0,037 |
-| 26 | Aviso quando falam comigo (`reuniao-mencao`) | reuniao | auto | 5/7 | 5/7 | 5,0 | F✗ D½ N½ | 0,00000 | 0,000 |
-| 27 | Perguntas boas para fazer (`reuniao-perguntas`) | reuniao | sob demanda | 5/7 | 5/7 | 5,0 | F✗ P✗ | 0,00027 | 0,011 |
-| 28 | "O que aconteceu?" — resumo dos últimos minutos (`video-recap`) | video | sob demanda | 6/7 | 4/7 | 5,0 | V½ F✗ D½ | 0,00032 | 0,013 |
-| 29 | Faixa só com palavras-chave (`jogo-faixa-chave`) | jogo | auto | 4/7 | 5/7 | 4,5 | V✗ F½ D✗ | 0,00000 | 0,000 |
-| 30 | Frases úteis para a situação (`presencial-frases-situacao`) | presencial | sob demanda | 5/7 | 4/7 | 4,5 | V½ F✗ D✗ | 0,00000 | 0,000 |
-| 31 | "O que eu perdi?" (`reuniao-o-que-perdi`) | reuniao | sob demanda | 4/7 | 5/7 | 4,5 | F✗ P✗ D½ | 0,00054 | 0,011 |
-| 32 | Shadowing: repetir a fala e comparar (`video-sombra`) | video | sob demanda | 5/7 | 4/7 | 4,5 | F✗ D✗ N½ | 0,00000 | 0,000 |
-| 33 | Objeções do cliente e como responder (`consultoria-objecoes`) | consultoria | auto | 6/7 | 2/7 | 4,0 | V½ F½ P✗ D½ N½ | 0,00034 | 0,083 |
-| 34 | "Como se diz…?" (`presencial-como-se-diz`) | presencial | sob demanda | 5/7 | 3/7 | 4,0 | V½ F✗ P½ D✗ | 0,00003 | 0,003 |
-| 35 | Resumo rolante da reunião (`reuniao-resumo-rolante`) | reuniao | auto | 6/7 | 2/7 | 4,0 | V½ F½ P✗ D½ N½ | 0,00052 | 0,126 |
-| 36 | Traduzir minha fala para o chat (`jogo-minha-fala`) | jogo | sob demanda | 4/7 | 3/7 | 3,5 | V✗ F✗ D✗ N½ | 0,00003 | 0,003 |
-| 37 | Checagem de fato com fonte (`reuniao-checagem`) | reuniao | sob demanda | 4/7 | 3/7 | 3,5 | V½ F✗ P✗ D½ N½ | 0,00761 | 0,152 |
-| 38 | Contexto histórico/cultural com pesquisa (`video-contexto-web`) | video | sob demanda | 3/7 | 3/7 | 3,0 | V✗ F✗ Vi½ P✗ D½ | 0,00754 | 0,151 |
-| 39 | Referências citadas com link (`aula-referencias`) | aula | auto | 1/7 | 4/7 | 2,5 | F½ Vi½ C✗ P✗ D✗ N½ | 0,00754 | 0,301 |
-| 40 | Dossiê do interlocutor (`geral-dossie`) | geral | sob demanda | 3/7 | 1/7 | 2,0 | V½ F✗ Vi✗ P✗ D½ N✗ | 0,00764 | 0,153 |
-| 41 | Aviso de assédio ou toxicidade no chat de voz (`jogo-toxicidade`) | jogo | auto | 2/7 | 2/7 | 2,0 | V✗ F✗ P✗ D✗ N✗ | 0,00001 | 0,035 |
-| 42 | Emoção e sentimento de quem fala (`geral-emocao`) | geral | auto | 1/7 | 1/7 | 1,0 | V✗ F✗ Vi✗ P✗ D✗ N✗ | 0,00003 | 0,032 |
+| #   | Ideia                                                              | Contexto    | Gatilho     | Mistral | DeepSeek | Média | Critérios divididos/reprovados | US$/uso | US$/mês (20 h) |
+| --- | ------------------------------------------------------------------ | ----------- | ----------- | ------- | -------- | ----- | ------------------------------ | ------- | -------------- |
+| 1   | Destacar expressões idiomáticas (`video-expressoes`)               | video       | auto        | 7/7     | 7/7      | 7,0   | —                              | 0,00003 | 0,012          |
+| 2   | Palavras acima do meu nível em destaque (`video-nivel`)            | video       | auto        | 7/7     | 7/7      | 7,0   | —                              | 0,00000 | 0,000          |
+| 3   | Pauta com tópicos cobertos e faltando (`consultoria-pauta`)        | consultoria | auto        | 7/7     | 6/7      | 6,5   | F½                             | 0,00015 | 0,037          |
+| 4   | Correção gentil da minha fala (`presencial-correcao`)              | presencial  | auto        | 7/7     | 6/7      | 6,5   | N½                             | 0,00011 | 0,042          |
+| 5   | "Como respondo?" com 3 sugestões (`reuniao-como-respondo`)         | reuniao     | sob demanda | 6/7     | 7/7      | 6,5   | F½                             | 0,00026 | 0,020          |
+| 6   | Termo técnico ou sigla explicado na hora (`reuniao-termo-tecnico`) | reuniao     | auto        | 7/7     | 6/7      | 6,5   | F½                             | 0,00004 | 0,007          |
+| 7   | Conceitos-chave da aula (`aula-conceitos`)                         | aula        | auto        | 5/7     | 7/7      | 6,0   | F½ N½                          | 0,00049 | 0,119          |
+| 8   | Rascunho do e-mail de follow-up (`consultoria-followup`)           | consultoria | sob demanda | 6/7     | 6/7      | 6,0   | F½ P½                          | 0,00069 | 0,014          |
+| 9   | Glossário da sessão (`consultoria-glossario`)                      | consultoria | auto        | 7/7     | 5/7      | 6,0   | P½ D½                          | 0,00022 | 0,004          |
+| 10  | Vocabulário do episódio no meu nível (`podcast-vocab`)             | aula        | auto        | 7/7     | 5/7      | 6,0   | P½ D½                          | 0,00029 | 0,006          |
+| 11  | Intérprete com resposta sugerida (`presencial-sugestao`)           | presencial  | sob demanda | 7/7     | 5/7      | 6,0   | P½ N½                          | 0,00015 | 0,018          |
+| 12  | Polir minha frase antes de falar (`reuniao-polir-minha-fala`)      | reuniao     | sob demanda | 6/7     | 6/7      | 6,0   | F½ N½                          | 0,00011 | 0,008          |
+| 13  | Frase do episódio (`video-frase-episodio`)                         | video       | auto        | 6/7     | 6/7      | 6,0   | F½ P½                          | 0,00108 | 0,022          |
+| 14  | Sumário com marcas de tempo (`aula-topicos`)                       | aula        | auto        | 7/7     | 4/7      | 5,5   | V½ F½ D½                       | 0,00019 | 0,046          |
+| 15  | Glossário de callouts da partida (`jogo-callouts`)                 | jogo        | auto        | 6/7     | 5/7      | 5,5   | V½ F½ D½                       | 0,00019 | 0,004          |
+| 16  | "Como respondo?" no chat de voz do jogo (`jogo-como-respondo`)     | jogo        | sob demanda | 6/7     | 5/7      | 5,5   | F½ P½ N½                       | 0,00018 | 0,014          |
+| 17  | Auditoria da conversa (`reuniao-auditoria`)                        | reuniao     | sob demanda | 5/7     | 6/7      | 5,5   | F✗ P½                          | 0,00162 | 0,032          |
+| 18  | Tarefas, prazos e responsáveis (`reuniao-tarefas`)                 | reuniao     | auto        | 6/7     | 5/7      | 5,5   | F½ P✗                          | 0,00047 | 0,112          |
+| 19  | Explicar a piada ou referência da cena (`video-piada`)             | video       | sob demanda | 4/7     | 7/7      | 5,5   | V½ F½ D½                       | 0,00017 | 0,010          |
+| 20  | "Quem é esse?" — personagens da sessão (`video-quem-e`)            | video       | sob demanda | 6/7     | 5/7      | 5,5   | F✗ P½                          | 0,00075 | 0,015          |
+| 21  | Perguntar ao conteúdo (`aula-pergunta`)                            | aula        | sob demanda | 5/7     | 5/7      | 5,0   | F✗ D½ N½                       | 0,00087 | 0,052          |
+| 22  | Mini-quiz do que foi dito (`aula-quiz`)                            | aula        | sob demanda | 4/7     | 6/7      | 5,0   | V½ F½ D✗                       | 0,00114 | 0,023          |
+| 23  | Dica de gíria de jogo na hora (`jogo-giria`)                       | jogo        | auto        | 6/7     | 4/7      | 5,0   | V½ F✗ D½                       | 0,00003 | 0,008          |
+| 24  | Alerta de falso cognato (`presencial-falso-cognato`)               | presencial  | auto        | 5/7     | 5/7      | 5,0   | F✗ D✗                          | 0,00000 | 0,000          |
+| 25  | Ata final exportável (`reuniao-ata`)                               | reuniao     | auto        | 6/7     | 4/7      | 5,0   | F½ P✗ D½                       | 0,00186 | 0,037          |
+| 26  | Aviso quando falam comigo (`reuniao-mencao`)                       | reuniao     | auto        | 5/7     | 5/7      | 5,0   | F✗ D½ N½                       | 0,00000 | 0,000          |
+| 27  | Perguntas boas para fazer (`reuniao-perguntas`)                    | reuniao     | sob demanda | 5/7     | 5/7      | 5,0   | F✗ P✗                          | 0,00027 | 0,011          |
+| 28  | "O que aconteceu?" — resumo dos últimos minutos (`video-recap`)    | video       | sob demanda | 6/7     | 4/7      | 5,0   | V½ F✗ D½                       | 0,00032 | 0,013          |
+| 29  | Faixa só com palavras-chave (`jogo-faixa-chave`)                   | jogo        | auto        | 4/7     | 5/7      | 4,5   | V✗ F½ D✗                       | 0,00000 | 0,000          |
+| 30  | Frases úteis para a situação (`presencial-frases-situacao`)        | presencial  | sob demanda | 5/7     | 4/7      | 4,5   | V½ F✗ D✗                       | 0,00000 | 0,000          |
+| 31  | "O que eu perdi?" (`reuniao-o-que-perdi`)                          | reuniao     | sob demanda | 4/7     | 5/7      | 4,5   | F✗ P✗ D½                       | 0,00054 | 0,011          |
+| 32  | Shadowing: repetir a fala e comparar (`video-sombra`)              | video       | sob demanda | 5/7     | 4/7      | 4,5   | F✗ D✗ N½                       | 0,00000 | 0,000          |
+| 33  | Objeções do cliente e como responder (`consultoria-objecoes`)      | consultoria | auto        | 6/7     | 2/7      | 4,0   | V½ F½ P✗ D½ N½                 | 0,00034 | 0,083          |
+| 34  | "Como se diz…?" (`presencial-como-se-diz`)                         | presencial  | sob demanda | 5/7     | 3/7      | 4,0   | V½ F✗ P½ D✗                    | 0,00003 | 0,003          |
+| 35  | Resumo rolante da reunião (`reuniao-resumo-rolante`)               | reuniao     | auto        | 6/7     | 2/7      | 4,0   | V½ F½ P✗ D½ N½                 | 0,00052 | 0,126          |
+| 36  | Traduzir minha fala para o chat (`jogo-minha-fala`)                | jogo        | sob demanda | 4/7     | 3/7      | 3,5   | V✗ F✗ D✗ N½                    | 0,00003 | 0,003          |
+| 37  | Checagem de fato com fonte (`reuniao-checagem`)                    | reuniao     | sob demanda | 4/7     | 3/7      | 3,5   | V½ F✗ P✗ D½ N½                 | 0,00761 | 0,152          |
+| 38  | Contexto histórico/cultural com pesquisa (`video-contexto-web`)    | video       | sob demanda | 3/7     | 3/7      | 3,0   | V✗ F✗ Vi½ P✗ D½                | 0,00754 | 0,151          |
+| 39  | Referências citadas com link (`aula-referencias`)                  | aula        | auto        | 1/7     | 4/7      | 2,5   | F½ Vi½ C✗ P✗ D✗ N½             | 0,00754 | 0,301          |
+| 40  | Dossiê do interlocutor (`geral-dossie`)                            | geral       | sob demanda | 3/7     | 1/7      | 2,0   | V½ F✗ Vi✗ P✗ D½ N✗             | 0,00764 | 0,153          |
+| 41  | Aviso de assédio ou toxicidade no chat de voz (`jogo-toxicidade`)  | jogo        | auto        | 2/7     | 2/7      | 2,0   | V✗ F✗ P✗ D✗ N✗                 | 0,00001 | 0,035          |
+| 42  | Emoção e sentimento de quem fala (`geral-emocao`)                  | geral       | auto        | 1/7     | 1/7      | 1,0   | V✗ F✗ Vi✗ P✗ D✗ N✗             | 0,00003 | 0,032          |
+
 **Pareado entre os 10 primeiros** (Copeland; só vitórias estáveis nas duas ordens contam):
 
-| Ideia | Mistral (Copeland) | DeepSeek (Copeland) | Soma | Estáveis | Instáveis |
-|---|---|---|---|---|---|
-| `video-expressoes` | +3 | +5 | +8 | 10 | 8 |
-| `video-nivel` | +1 | +7 | +8 | 12 | 6 |
-| `reuniao-termo-tecnico` | +3 | +3 | +6 | 10 | 8 |
-| `reuniao-como-respondo` | +0 | +4 | +4 | 8 | 10 |
-| `presencial-correcao` | +0 | +2 | +2 | 10 | 8 |
-| `consultoria-pauta` | +2 | -3 | -1 | 7 | 11 |
-| `podcast-vocab` | -2 | +0 | -2 | 10 | 8 |
-| `consultoria-glossario` | +1 | -5 | -4 | 10 | 8 |
-| `aula-conceitos` | -2 | -5 | -7 | 11 | 7 |
-| `consultoria-followup` | -6 | -8 | -14 | 16 | 2 |
+| Ideia                   | Mistral (Copeland) | DeepSeek (Copeland) | Soma | Estáveis | Instáveis |
+| ----------------------- | ------------------ | ------------------- | ---- | -------- | --------- |
+| `video-expressoes`      | +3                 | +5                  | +8   | 10       | 8         |
+| `video-nivel`           | +1                 | +7                  | +8   | 12       | 6         |
+| `reuniao-termo-tecnico` | +3                 | +3                  | +6   | 10       | 8         |
+| `reuniao-como-respondo` | +0                 | +4                  | +4   | 8        | 10        |
+| `presencial-correcao`   | +0                 | +2                  | +2   | 10       | 8         |
+| `consultoria-pauta`     | +2                 | -3                  | -1   | 7        | 11        |
+| `podcast-vocab`         | -2                 | +0                  | -2   | 10       | 8         |
+| `consultoria-glossario` | +1                 | -5                  | -4   | 10       | 8         |
+| `aula-conceitos`        | -2                 | -5                  | -7   | 11       | 7         |
+| `consultoria-followup`  | -6                 | -8                  | -14  | 16       | 2         |
 
 **Estabilidade e concordância.**
 

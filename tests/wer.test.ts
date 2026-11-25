@@ -5,11 +5,9 @@
  * O foco dos testes é a normalização de português e a decomposição dos erros — as duas partes onde
  * um descuido produz um WER que parece bom e esconde o defeito.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import {
-agregar, agregarPorFaixa, cer, distanciaDeEdicao,   normalizarPt, palavras,
-wer, } from '../src/core/eval/wer'
+import { agregar, agregarPorFaixa, cer, distanciaDeEdicao, normalizarPt, palavras, wer } from '../src/core/eval/wer'
 
 describe('normalização pt-BR', () => {
   it('tira caixa e pontuação, mas MANTÉM o acento', () => {
@@ -23,9 +21,9 @@ describe('normalização pt-BR', () => {
   })
 
   it('unifica as duas formas Unicode do mesmo caractere acentuado', () => {
-    const composto = 'á'                    // U+00E1
-    const decomposto = 'á'            // a + acento combinante
-    expect(composto).not.toBe(decomposto)   // são strings diferentes...
+    const composto = 'á' // U+00E1
+    const decomposto = 'á' // a + acento combinante
+    expect(composto).not.toBe(decomposto) // são strings diferentes...
     expect(normalizarPt(composto)).toBe(normalizarPt(decomposto)) // ...e a mesma palavra
   })
 
@@ -105,8 +103,12 @@ describe('WER e CER', () => {
 
 describe('agregação do corpus', () => {
   const casos = [
-    { id: '1', referencia: 'sim', hipotese: 'não' },                                  // 1 palavra, 1 erro
-    { id: '2', referencia: 'eu fui ao mercado comprar pão ontem de manhã cedo', hipotese: 'eu fui ao mercado comprar pão ontem de manhã cedo' }, // 10 palavras, 0 erro
+    { id: '1', referencia: 'sim', hipotese: 'não' }, // 1 palavra, 1 erro
+    {
+      id: '2',
+      referencia: 'eu fui ao mercado comprar pão ontem de manhã cedo',
+      hipotese: 'eu fui ao mercado comprar pão ontem de manhã cedo',
+    }, // 10 palavras, 0 erro
   ]
 
   it('pondera por palavra em vez de tirar média por caso', () => {
@@ -126,9 +128,9 @@ describe('agregação do corpus', () => {
   it('separa por faixa de tamanho — é o recorte que acusa se o gargalo é a segmentação', () => {
     const porFaixa = agregarPorFaixa(casos)
     expect(porFaixa['1-2 palavras'].casos).toBe(1)
-    expect(porFaixa['1-2 palavras'].wer).toBe(1)      // a fala curta errou tudo
+    expect(porFaixa['1-2 palavras'].wer).toBe(1) // a fala curta errou tudo
     expect(porFaixa['6-10 palavras'].casos).toBe(1)
-    expect(porFaixa['6-10 palavras'].wer).toBe(0)     // a longa acertou tudo
+    expect(porFaixa['6-10 palavras'].wer).toBe(0) // a longa acertou tudo
     expect(porFaixa['21+ palavras'].casos).toBe(0)
   })
 })

@@ -164,7 +164,8 @@ export function formasDaPalavra(palavra: string, idioma: string): string[] {
     if (raiz.length < RAIZ_MINIMA) continue;
     formas.push(raiz + rep);
     // "stopped"/"stopping" → "stopp" → "stop": consoante dobrada antes do sufixo (inglês).
-    if (rep === '' && idiomaBase(idioma) === 'en' && /([b-df-hj-np-tv-z])\1$/.test(raiz)) formas.push(raiz.slice(0, -1));
+    if (rep === '' && idiomaBase(idioma) === 'en' && /([b-df-hj-np-tv-z])\1$/.test(raiz))
+      formas.push(raiz.slice(0, -1));
   }
   return formas;
 }

@@ -59,7 +59,7 @@ A projeção usa o mesmo upsert por `(userId, normKey)` do `bulkAdd` (`vocab.ts:
 
 - Mesma palavra em dois baralhos → **um** cartão, **duas** ocorrências, **duas** notas apontando
   para ele. É o comportamento desejado e o Inspetor mostra as duas origens de graça.
-- Duas notas *diferentes* com a mesma `normKey` (ex.: "bank" substantivo e verbo) fundem o item
+- Duas notas _diferentes_ com a mesma `normKey` (ex.: "bank" substantivo e verbo) fundem o item
   jogável — e **não perdem nada**, porque `campos_brutos` guarda as duas notas íntegras. Declarado
   como comportamento na spec, não tratado como bug.
 - **Aresta perigosa:** o índice único é PARCIAL (`WHERE deleted_at IS NULL`). Se o cartão foi
@@ -107,9 +107,9 @@ proposta:
 
 ## Riscos
 
-| Risco | Mitigação |
-|---|---|
-| Reimport pós-desativação racha o histórico FSRS | Decisão 4: motivo da deleção guardado, reativação em vez de nova linha |
-| Baralho monstro (300k notas) trava a leitura | Teto de notas por resposta e paginação no parser (change `motor-anki-mapeador` / G2); import parcial por subdeck |
+| Risco                                              | Mitigação                                                                                                                                 |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Reimport pós-desativação racha o histórico FSRS    | Decisão 4: motivo da deleção guardado, reativação em vez de nova linha                                                                    |
+| Baralho monstro (300k notas) trava a leitura       | Teto de notas por resposta e paginação no parser (change `motor-anki-mapeador` / G2); import parcial por subdeck                          |
 | Perfil `curado` afrouxa demais e deixa entrar lixo | Constantes vindas de medição no corpus, não de intuição; a régua de lixo (dígito, ruído, tradução igual) continua valendo nos dois perfis |
-| Projeção diverge do `bulkAdd` e duplica regra | A projeção **reusa** `avaliarCartao` e o mesmo upsert; o que muda é o perfil e a origem |
+| Projeção diverge do `bulkAdd` e duplica regra      | A projeção **reusa** `avaliarCartao` e o mesmo upsert; o que muda é o perfil e a origem                                                   |

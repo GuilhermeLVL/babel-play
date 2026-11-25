@@ -9,30 +9,32 @@
  *
  *   node scripts/validar-workflows.mjs
  */
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import yaml from 'js-yaml';
+import { readdirSync, readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import yaml from 'js-yaml'
 
-const DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '.github', 'workflows');
-let falhou = false;
+const DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '.github', 'workflows')
+let falhou = false
 
-for (const nome of readdirSync(DIR).filter((n) => /\.ya?ml$/.test(n)).sort()) {
-  const caminho = join(DIR, nome);
+for (const nome of readdirSync(DIR)
+  .filter((n) => /\.ya?ml$/.test(n))
+  .sort()) {
+  const caminho = join(DIR, nome)
   try {
-    const doc = yaml.load(readFileSync(caminho, 'utf8'));
+    const doc = yaml.load(readFileSync(caminho, 'utf8'))
     // Um workflow sem `jobs` também não roda — o parser aceita, o GitHub não.
     if (!doc || typeof doc !== 'object' || !('jobs' in doc)) {
-      console.error(`${nome}: YAML válido mas sem \`jobs\` — o GitHub não executa este arquivo`);
-      falhou = true;
-      continue;
+      console.error(`${nome}: YAML válido mas sem \`jobs\` — o GitHub não executa este arquivo`)
+      falhou = true
+      continue
     }
-    console.log(`${nome}: OK`);
+    console.log(`${nome}: OK`)
   } catch (err) {
-    const linha = err?.mark?.line != null ? `:${err.mark.line + 1}` : '';
-    console.error(`${nome}${linha}: ${String(err?.reason ?? err?.message ?? err)}`);
-    falhou = true;
+    const linha = err?.mark?.line != null ? `:${err.mark.line + 1}` : ''
+    console.error(`${nome}${linha}: ${String(err?.reason ?? err?.message ?? err)}`)
+    falhou = true
   }
 }
 
-process.exit(falhou ? 1 : 0);
+process.exit(falhou ? 1 : 0)

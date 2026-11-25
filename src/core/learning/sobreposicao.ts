@@ -27,32 +27,32 @@
 /** Subconjunto de uma fala que este cálculo precisa. Declarado aqui para o core não depender da UI. */
 export interface FalaComTempo {
   /** Nome/rótulo do falante (diarização). Vazio quando não houve diarização. */
-  speaker?: string | null
+  speaker?: string | null;
   /** 'mic' | 'system' — a via de captura. Serve de identidade quando não há nome. */
-  source?: string | null
-  startMs?: number | null
-  endMs?: number | null
+  source?: string | null;
+  startMs?: number | null;
+  endMs?: number | null;
 }
 
 export interface Sobreposicoes {
   /** Quantos pares de falas de falantes DIFERENTES coexistem no tempo. */
-  total: number
+  total: number;
   /** Soma do tempo sobreposto, em ms. Pares distintos somam separadamente. */
-  msSobrepostos: number
+  msSobrepostos: number;
   /** Maior sobreposição isolada, em ms — a interrupção mais longa. */
-  maiorMs: number
+  maiorMs: number;
   /** Falantes distintos considerados. A tela mostra para o número ter procedência. */
-  falantes: string[]
+  falantes: string[];
   /** Falas descartadas por não ter timing nos dois lados — o que o número NÃO viu. */
-  falasSemTiming: number
+  falasSemTiming: number;
 }
 
 /** Identidade do falante: o nome da diarização; sem ele, a via de captura. '' = indeterminável. */
 function quemFalou(f: FalaComTempo): string {
-  const nome = (f.speaker ?? '').trim()
+  const nome = (f.speaker ?? '').trim();
   // Aceita os dois glifos de "sem nome": o hífen atual e o travessão de sessões antigas.
-    if (nome && nome !== '-' && nome !== '—') return nome
-  return (f.source ?? '').trim()
+  if (nome && nome !== '-' && nome !== '—') return nome;
+  return (f.source ?? '').trim();
 }
 
 /**
@@ -62,44 +62,44 @@ function quemFalou(f: FalaComTempo): string {
  * ou nenhum par com timing nos dois lados.
  */
 export function contarSobreposicoes(falas: ReadonlyArray<FalaComTempo>): Sobreposicoes | null {
-  const comTempo: Array<{ quem: string; ini: number; fim: number }> = []
-  let falasSemTiming = 0
+  const comTempo: Array<{ quem: string; ini: number; fim: number }> = [];
+  let falasSemTiming = 0;
 
   for (const f of falas ?? []) {
-    const quem = quemFalou(f)
+    const quem = quemFalou(f);
     /* Fala sem identidade não pode entrar: não há como saber se ela interrompeu OUTRA pessoa ou
        se é a continuação da mesma. Entrar como falante anônimo inventaria interrupções. */
     if (!quem || f.startMs == null || f.endMs == null || f.endMs <= f.startMs) {
-      falasSemTiming++
-      continue
+      falasSemTiming++;
+      continue;
     }
-    comTempo.push({ quem, ini: f.startMs, fim: f.endMs })
+    comTempo.push({ quem, ini: f.startMs, fim: f.endMs });
   }
 
-  const falantes = [...new Set(comTempo.map((c) => c.quem))].sort()
-  if (comTempo.length < 2 || falantes.length < 2) return null
+  const falantes = [...new Set(comTempo.map((c) => c.quem))].sort();
+  if (comTempo.length < 2 || falantes.length < 2) return null;
 
   /* Ordena por início para o barrido: uma vez que `ini` do candidato passa do `fim` do atual,
      nenhum candidato seguinte pode sobrepor este, e o laço interno para. */
-  comTempo.sort((a, b) => a.ini - b.ini || a.fim - b.fim)
+  comTempo.sort((a, b) => a.ini - b.ini || a.fim - b.fim);
 
-  let total = 0
-  let msSobrepostos = 0
-  let maiorMs = 0
+  let total = 0;
+  let msSobrepostos = 0;
+  let maiorMs = 0;
 
   for (let i = 0; i < comTempo.length; i++) {
-    const a = comTempo[i]
+    const a = comTempo[i];
     for (let j = i + 1; j < comTempo.length; j++) {
-      const b = comTempo[j]
-      if (b.ini >= a.fim) break
-      if (b.quem === a.quem) continue
-      const ms = Math.min(a.fim, b.fim) - b.ini
-      if (ms <= 0) continue
-      total++
-      msSobrepostos += ms
-      if (ms > maiorMs) maiorMs = ms
+      const b = comTempo[j];
+      if (b.ini >= a.fim) break;
+      if (b.quem === a.quem) continue;
+      const ms = Math.min(a.fim, b.fim) - b.ini;
+      if (ms <= 0) continue;
+      total++;
+      msSobrepostos += ms;
+      if (ms > maiorMs) maiorMs = ms;
     }
   }
 
-  return { total, msSobrepostos, maiorMs, falantes, falasSemTiming }
+  return { total, msSobrepostos, maiorMs, falantes, falasSemTiming };
 }

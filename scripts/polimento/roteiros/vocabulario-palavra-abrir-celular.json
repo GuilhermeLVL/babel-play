@@ -51,9 +51,7 @@
       }
     ]
   },
-  "seletores": [
-    ".qv-tabela tbody tr"
-  ],
+  "seletores": [".qv-tabela tbody tr"],
   "gravar": {
     "app": [
       {

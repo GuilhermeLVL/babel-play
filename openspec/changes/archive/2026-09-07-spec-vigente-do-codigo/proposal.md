@@ -13,6 +13,7 @@
 ## Capabilities
 
 ### New Capabilities
+
 - `spec-vigente`: existe um conjunto de specs principais que descreve o produto como ele e, e todo delta parte delas.
 
 ## Impact

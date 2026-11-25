@@ -80,7 +80,11 @@ describe('GET /api/metrics/maestria e o crédito conferido', () => {
     await new Promise((ok) => setTimeout(ok, 5))
     await rodada(u, 'mem-1', 10, 10, 10) // o retry: mesmo roundId, outro carimbo
     const r = await maestria(u)
-    expect(r.body.jogos.find((j: { jogo: string }) => j.jogo === 'memory')).toMatchObject({ pontos: 23, nivel: 0, proximo: 30 })
+    expect(r.body.jogos.find((j: { jogo: string }) => j.jogo === 'memory')).toMatchObject({
+      pontos: 23,
+      nivel: 0,
+      proximo: 30,
+    })
   })
 
   it('maestria:memory:3 só credita com 220 pontos, e vale 20 × 3 Seeds, uma vez', async () => {

@@ -9,12 +9,12 @@
  *
  * A régua do gasto é a mesma das Seeds, e com mais razão: esta moeda custou dinheiro.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { CATALOGO_DA_LOJA } from '../../src/core/loja'
 import { equivalenteDe } from '../../src/core/reembolso'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let billingRouter: any
@@ -26,8 +26,14 @@ function handler(caminho: string): (req: any, res: any) => Promise<void> {
 }
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 const req = (body: unknown, u: string) => ({ userId: asUserId(u), body, requestId: 'req-cc', path: '/x' })
@@ -53,7 +59,10 @@ beforeAll(async () => {
   ;({ billingRouter } = (await h.load('../../server/routes/billing')) as any)
   ;({ creditsRepo } = (await h.load('../../server/db/repositories/credits')) as any)
 })
-afterAll(async () => { await h.cleanup(); delete process.env.ASAAS_API_KEY })
+afterAll(async () => {
+  await h.cleanup()
+  delete process.env.ASAAS_API_KEY
+})
 
 describe('gastar Créditos', () => {
   it('o catálogo tem item vendido em Créditos — senão a moeda não teria destino', () => {
@@ -63,20 +72,29 @@ describe('gastar Créditos', () => {
 
   it('com saldo, o gasto passa e debita o preço DO CATÁLOGO', async () => {
     await darCreditos('u-cc1', 500, 'pay-cc1')
-    const r = await gastar({ spendId: 'cc-compra-001', amount: PREMIUM.precoCreditos, reason: `premium:${PREMIUM.id}` }, 'u-cc1')
+    const r = await gastar(
+      { spendId: 'cc-compra-001', amount: PREMIUM.precoCreditos, reason: `premium:${PREMIUM.id}` },
+      'u-cc1',
+    )
     expect(r.statusCode).toBe(200)
     expect(r.body).toMatchObject({ jaExistia: false, gasto: PREMIUM.precoCreditos })
     expect(r.body.saldo).toBe(500 - PREMIUM.precoCreditos!)
   })
 
   it('o reenvio é idempotente e não cobra de novo', async () => {
-    const r = await gastar({ spendId: 'cc-compra-001', amount: PREMIUM.precoCreditos, reason: `premium:${PREMIUM.id}` }, 'u-cc1')
+    const r = await gastar(
+      { spendId: 'cc-compra-001', amount: PREMIUM.precoCreditos, reason: `premium:${PREMIUM.id}` },
+      'u-cc1',
+    )
     expect(r.body.jaExistia).toBe(true)
     expect(r.body.saldo).toBe(500 - PREMIUM.precoCreditos!)
   })
 
   it('sem saldo, 402 dizendo quanto falta', async () => {
-    const r = await gastar({ spendId: 'cc-sem-saldo1', amount: PREMIUM.precoCreditos, reason: `premium:${PREMIUM.id}` }, 'u-cc2')
+    const r = await gastar(
+      { spendId: 'cc-sem-saldo1', amount: PREMIUM.precoCreditos, reason: `premium:${PREMIUM.id}` },
+      'u-cc2',
+    )
     expect(r.statusCode).toBe(402)
     expect(r.body.falta).toBe(PREMIUM.precoCreditos)
   })
@@ -92,7 +110,9 @@ describe('gastar Créditos', () => {
     await darCreditos('u-cc4', 500, 'pay-cc4')
     const deSeeds = CATALOGO_DA_LOJA.find((i) => i.precoSeeds !== undefined)!
     expect((await gastar({ spendId: 'cc-x0000001', amount: 150, reason: 'presente' }, 'u-cc4')).statusCode).toBe(400)
-    expect((await gastar({ spendId: 'cc-x0000002', amount: 150, reason: `premium:${deSeeds.id}` }, 'u-cc4')).statusCode).toBe(400)
+    expect(
+      (await gastar({ spendId: 'cc-x0000002', amount: 150, reason: `premium:${deSeeds.id}` }, 'u-cc4')).statusCode,
+    ).toBe(400)
   })
 
   it('a posse do que se pagou vem do SERVIDOR, derivada do log', async () => {

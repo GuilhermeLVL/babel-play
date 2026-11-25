@@ -6,10 +6,10 @@
  * global da tela de jogos ("N pedindo revisão"). O teste reproduz com um cartão `dueAt: null` ao
  * lado de um vencido de verdade e de um futuro, e prova que só o vencido de verdade conta.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const U = asUserId('due-today-user')
 
@@ -20,21 +20,52 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   const schema = await h.load<Record<string, any>>('../../server/db/schema')
   const { db } = await h.load<Record<string, any>>('../../server/db/db')
-  ;({ computeProfile } = await h.load<{ computeProfile: typeof computeProfile }>('../../server/db/repositories/metrics'))
+  ;({ computeProfile } = await h.load<{ computeProfile: typeof computeProfile }>(
+    '../../server/db/repositories/metrics',
+  ))
 
   const agora = Date.now()
   const meta = { userId: U, createdAt: agora, updatedAt: agora, deletedAt: null }
 
   await db.insert(schema.vocabCards).values([
     // Nunca agendado: dueAt null. NÃO deve contar como vencido.
-    { id: 'nunca-agendado', ...meta, word: 'alpha', back: 'alfa', normKey: 'alpha', inDeck: 1, addedAt: agora, dueAt: null },
+    {
+      id: 'nunca-agendado',
+      ...meta,
+      word: 'alpha',
+      back: 'alfa',
+      normKey: 'alpha',
+      inDeck: 1,
+      addedAt: agora,
+      dueAt: null,
+    },
     // Vencido de verdade: dueAt no passado.
-    { id: 'vencido', ...meta, word: 'bravo', back: 'bravo', normKey: 'bravo', inDeck: 1, addedAt: agora, dueAt: agora - 60_000 },
+    {
+      id: 'vencido',
+      ...meta,
+      word: 'bravo',
+      back: 'bravo',
+      normKey: 'bravo',
+      inDeck: 1,
+      addedAt: agora,
+      dueAt: agora - 60_000,
+    },
     // Agendado para o futuro: não vencido.
-    { id: 'futuro', ...meta, word: 'charlie', back: 'charlie', normKey: 'charlie', inDeck: 1, addedAt: agora, dueAt: agora + 3_600_000 },
+    {
+      id: 'futuro',
+      ...meta,
+      word: 'charlie',
+      back: 'charlie',
+      normKey: 'charlie',
+      inDeck: 1,
+      addedAt: agora,
+      dueAt: agora + 3_600_000,
+    },
   ])
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('computeProfile.dueToday', () => {
   it('conta só quem tem dueAt marcado E já passou — "nunca agendado" não é "vencido"', async () => {

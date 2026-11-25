@@ -161,7 +161,8 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
     // A skin 'coracoes' desenha `forma: 'coracao'` na paleta rosa/vermelha do preset.
     if (item.alvo === 'coracoes')
       return <Fileira tam={tam} forma="coracao" cores={croma ? [croma] : ['#F04E23', '#FF7BAC', '#E63946']} />;
-    if (item.alvo === 'estrelas') return <Fileira tam={tam} forma="estrela" cores={croma ? [croma] : CORES_DA_ESTRELA} />;
+    if (item.alvo === 'estrelas')
+      return <Fileira tam={tam} forma="estrela" cores={croma ? [croma] : CORES_DA_ESTRELA} />;
     if (item.alvo === 'confete')
       return <Fileira tam={tam} forma="confete" cores={[acento, 'var(--warn)', 'var(--good)']} />;
     if (item.alvo === 'pixel') return <Fileira tam={tam} forma="quadrado" cores={[acento, acento, acento]} />;
@@ -185,7 +186,8 @@ export default function MiniaturaDoItem({ item, tam = 'grade' }: { item: ItemDaL
     const paleta = estilo.sobrescrever?.paleta as string[] | undefined;
     const cores = croma ? [croma] : paleta?.length ? paleta : ['var(--accent)'];
     const forma = FORMA_DO_KIND[estilo.kind] ?? 'circulo';
-    if (forma === 'estrela') return <Fileira tam={tam} forma="estrela" cores={croma ? [croma] : paleta?.length ? paleta : CORES_DA_ESTRELA} />;
+    if (forma === 'estrela')
+      return <Fileira tam={tam} forma="estrela" cores={croma ? [croma] : paleta?.length ? paleta : CORES_DA_ESTRELA} />;
     if (forma === 'coracao') return <Fileira tam={tam} forma="coracao" cores={cores} />;
     // Arco-íris é o único que muda de cor entre as partículas — a miniatura mostra isso.
     if (estilo.kind === 'rastroArcoiris') {

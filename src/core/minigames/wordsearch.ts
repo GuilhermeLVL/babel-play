@@ -40,7 +40,8 @@ export interface Tabuleiro {
 function rng(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -61,7 +62,13 @@ export function normalizarPalavra(p: string): string {
   return p ? normalizadaGuardada(p) : '';
 }
 /* Guardada pela palavra (`memoDeTexto`): o gate do saguão pergunta por todo o acervo, a cada passada. */
-const normalizadaGuardada = memoDeTexto((p: string): string => comBaseLatina(p).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, ''));
+const normalizadaGuardada = memoDeTexto((p: string): string =>
+  comBaseLatina(p)
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z]/g, ''),
+);
 
 /**
  * As letras que a palavra OCUPA na grade, com o acento preservado.
@@ -102,8 +109,8 @@ export function buildGrid(items: MinigameItem[], opts: { tamanho?: number; seed?
    * e a pista era listada sem a palavra ter entrado na grade porque o `filter` de antes descartava
    * ANTES desta lista existir. Um deck 100% japonês, por exemplo, listava N pistas e desenhava
    * uma grade com zero palavras — a única saída era "Revelar tudo", nota 1 no FSRS, em silêncio. */
-  const naoCouberamDeAntemao: number[] = todas.filter(p => !entraNaGrade(p.texto)).map(p => p.i);
-  const palavras = todas.filter(p => entraNaGrade(p.texto));
+  const naoCouberamDeAntemao: number[] = todas.filter((p) => !entraNaGrade(p.texto)).map((p) => p.i);
+  const palavras = todas.filter((p) => entraNaGrade(p.texto));
   const maior = palavras.reduce((m, p) => Math.max(m, p.texto.length), 0);
   // A grade precisa caber a maior palavra com folga; nunca menor que 8.
   const tamanho = opts.tamanho ?? Math.max(8, Math.min(14, maior + 2));
@@ -152,7 +159,7 @@ export function buildGrid(items: MinigameItem[], opts: { tamanho?: number; seed?
   /* Preenche o resto com letras aleatórias — só depois de todas as palavras estarem no lugar.
      O alfabeto inclui as letras ACENTUADAS que entraram: com preenchimento só A-Z, um Ç seria a
      única ocorrência na grade e entregaria a palavra que o contém. */
-  const acentos = [...new Set(colocadas.flatMap(p => [...p.palavra]).filter(l => !/[A-Z]/.test(l)))];
+  const acentos = [...new Set(colocadas.flatMap((p) => [...p.palavra]).filter((l) => !/[A-Z]/.test(l)))];
   const ALFABETO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' + acentos.join('');
   for (let l = 0; l < tamanho; l++) {
     for (let c = 0; c < tamanho; c++) {

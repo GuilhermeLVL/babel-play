@@ -8,11 +8,16 @@
  * Ou seja: "cartão sem sinal forte" é o caso COMUM, não a exceção. Estes testes tratam o deck frio
  * como caminho principal, e o cartão revisado como o caso que se soma depois.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import {
-  calcularDificuldade, CORTE_DIFICIL,
-CORTE_FACIL, cortesDoDeck, faixaDe,   PESO_MAXIMO_RETRIEVABILITY, REVISOES_PARA_PESO_CHEIO,
+  calcularDificuldade,
+  CORTE_DIFICIL,
+  CORTE_FACIL,
+  cortesDoDeck,
+  faixaDe,
+  PESO_MAXIMO_RETRIEVABILITY,
+  REVISOES_PARA_PESO_CHEIO,
   type SinaisDoCartao,
 } from '../src/core/learning/dificuldade'
 
@@ -21,7 +26,21 @@ const DIA = 86_400_000
 
 /** Cartão mínimo: sem CEFR, sem revisões, visto uma vez. O perfil de 93% do deck. */
 function frio(over: Partial<SinaisDoCartao> = {}): SinaisDoCartao {
-  return { word: 'exemplo', cefrLevel: null, cefrSource: 'ausente', occurrences: 1, lastSeenAt: AGORA - DIA, reps: 0, lapses: 0, stability: null, lastReview: null, acertos: 0, tentativas: 0, agora: AGORA, ...over }
+  return {
+    word: 'exemplo',
+    cefrLevel: null,
+    cefrSource: 'ausente',
+    occurrences: 1,
+    lastSeenAt: AGORA - DIA,
+    reps: 0,
+    lapses: 0,
+    stability: null,
+    lastReview: null,
+    acertos: 0,
+    tentativas: 0,
+    agora: AGORA,
+    ...over,
+  }
 }
 
 describe('cartão SEM revisões — o caminho principal', () => {
@@ -38,7 +57,7 @@ describe('cartão SEM revisões — o caminho principal', () => {
     expect(d.sinaisUsados).toContain('familiaridade')
     expect(d.sinaisUsados).not.toContain('lexical')
     expect(d.sinaisUsados).not.toContain('retrievability')
-    expect(d.confianca).toBeLessThan(0.6)   // pouca base ⇒ pouca confiança, e isso é dito
+    expect(d.confianca).toBeLessThan(0.6) // pouca base ⇒ pouca confiança, e isso é dito
   })
 
   it('mais repetições ⇒ MENOS difícil', () => {
@@ -92,19 +111,33 @@ describe('transição de frio para revisado', () => {
 
 describe('regra de precedência — erro repetido vence qualquer média', () => {
   it('2 lapsos ⇒ DIFÍCIL mesmo sendo A1 e muito vista', () => {
-    const d = calcularDificuldade(frio({ cefrSource: 'wordlist', cefrLevel: 'A1', occurrences: 20, lapses: 2, reps: 3, stability: 50, lastReview: AGORA }))
+    const d = calcularDificuldade(
+      frio({
+        cefrSource: 'wordlist',
+        cefrLevel: 'A1',
+        occurrences: 20,
+        lapses: 2,
+        reps: 3,
+        stability: 50,
+        lastReview: AGORA,
+      }),
+    )
     expect(d.faixa).toBe('dificil')
     expect(d.motivo).toBe('lapsos')
   })
 
   it('acerto abaixo de 40% em 3+ tentativas ⇒ DIFÍCIL', () => {
-    const d = calcularDificuldade(frio({ cefrSource: 'wordlist', cefrLevel: 'A1', occurrences: 20, tentativas: 5, acertos: 1 }))
+    const d = calcularDificuldade(
+      frio({ cefrSource: 'wordlist', cefrLevel: 'A1', occurrences: 20, tentativas: 5, acertos: 1 }),
+    )
     expect(d.faixa).toBe('dificil')
     expect(d.motivo).toBe('desempenho')
   })
 
   it('1 erro em 1 tentativa NÃO dispara a regra — amostra de um não é padrão', () => {
-    const d = calcularDificuldade(frio({ cefrSource: 'wordlist', cefrLevel: 'A1', occurrences: 20, tentativas: 1, acertos: 0 }))
+    const d = calcularDificuldade(
+      frio({ cefrSource: 'wordlist', cefrLevel: 'A1', occurrences: 20, tentativas: 1, acertos: 0 }),
+    )
     expect(d.motivo).not.toBe('desempenho')
   })
 })
@@ -133,16 +166,16 @@ describe('Z3 — cortes por quantil, relativos ao deck do usuário', () => {
     // Medido no deck real: pico em 0,60–0,65 com 38% dos cartões. Cortes FIXOS (0,34/0,67)
     // colocavam 77,8% em "médio" porque o pico inteiro cai dentro dele.
     const scores = [
-      ...Array.from({ length: 60 }, (_, i) => 0.60 + i * 0.0008),
-      ...Array.from({ length: 20 }, (_, i) => 0.30 + i * 0.004),
-      ...Array.from({ length: 20 }, (_, i) => 0.70 + i * 0.002),
+      ...Array.from({ length: 60 }, (_, i) => 0.6 + i * 0.0008),
+      ...Array.from({ length: 20 }, (_, i) => 0.3 + i * 0.004),
+      ...Array.from({ length: 20 }, (_, i) => 0.7 + i * 0.002),
     ]
     const c = cortesDoDeck(scores)
     const faixa = (s: number) => faixaDe(s, c)
     const conta = { facil: 0, medio: 0, dificil: 0 }
     for (const s of scores) conta[faixa(s)]++
     const maior = Math.max(...Object.values(conta)) / scores.length
-    expect(maior).toBeLessThan(0.6)   // critério da Z3
+    expect(maior).toBeLessThan(0.6) // critério da Z3
   })
 
   it('deck PEQUENO cai para os cortes fixos — quantil sobre 5 itens é ruído', () => {

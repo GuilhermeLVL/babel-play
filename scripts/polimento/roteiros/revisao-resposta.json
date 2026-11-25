@@ -36,9 +36,7 @@
       }
     ]
   },
-  "seletores": [
-    ".qr-cartao"
-  ],
+  "seletores": [".qr-cartao"],
   "gravar": {
     "app": [
       {

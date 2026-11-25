@@ -19,64 +19,285 @@
  * e os artigos daquele idioma viravam sugestão de cartão. Separadas por idioma, quem chama sabe
  * quando não há lista (`temStopwords`) e a tela pode dizer isso (auditoria de 2026-09-07, A39).
  */
-import { escreveSemEspaco, palavrasDoTexto } from '../texto/segmentacao'
+import { escreveSemEspaco, palavrasDoTexto } from '../texto/segmentacao';
 
 const STOPWORDS_POR_IDIOMA: Record<string, ReadonlySet<string>> = {
   en: new Set<string>([
-  'the', 'a', 'an', 'and', 'or', 'but', 'if', 'then', 'else', 'when', 'while',
-  'of', 'to', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into',
-  'from', 'up', 'down', 'out', 'off', 'over', 'under', 'again', 'this', 'that',
-  'these', 'those', 'here', 'there', 'is', 'are', 'was', 'were', 'be', 'been',
-  'being', 'am', 'do', 'does', 'did', 'have', 'has', 'had', 'having', 'will',
-  'would', 'shall', 'should', 'can', 'could', 'may', 'might', 'must', 'not',
-  'no', 'yes', 'so', 'than', 'too', 'very', 'just', 'now', 'also', 'only',
-  'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them',
-  'my', 'your', 'his', 'its', 'our', 'their', 'mine', 'yours', 'ours', 'theirs',
-  'what', 'which', 'who', 'whom', 'whose', 'how', 'why', 'where', 'all', 'any',
-  'some', 'each', 'few', 'more', 'most', 'other', 'such', 'own', 'same', 'get',
-  'got', 'going', 'gonna', 'wanna', 'okay', 'yeah', 'well', 'like', 'really',
+    'the',
+    'a',
+    'an',
+    'and',
+    'or',
+    'but',
+    'if',
+    'then',
+    'else',
+    'when',
+    'while',
+    'of',
+    'to',
+    'in',
+    'on',
+    'at',
+    'by',
+    'for',
+    'with',
+    'about',
+    'as',
+    'into',
+    'from',
+    'up',
+    'down',
+    'out',
+    'off',
+    'over',
+    'under',
+    'again',
+    'this',
+    'that',
+    'these',
+    'those',
+    'here',
+    'there',
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'being',
+    'am',
+    'do',
+    'does',
+    'did',
+    'have',
+    'has',
+    'had',
+    'having',
+    'will',
+    'would',
+    'shall',
+    'should',
+    'can',
+    'could',
+    'may',
+    'might',
+    'must',
+    'not',
+    'no',
+    'yes',
+    'so',
+    'than',
+    'too',
+    'very',
+    'just',
+    'now',
+    'also',
+    'only',
+    'i',
+    'you',
+    'he',
+    'she',
+    'it',
+    'we',
+    'they',
+    'me',
+    'him',
+    'her',
+    'us',
+    'them',
+    'my',
+    'your',
+    'his',
+    'its',
+    'our',
+    'their',
+    'mine',
+    'yours',
+    'ours',
+    'theirs',
+    'what',
+    'which',
+    'who',
+    'whom',
+    'whose',
+    'how',
+    'why',
+    'where',
+    'all',
+    'any',
+    'some',
+    'each',
+    'few',
+    'more',
+    'most',
+    'other',
+    'such',
+    'own',
+    'same',
+    'get',
+    'got',
+    'going',
+    'gonna',
+    'wanna',
+    'okay',
+    'yeah',
+    'well',
+    'like',
+    'really',
   ]),
   pt: new Set<string>([
-  'o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'e', 'ou', 'mas', 'se',
-  'que', 'porque', 'quando', 'enquanto', 'de', 'do', 'da', 'dos', 'das', 'em',
-  'no', 'na', 'nos', 'nas', 'por', 'para', 'pra', 'com', 'sem', 'sobre', 'como',
-  'ao', 'aos', 'à', 'às', 'num', 'numa', 'pelo', 'pela', 'pelos', 'pelas',
-  'este', 'esta', 'estes', 'estas', 'esse', 'essa', 'esses', 'essas', 'isso',
-  'isto', 'aquilo', 'aqui', 'ali', 'lá', 'é', 'são', 'foi', 'era', 'ser',
-  'estar', 'está', 'estão', 'ter', 'tem', 'têm', 'tinha', 'haver', 'há',
-  'vai', 'vou', 'vamos', 'não', 'sim', 'já', 'ainda', 'muito', 'mais', 'menos',
-  'também', 'só', 'apenas', 'agora', 'eu', 'tu', 'ele', 'ela', 'nós', 'vós',
-  'eles', 'elas', 'você', 'vocês', 'me', 'te', 'lhe', 'nos', 'vos', 'meu',
-  'minha', 'seu', 'sua', 'nosso', 'nossa', 'dele', 'dela', 'qual', 'quais',
-  'quem', 'onde', 'todo', 'toda', 'todos', 'todas', 'algum', 'alguma', 'nada',
-  'tudo', 'bem', 'então', 'assim', 'ok',
+    'o',
+    'a',
+    'os',
+    'as',
+    'um',
+    'uma',
+    'uns',
+    'umas',
+    'e',
+    'ou',
+    'mas',
+    'se',
+    'que',
+    'porque',
+    'quando',
+    'enquanto',
+    'de',
+    'do',
+    'da',
+    'dos',
+    'das',
+    'em',
+    'no',
+    'na',
+    'nos',
+    'nas',
+    'por',
+    'para',
+    'pra',
+    'com',
+    'sem',
+    'sobre',
+    'como',
+    'ao',
+    'aos',
+    'à',
+    'às',
+    'num',
+    'numa',
+    'pelo',
+    'pela',
+    'pelos',
+    'pelas',
+    'este',
+    'esta',
+    'estes',
+    'estas',
+    'esse',
+    'essa',
+    'esses',
+    'essas',
+    'isso',
+    'isto',
+    'aquilo',
+    'aqui',
+    'ali',
+    'lá',
+    'é',
+    'são',
+    'foi',
+    'era',
+    'ser',
+    'estar',
+    'está',
+    'estão',
+    'ter',
+    'tem',
+    'têm',
+    'tinha',
+    'haver',
+    'há',
+    'vai',
+    'vou',
+    'vamos',
+    'não',
+    'sim',
+    'já',
+    'ainda',
+    'muito',
+    'mais',
+    'menos',
+    'também',
+    'só',
+    'apenas',
+    'agora',
+    'eu',
+    'tu',
+    'ele',
+    'ela',
+    'nós',
+    'vós',
+    'eles',
+    'elas',
+    'você',
+    'vocês',
+    'me',
+    'te',
+    'lhe',
+    'nos',
+    'vos',
+    'meu',
+    'minha',
+    'seu',
+    'sua',
+    'nosso',
+    'nossa',
+    'dele',
+    'dela',
+    'qual',
+    'quais',
+    'quem',
+    'onde',
+    'todo',
+    'toda',
+    'todos',
+    'todas',
+    'algum',
+    'alguma',
+    'nada',
+    'tudo',
+    'bem',
+    'então',
+    'assim',
+    'ok',
   ]),
-}
+};
 
-const baseDoIdioma = (lang: string) => (lang || '').toLowerCase().split('-')[0]
+const baseDoIdioma = (lang: string) => (lang || '').toLowerCase().split('-')[0];
 
 /** Há lista de stopwords para este idioma? Sem ela a extração acontece SEM filtro gramatical. */
 export function temStopwords(lang: string): boolean {
-  return STOPWORDS_POR_IDIOMA[baseDoIdioma(lang)] !== undefined
+  return STOPWORDS_POR_IDIOMA[baseDoIdioma(lang)] !== undefined;
 }
 
 export interface KeywordOptions {
   /** Máximo de palavras retornadas por frase (default 6). */
-  max?: number
+  max?: number;
   /** Comprimento mínimo do token para ser candidato (default 4). */
-  minLength?: number
+  minLength?: number;
   /**
    * Idioma do texto — decide qual lista de stopwords filtra o ruído gramatical. Sem ele (ou sem
    * lista para o idioma) a extração roda sem filtro, e `temStopwords` diz isso a quem exibe.
    */
-  lang?: string
+  lang?: string;
 }
 
 /** Token → forma de exibição (primeira ocorrência) + chave normalizada. */
 interface Candidate {
-  display: string
-  key: string
-  score: number
+  display: string;
+  key: string;
+  score: number;
 }
 
 /**
@@ -84,35 +305,35 @@ interface Candidate {
  * relevância, sem repetição. Vazio quando não há candidato utilizável.
  */
 export function extractKeywords(text: string, opts: KeywordOptions = {}): string[] {
-  const max = opts.max ?? 6
+  const max = opts.max ?? 6;
   /* Japonês/chinês/tailandês: palavra de 2 caracteres é palavra inteira (日本, 勉強); o piso de 4
      letras, pensado para alfabeto, zerava a extração nesses idiomas. */
-  const minLength = opts.minLength ?? (escreveSemEspaco(opts.lang ?? '') ? 2 : 4)
+  const minLength = opts.minLength ?? (escreveSemEspaco(opts.lang ?? '') ? 2 : 4);
   /* Sem lista para o idioma, a extração continua (a alternativa seria devolver vazio e sumir com
      um recurso inteiro) mas sem filtro gramatical — e `temStopwords` deixa a tela declarar isso. */
-  const stopwords = STOPWORDS_POR_IDIOMA[baseDoIdioma(opts.lang ?? '')] ?? new Set<string>()
-  const raw = (text ?? '').normalize('NFC')
+  const stopwords = STOPWORDS_POR_IDIOMA[baseDoIdioma(opts.lang ?? '')] ?? new Set<string>();
+  const raw = (text ?? '').normalize('NFC');
 
   /* Tokeniza com o segmentador DO IDIOMA (`Intl.Segmenter` + clítico e elisão). Era uma regex
      única: não separava japonês e devolvia `d'água`/`fazê-lo` como palavra (ver segmentacao.ts). */
-  const tokens = palavrasDoTexto(raw, opts.lang ?? '')
-  const byKey = new Map<string, Candidate>()
+  const tokens = palavrasDoTexto(raw, opts.lang ?? '');
+  const byKey = new Map<string, Candidate>();
 
   for (const tok of tokens) {
-    const display = tok.replace(/^['-]+|['-]+$/g, '')
-    const key = display.toLowerCase()
-    if (key.length < minLength) continue
-    if (stopwords.has(key)) continue
-    if (/^\d+$/.test(key)) continue
-    if (byKey.has(key)) continue // 1ª ocorrência define a exibição
+    const display = tok.replace(/^['-]+|['-]+$/g, '');
+    const key = display.toLowerCase();
+    if (key.length < minLength) continue;
+    if (stopwords.has(key)) continue;
+    if (/^\d+$/.test(key)) continue;
+    if (byKey.has(key)) continue; // 1ª ocorrência define a exibição
     // Saliência: comprimento é um proxy barato de raridade/informação. Palavras
     // longas de conteúdo (ex.: "reconciliation") pontuam acima de curtas comuns.
-    const score = key.length
-    byKey.set(key, { display, key, score })
+    const score = key.length;
+    byKey.set(key, { display, key, score });
   }
 
   return [...byKey.values()]
     .sort((a, b) => b.score - a.score)
     .slice(0, max)
-    .map((c) => c.display)
+    .map((c) => c.display);
 }

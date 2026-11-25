@@ -39,11 +39,9 @@ ankiRouter.get('/decks', async (req, res) => {
   try {
     res.json(await ankiRepo.listarBaralhos(req.userId))
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -65,11 +63,9 @@ ankiRouter.get('/decks/:id/notas', async (req, res) => {
     })
     res.json(r)
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -90,11 +86,9 @@ ankiRouter.post('/decks/:id/ativar', async (req, res) => {
         : await vocabRepo.ativarLote(req.userId, p.id)
     res.json(r)
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -110,11 +104,9 @@ ankiRouter.post('/decks/:id/desativar', async (req, res) => {
     await ankiRepo.desativarBaralho(req.userId, p.id)
     res.json({ ok: true })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -138,11 +130,9 @@ ankiRouter.delete('/decks/:id', async (req, res) => {
     await ankiRepo.purgarBaralho(req.userId, p.id)
     res.json({ ok: true, notasApagadas })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -157,11 +147,9 @@ ankiRouter.get('/imports/:id', async (req, res) => {
     }
     res.json(r)
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 

@@ -16,7 +16,7 @@
  * quem manda: antes o cenário decidia as fontes; agora as fontes decidem o cenário.
  */
 
-export type CenarioDeCaptura = 'media' | 'conversation' | 'mic'
+export type CenarioDeCaptura = 'media' | 'conversation' | 'mic';
 
 /**
  * Sem nenhuma fonte ligada não existe sessão — mas o tipo precisa de um valor. Devolvemos
@@ -25,9 +25,9 @@ export type CenarioDeCaptura = 'media' | 'conversation' | 'mic'
  * que já exige ao menos uma fonte.
  */
 export function cenarioDasFontes(micLigado: boolean, sistemaLigado: boolean): CenarioDeCaptura {
-  if (micLigado && sistemaLigado) return 'conversation'
-  if (micLigado) return 'mic'
-  return 'media'
+  if (micLigado && sistemaLigado) return 'conversation';
+  if (micLigado) return 'mic';
+  return 'media';
 }
 
 /**
@@ -43,5 +43,5 @@ export function cenarioDasFontes(micLigado: boolean, sistemaLigado: boolean): Ce
  * sem saída que o teste de ida e volta existia para impedir.
  */
 export function fontesDoCenario(c: CenarioDeCaptura): { mic: boolean; sistema: boolean } {
-  return { mic: c !== 'media', sistema: true }
+  return { mic: c !== 'media', sistema: true };
 }

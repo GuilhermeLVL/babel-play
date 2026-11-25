@@ -7,10 +7,10 @@ import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
 import express from 'express'
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId, type UserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let server: Server
@@ -21,15 +21,22 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   const { requireRole } = (await h.load('../../server/lib/rbac')) as any
   const { usersRepo } = (await h.load('../../server/db/repositories/users')) as any
-  await usersRepo.ensure(asUserId('admin-user')); await usersRepo.setRole(asUserId('admin-user'), 'admin')
-  await usersRepo.ensure(asUserId('support-user')); await usersRepo.setRole(asUserId('support-user'), 'support')
+  await usersRepo.ensure(asUserId('admin-user'))
+  await usersRepo.setRole(asUserId('admin-user'), 'admin')
+  await usersRepo.ensure(asUserId('support-user'))
+  await usersRepo.setRole(asUserId('support-user'), 'support')
   // 'regular-user' fica sem linha → getRole default 'user' (menor privilégio)
 
   const app = express()
-  app.use((req, _res, next) => { req.userId = currentUser; next() })
+  app.use((req, _res, next) => {
+    req.userId = currentUser
+    next()
+  })
   app.get('/admin-only', requireRole('admin'), (_req, res) => res.json({ ok: true }))
   app.get('/staff', requireRole('admin', 'support'), (_req, res) => res.json({ ok: true }))
-  await new Promise<void>((resolve) => { server = app.listen(0, () => resolve()) })
+  await new Promise<void>((resolve) => {
+    server = app.listen(0, () => resolve())
+  })
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
 afterAll(async () => {

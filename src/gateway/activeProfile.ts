@@ -9,42 +9,49 @@
  *  - `babel.credentialId`     → credencial de nuvem a injetar (quando modo = nuvem)
  *  - `babel.providerMode`     → 'local' | 'cloud' (a escolha do onboarding)
  */
-import type { CapabilityBinding, Profile } from '@core'
+import type { CapabilityBinding, Profile } from '@core';
 
-import { DEFAULT_PROFILE_ID,getBuiltinProfile } from './profiles'
+import { DEFAULT_PROFILE_ID, getBuiltinProfile } from './profiles';
 
-export const PROFILE_KEY = 'babel.activeProfileId'
-export const CREDENTIAL_KEY = 'babel.credentialId'
-export const MODE_KEY = 'babel.providerMode'
+export const PROFILE_KEY = 'babel.activeProfileId';
+export const CREDENTIAL_KEY = 'babel.credentialId';
+export const MODE_KEY = 'babel.providerMode';
 
-export type ProviderMode = 'local' | 'cloud'
+export type ProviderMode = 'local' | 'cloud';
 
-const LOCAL_RE = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/i
-const isLocalUrl = (u?: string): boolean => !!u && LOCAL_RE.test(u)
+const LOCAL_RE = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/i;
+const isLocalUrl = (u?: string): boolean => !!u && LOCAL_RE.test(u);
 
 function read(key: string): string | null {
-  try { return localStorage.getItem(key) } catch { return null }
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
 }
 
 function getActiveProfileId(): string {
-  return read(PROFILE_KEY) ?? DEFAULT_PROFILE_ID
+  return read(PROFILE_KEY) ?? DEFAULT_PROFILE_ID;
 }
 
 function getCredentialId(): string | null {
-  return read(CREDENTIAL_KEY)
+  return read(CREDENTIAL_KEY);
 }
 
 export function getProviderMode(): ProviderMode {
-  return read(MODE_KEY) === 'cloud' ? 'cloud' : 'local'
+  return read(MODE_KEY) === 'cloud' ? 'cloud' : 'local';
 }
 
 /** Injeta o `credentialId` nos bindings de NUVEM (LLM via proxy, groq-whisper). */
-function injectCredential(bindings: CapabilityBinding[] | undefined, credentialId: string): CapabilityBinding[] | undefined {
+function injectCredential(
+  bindings: CapabilityBinding[] | undefined,
+  credentialId: string,
+): CapabilityBinding[] | undefined {
   return bindings?.map((b) => {
-    if (b.adapterId === 'openai-compatible' && !isLocalUrl(b.baseUrl)) return { ...b, credentialId }
-    if (b.adapterId === 'groq-whisper') return { ...b, credentialId }
-    return b
-  })
+    if (b.adapterId === 'openai-compatible' && !isLocalUrl(b.baseUrl)) return { ...b, credentialId };
+    if (b.adapterId === 'groq-whisper') return { ...b, credentialId };
+    return b;
+  });
 }
 
 /**
@@ -52,9 +59,9 @@ function injectCredential(bindings: CapabilityBinding[] | undefined, credentialI
  * injetada nos bindings de nuvem do perfil ativo (torna-os `isCloud`).
  */
 export function getActiveProfile(): Profile {
-  const base = getBuiltinProfile(getActiveProfileId())
-  const credentialId = getCredentialId()
-  if (!credentialId) return base
+  const base = getBuiltinProfile(getActiveProfileId());
+  const credentialId = getCredentialId();
+  if (!credentialId) return base;
   return {
     ...base,
     bindings: {
@@ -62,15 +69,17 @@ export function getActiveProfile(): Profile {
       llm: injectCredential(base.bindings.llm, credentialId),
       stt: injectCredential(base.bindings.stt, credentialId),
     },
-  }
+  };
 }
 
 /** Persiste a escolha do onboarding no localStorage (espelho do `settings`). */
 export function setProviderChoice(opts: { mode: ProviderMode; profileId: string; credentialId?: string | null }): void {
   try {
-    localStorage.setItem(MODE_KEY, opts.mode)
-    localStorage.setItem(PROFILE_KEY, opts.profileId)
-    if (opts.credentialId) localStorage.setItem(CREDENTIAL_KEY, opts.credentialId)
-    else localStorage.removeItem(CREDENTIAL_KEY)
-  } catch { /* ignore */ }
+    localStorage.setItem(MODE_KEY, opts.mode);
+    localStorage.setItem(PROFILE_KEY, opts.profileId);
+    if (opts.credentialId) localStorage.setItem(CREDENTIAL_KEY, opts.credentialId);
+    else localStorage.removeItem(CREDENTIAL_KEY);
+  } catch {
+    /* ignore */
+  }
 }

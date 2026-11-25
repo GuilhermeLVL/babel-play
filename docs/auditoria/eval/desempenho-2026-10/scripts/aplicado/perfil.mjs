@@ -10,7 +10,9 @@ const fonte = process.argv[4] || 'trilha';
 const suf = process.argv[5] || '';
 const guardado = JSON.parse(fs.readFileSync(new URL('./storage.json', import.meta.url), 'utf8'));
 const amb = await subir(build, +new URL(URL0).port);
-const s = await abrir(nome, { storage: { ...guardado, 'babel.fonte_da_pratica': JSON.stringify({ origem: fonte, escopo: 'todas' }) } });
+const s = await abrir(nome, {
+  storage: { ...guardado, 'babel.fonte_da_pratica': JSON.stringify({ origem: fonte, escopo: 'todas' }) },
+});
 const { page, cdp } = s;
 await cdp.send('Profiler.enable');
 await cdp.send('Profiler.setSamplingInterval', { interval: 200 });
@@ -20,8 +22,17 @@ const resumir = (prof) => {
   const pai = new Map();
   for (const n of nodes) for (const c of n.children ?? []) pai.set(c, n.id);
   const proprio = new Map();
-  for (let i = 0; i < samples.length; i++) proprio.set(samples[i], (proprio.get(samples[i]) ?? 0) + (timeDeltas[i] ?? 0));
-  const nomeDe = (cf) => `${cf.functionName || '(anon)'} ${cf.url ? cf.url.split('/').pop().replace(/-[\w-]{8}\.js$/, '') : ''}:${cf.lineNumber}`;
+  for (let i = 0; i < samples.length; i++)
+    proprio.set(samples[i], (proprio.get(samples[i]) ?? 0) + (timeDeltas[i] ?? 0));
+  const nomeDe = (cf) =>
+    `${cf.functionName || '(anon)'} ${
+      cf.url
+        ? cf.url
+            .split('/')
+            .pop()
+            .replace(/-[\w-]{8}\.js$/, '')
+        : ''
+    }:${cf.lineNumber}`;
   const porFn = {};
   const total = {};
   let soma = 0;
@@ -40,7 +51,11 @@ const resumir = (prof) => {
       total[kk] = (total[kk] ?? 0) + us / 1000;
     }
   }
-  const topo = (o, n) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => [r1(v), k]);
+  const topo = (o, n) =>
+    Object.entries(o)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+      .map(([k, v]) => [r1(v), k]);
   return { js_ms: r1(soma / 1000), proprio: topo(porFn, 40), total: topo(total, 90) };
 };
 const saida = {};
@@ -53,7 +68,8 @@ const perfilar = async (rot, fazer) => {
   console.log(`\n=== ${rot}: JS ${r.js_ms} ms ===\n-- tempo proprio`);
   for (const [ms, k] of r.proprio.slice(0, 28)) console.log(String(ms).padStart(8), k);
   console.log('-- tempo total (com filhos), so codigo do app');
-  for (const [ms, k] of r.total.filter(([, k]) => !/vendor-react|\(anon\) :|^\(/.test(k)).slice(0, 60)) console.log(String(ms).padStart(8), k);
+  for (const [ms, k] of r.total.filter(([, k]) => !/vendor-react|\(anon\) :|^\(/.test(k)).slice(0, 60))
+    console.log(String(ms).padStart(8), k);
 };
 const toca = async (sel, opc = {}) => {
   const el = page.locator(sel).first();
@@ -78,7 +94,9 @@ try {
     await page.waitForTimeout(3200);
   });
   await sossegar(s, 1000, 15000);
-  const marcas = await page.evaluate(() => performance.getEntriesByType('measure').map((m) => [m.name, Math.round(m.duration * 10) / 10]));
+  const marcas = await page.evaluate(() =>
+    performance.getEntriesByType('measure').map((m) => [m.name, Math.round(m.duration * 10) / 10]),
+  );
   if (marcas.length) console.log('MEDIDAS', JSON.stringify(marcas));
   await toca('button.q-tile:has-text("Memória")');
   await page.waitForTimeout(2500);

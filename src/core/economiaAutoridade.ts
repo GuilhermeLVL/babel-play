@@ -131,7 +131,8 @@ export function autorizarGastoDeCredito(reason: string): GastoDeCredito | Recusa
   const itemId = reason.slice('premium:'.length);
   const item = itemPorId(itemId);
   if (!item) return { erro: `item inexistente: ${itemId}` };
-  if (item.precoCreditos === undefined || !vendavelEmCreditos(item)) return { erro: `${itemId} não é vendido em Créditos` };
+  if (item.precoCreditos === undefined || !vendavelEmCreditos(item))
+    return { erro: `${itemId} não é vendido em Créditos` };
   return { tipo: 'premium', itemId, preco: item.precoCreditos };
 }
 

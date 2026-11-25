@@ -7,7 +7,7 @@
  * pilha adapter → fetch → `withTimeout` → fallback, não só o núcleo. `fetch` é stubbed (sem socket
  * real): `hang.local` nunca resolve, `ok.local` responde uma chat-completion válida — determinístico.
  */
-import type { CapabilityBinding, ChatMessage,Profile } from '@core'
+import type { CapabilityBinding, ChatMessage, Profile } from '@core'
 import { AiGateway, BreakerRegistry, BudgetLedger } from '@core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -26,25 +26,39 @@ function okResponse(content: string): Response {
 beforeEach(() => {
   vi.stubGlobal('fetch', (input: RequestInfo | URL) => {
     const url = String(input)
-    if (url.startsWith(HANG)) return new Promise<Response>(() => { /* pendura de propósito */ })
+    if (url.startsWith(HANG))
+      return new Promise<Response>(() => {
+        /* pendura de propósito */
+      })
     if (url.startsWith(OK)) return Promise.resolve(okResponse('resposta-do-fallback'))
     return Promise.reject(new Error(`fetch inesperado: ${url}`))
   })
 })
-afterEach(() => { vi.unstubAllGlobals() })
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 const MESSAGES: ChatMessage[] = [{ role: 'user', content: 'oi' }]
 
 /** Espelha o resolveLlm de produção para 'openai-compatible' (local), com o adapter REAL. */
 const attempt = (b: CapabilityBinding): Promise<string> =>
   new OpenAiCompatibleLlm({
-    id: b.adapterId, label: 'x', runtime: 'browser', cost: 'free',
-    baseUrl: b.baseUrl ?? '', model: b.model ?? 'm',
-  }).chat('sys', MESSAGES).then((r) => r.text)
+    id: b.adapterId,
+    label: 'x',
+    runtime: 'browser',
+    cost: 'free',
+    baseUrl: b.baseUrl ?? '',
+    model: b.model ?? 'm',
+  })
+    .chat('sys', MESSAGES)
+    .then((r) => r.text)
 
 function gateway(bindings: CapabilityBinding[]): AiGateway {
   const profile: Profile = {
-    id: 'e2e', name: 'e2e', builtin: false, economyMode: false,
+    id: 'e2e',
+    name: 'e2e',
+    builtin: false,
+    economyMode: false,
     budget: { maxCloudRequests: -1, maxTokens: -1 },
     bindings: { llm: bindings },
   }

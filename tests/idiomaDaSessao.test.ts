@@ -30,8 +30,14 @@ const FALA_PT = 'Eu não sei se você vai conseguir terminar o trabalho hoje, po
 
 function fala(parcial: Partial<SpeechSegment>): SpeechSegment {
   return {
-    id: 'sys-1', speakerId: 'system', source: 'system', timestamp: '00:00',
-    originalText: FALA_PT, translatedText: '', words: [], ...parcial,
+    id: 'sys-1',
+    speakerId: 'system',
+    source: 'system',
+    timestamp: '00:00',
+    originalText: FALA_PT,
+    translatedText: '',
+    words: [],
+    ...parcial,
   } as SpeechSegment
 }
 
@@ -139,7 +145,11 @@ describe('segmentação por idioma (Intl.Segmenter)', () => {
   })
 
   it('frases: abreviação não corta, pontuação final sim', () => {
-    expect(frasesDoTexto('O Dr. Silva chegou. Você viu? Sim!', 'pt')).toEqual(['O Dr. Silva chegou.', 'Você viu?', 'Sim!'])
+    expect(frasesDoTexto('O Dr. Silva chegou. Você viu? Sim!', 'pt')).toEqual([
+      'O Dr. Silva chegou.',
+      'Você viu?',
+      'Sim!',
+    ])
     expect(frasesDoTexto('今日は晴れです。明日は雨です。', 'ja')).toEqual(['今日は晴れです。', '明日は雨です。'])
   })
 
@@ -155,7 +165,12 @@ describe('reparo dos dados antigos (idempotente, nunca apaga)', () => {
     falas: [
       // Gravada antes de fix/idioma-detectado: português etiquetado como inglês.
       { id: 'f1', sessionId: 's1', sourceLang: 'en', sourceText: FALA_PT },
-      { id: 'f2', sessionId: 's1', sourceLang: 'pt-BR', sourceText: 'Não tem problema nenhum, a gente faz isso amanhã com calma.' },
+      {
+        id: 'f2',
+        sessionId: 's1',
+        sourceLang: 'pt-BR',
+        sourceText: 'Não tem problema nenhum, a gente faz isso amanhã com calma.',
+      },
     ],
     cartoes: [
       { id: 'c1', word: 'reunião', sentence: FALA_PT, srcLang: 'en-US', tgtLang: 'pt-BR', sessionId: 's1' },
@@ -186,17 +201,27 @@ describe('reparo dos dados antigos (idempotente, nunca apaga)', () => {
     const d = dados()
     const plano = planejarReparoDeIdioma(d)
     for (const t of plano.falas) d.falas.find((f) => f.id === t.id)!.sourceLang = t.para
-    for (const t of plano.cartoes) Object.assign(d.cartoes.find((c) => c.id === t.id)!, { srcLang: t.srcPara, tgtLang: t.tgtPara })
+    for (const t of plano.cartoes)
+      Object.assign(d.cartoes.find((c) => c.id === t.id)!, { srcLang: t.srcPara, tgtLang: t.tgtPara })
     expect(planoVazio(planejarReparoDeIdioma(d))).toBe(true)
   })
 
   it('a sessão gravada com o idioma do seletor passa a ter o idioma do conteúdo', () => {
     const plano = planejarReparoDeIdioma({
       sessoes: [{ id: 's2', sourceLang: 'pt-BR', targetLang: 'en-US' }],
-      falas: [{ id: 'f9', sessionId: 's2', sourceLang: 'en', sourceText: 'The meeting was delayed because they did not arrive on time' }],
+      falas: [
+        {
+          id: 'f9',
+          sessionId: 's2',
+          sourceLang: 'en',
+          sourceText: 'The meeting was delayed because they did not arrive on time',
+        },
+      ],
       cartoes: [],
     })
-    expect(plano.sessoes).toEqual([{ id: 's2', sourceDe: 'pt-BR', sourcePara: 'en', targetDe: 'en-US', targetPara: 'pt-BR' }])
+    expect(plano.sessoes).toEqual([
+      { id: 's2', sourceDe: 'pt-BR', sourcePara: 'en', targetDe: 'en-US', targetPara: 'pt-BR' },
+    ])
   })
 
   it('sem evidência (texto curto, sessão mista) não toca em nada', () => {

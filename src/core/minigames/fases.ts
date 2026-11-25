@@ -63,13 +63,23 @@ export function agruparFases(linhas: LinhaDeExercicio[], jogo: string): FaseJoga
   for (const l of linhas) {
     if (l.exerciseKind !== jogo || !l.roundId) continue;
     const f = porRodada.get(l.roundId) ?? {
-      roundId: l.roundId, quando: 0, pontos: 0, combo: 0,
-      acertos: 0, total: 0, precisao: 0, estrelas: 0 as const, refs: [],
+      roundId: l.roundId,
+      quando: 0,
+      pontos: 0,
+      combo: 0,
+      acertos: 0,
+      total: 0,
+      precisao: 0,
+      estrelas: 0 as const,
+      refs: [],
     };
     f.quando = Math.max(f.quando, l.createdAt ?? 0);
     f.pontos = Math.max(f.pontos, l.score ?? 0);
     f.combo = Math.max(f.combo, l.melhorSequencia ?? 0);
-    if (l.correct != null) { f.total += 1; if (l.correct === 1) f.acertos += 1; }
+    if (l.correct != null) {
+      f.total += 1;
+      if (l.correct === 1) f.acertos += 1;
+    }
     if (l.itemRef && !f.refs.includes(l.itemRef)) f.refs.push(l.itemRef);
     porRodada.set(l.roundId, f);
   }

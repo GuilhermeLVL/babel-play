@@ -1,6 +1,7 @@
 # modo-interprete Specification
 
 ## Purpose
+
 Change retroativa da Fase E: tradução falada frente a frente, voz do aparelho no Grátis e voz natural da nuvem no Premium. Criada pela change `modo-interprete` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-modo-interprete/proposal.md` para o porquê.
 
 ## Requirements

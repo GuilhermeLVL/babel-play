@@ -1,6 +1,7 @@
 # jogo-pares-minimos Specification
 
 ## Purpose
+
 Minigame de pares mínimos para treino de ouvido em 6 idiomas, sem IA nem rede. Criada pela change `jogo-pares-minimos` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-jogo-pares-minimos/proposal.md` para o porquê.
 
 ## Requirements

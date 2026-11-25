@@ -1,6 +1,7 @@
 # teste-de-vocabulario Specification
 
 ## Purpose
+
 Teste rápido de vocabulário em faixas CEFR para semear palavras conhecidas. Criada pela change `teste-de-vocabulario` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-teste-de-vocabulario/proposal.md` para o porquê.
 
 ## Requirements

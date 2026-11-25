@@ -16,7 +16,7 @@ import { estadoDeIdentidade } from '../identidade';
 import { hidratarPosse } from '../loja';
 import { reivindicarMetaDoDia } from '../metaDoDia';
 import { registrarPresencaHoje } from '../presenca';
-import { type DerivedProgress,deriveProgress } from '../progress';
+import { type DerivedProgress, deriveProgress } from '../progress';
 import { reembolsarUmaVez } from '../recompensasV2';
 
 export interface EstadoDasMetricas {
@@ -50,7 +50,10 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
     const bump = () => setVersaoDasMetricas((v) => v + 1);
     window.addEventListener('babel:metricas-mudaram', bump);
     window.addEventListener('babel:conquista', bump);
-    return () => { window.removeEventListener('babel:metricas-mudaram', bump); window.removeEventListener('babel:conquista', bump); };
+    return () => {
+      window.removeEventListener('babel:metricas-mudaram', bump);
+      window.removeEventListener('babel:conquista', bump);
+    };
   }, []);
   /**
    * A CHEGADA DA LISTA NÃO É UMA MUDANÇA (auditoria do servidor de 10/10/2026, achado A2). O perfil e os
@@ -108,7 +111,10 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
       })
       .catch(() => {
         pedido.falhou = true;
-        if (vale()) { setMetrics(null); setMetricasFalharam(true); }
+        if (vale()) {
+          setMetrics(null);
+          setMetricasFalharam(true);
+        }
       });
   }, [quantidadeDeSessoes, versaoDasMetricas]);
 
@@ -149,7 +155,9 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
       toast.ok(t('Meta do dia concluída: +{n} Seeds', { n: r.seeds }));
       setVersaoDasMetricas((v) => v + 1);
     });
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [metrics]);
 
   const missoesPendentes = !missoesRespondidas && !metricasFalharam;

@@ -13,7 +13,7 @@
  * O quarto é o que separa telemetria de armadilha. Um sink que lança no caminho de erro
  * transformaria "o request falhou" em "o processo morreu ao anotar que o request falhou".
  */
-import { mkdirSync,mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -25,15 +25,25 @@ import { log, registrarSinkDeErro } from '../../server/lib/logger'
 let dir: string
 const desfazer: Array<() => void> = []
 
-beforeEach(() => { dir = mkdtempSync(path.join(tmpdir(), 'diario-')) })
+beforeEach(() => {
+  dir = mkdtempSync(path.join(tmpdir(), 'diario-'))
+})
 afterEach(() => {
   for (const f of desfazer.splice(0)) f()
   vi.restoreAllMocks()
-  try { rmSync(dir, { recursive: true, force: true }) } catch { /* ignora */ }
+  try {
+    rmSync(dir, { recursive: true, force: true })
+  } catch {
+    /* ignora */
+  }
 })
 
 const linhasDe = (arquivo: string) =>
-  readFileSync(path.join(dir, arquivo), 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l))
+  readFileSync(path.join(dir, arquivo), 'utf8')
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => JSON.parse(l))
 
 describe('F5-04 — diário de erros em disco', () => {
   it('grava só evento de erro, no arquivo do dia', () => {
@@ -86,8 +96,8 @@ describe('F5-04 — diário de erros em disco', () => {
     sink({ level: 'error', event: 'agora' })
 
     const restantes = readdirSync(dir).sort()
-    expect(restantes).toContain('2026-08-13.jsonl')  // 1 dia — dentro do prazo
-    expect(restantes).toContain('2026-08-14.jsonl')  // o de hoje, recém-criado
+    expect(restantes).toContain('2026-08-13.jsonl') // 1 dia — dentro do prazo
+    expect(restantes).toContain('2026-08-14.jsonl') // o de hoje, recém-criado
     expect(restantes).not.toContain('2026-07-01.jsonl') // 44 dias — fora
   })
 

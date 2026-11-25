@@ -21,17 +21,45 @@ import type { ThemeType } from './appearance';
  */
 
 // Os kinds dos EVENTOS (patos, raios...) sao usados por lib/eventosDeJogo.
-export type BurstKind = 'xp' | 'record' | 'levelUp' | 'combo' | 'perfeito' | 'confete' | 'erro'
-  | 'patos' | 'voleibol' | 'coracoes' | 'raios' | 'fogos' | 'pizza' | 'trofeu' | 'fumaca'
-  | 'rastroFaisca' | 'rastroEstrelas' | 'rastroCoracoes' | 'rastroPixel' | 'rastroArcoiris';
+export type BurstKind =
+  | 'xp'
+  | 'record'
+  | 'levelUp'
+  | 'combo'
+  | 'perfeito'
+  | 'confete'
+  | 'erro'
+  | 'patos'
+  | 'voleibol'
+  | 'coracoes'
+  | 'raios'
+  | 'fogos'
+  | 'pizza'
+  | 'trofeu'
+  | 'fumaca'
+  | 'rastroFaisca'
+  | 'rastroEstrelas'
+  | 'rastroCoracoes'
+  | 'rastroPixel'
+  | 'rastroArcoiris';
 
 /** Como a partícula é desenhada. Confete é retângulo girando — é o que dá a leitura de "festa".
  *  `cometa` (exclusiva de conquista): círculo com cauda de três círculos decrescentes atrás. */
 export type FormaParticula =
-  | 'circulo' | 'confete' | 'pixel' | 'raio' | 'coracao' | 'fumaca' | 'emoji' | 'cometa'
+  | 'circulo'
+  | 'confete'
+  | 'pixel'
+  | 'raio'
+  | 'coracao'
+  | 'fumaca'
+  | 'emoji'
+  | 'cometa'
   /* Os objetos dos eventos raros (revisão de 27/09): eram 🦆 🏐 🍕 🏆 por `fillText`, e emoji ignora
      a cor do tema e muda de desenho a cada sistema. Agora são ícones vetoriais do motor. */
-  | 'pato' | 'bola' | 'fatia' | 'trofeu';
+  | 'pato'
+  | 'bola'
+  | 'fatia'
+  | 'trofeu';
 /** De onde a rajada nasce: do ponto (radial) ou do topo da tela (chuva). */
 export type OrigemRajada = 'radial' | 'chuva' | 'travessia' | 'cantos';
 
@@ -70,7 +98,7 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
     wobbleSpeed: 0.02,
     alpha: [0.12, 0.42],
     glow: true,
-    colorToken: '--accent'
+    colorToken: '--accent',
   },
   // Índigo elegante, geométrico. Poeira fina em deriva reta — nada de movimento orgânico.
   linear: {
@@ -82,7 +110,7 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
     wobbleSpeed: 0,
     alpha: [0.1, 0.3],
     glow: false,
-    colorToken: '--accent'
+    colorToken: '--accent',
   },
   // Aurora (exclusivo de conquista): noite polar — véus lentos, brilhantes, subindo devagar.
   aurora: {
@@ -94,7 +122,7 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
     wobbleSpeed: 0.012,
     alpha: [0.16, 0.5],
     glow: true,
-    colorToken: '--accent'
+    colorToken: '--accent',
   },
   // Monocromático, cantos retos, contraste. O tema É contenção: quase nada, e sem halo.
   vercel: {
@@ -106,7 +134,7 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
     wobbleSpeed: 0,
     alpha: [0.06, 0.16],
     glow: false,
-    colorToken: '--ink-muted'
+    colorToken: '--ink-muted',
   },
   // Everforest orgânico, cantos arredondados. Esporo: grande, mole, oscilando ao cair.
   mochi: {
@@ -118,7 +146,7 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
     wobbleSpeed: 0.012,
     alpha: [0.14, 0.36],
     glow: true,
-    colorToken: '--good'
+    colorToken: '--good',
   },
   // Carvão sóbrio, tipográfico. Pó de biblioteca: lento, discreto, quase imperceptível.
   notion: {
@@ -130,7 +158,7 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
     wobbleSpeed: 0.008,
     alpha: [0.07, 0.2],
     glow: false,
-    colorToken: '--ink-muted'
+    colorToken: '--ink-muted',
   },
   // Cores escolhidas pelo usuário: comportamento neutro, para não brigar com escolha nenhuma.
   // Instrument Premium: poeira de LUZ que ascende devagar — baixa densidade, glow teal (bloom).
@@ -143,7 +171,7 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
     wobbleSpeed: 0.012,
     alpha: [0.1, 0.4],
     glow: true,
-    colorToken: '--accent'
+    colorToken: '--accent',
   },
   custom: {
     ambientCount: 14,
@@ -154,23 +182,93 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
     wobbleSpeed: 0.015,
     alpha: [0.1, 0.32],
     glow: true,
-    colorToken: '--accent'
+    colorToken: '--accent',
   },
   /* ── Temas completos (recompensas v2, onda 4) ── */
   // Rádio: faísca de válvula — poucas, quentes, subindo devagar.
-  radio: { ambientCount: 10, size: [1, 2.2], driftX: 0.03, driftY: -0.16, wobble: 0.4, wobbleSpeed: 0.02, alpha: [0.12, 0.36], glow: true, colorToken: '--accent' },
+  radio: {
+    ambientCount: 10,
+    size: [1, 2.2],
+    driftX: 0.03,
+    driftY: -0.16,
+    wobble: 0.4,
+    wobbleSpeed: 0.02,
+    alpha: [0.12, 0.36],
+    glow: true,
+    colorToken: '--accent',
+  },
   // Papel e tinta: quase nada — pó de papel que afunda.
-  papel: { ambientCount: 8, size: [0.8, 1.6], driftX: 0.02, driftY: 0.05, wobble: 0.2, wobbleSpeed: 0.008, alpha: [0.08, 0.2], glow: false, colorToken: '--ink-muted' },
+  papel: {
+    ambientCount: 8,
+    size: [0.8, 1.6],
+    driftX: 0.02,
+    driftY: 0.05,
+    wobble: 0.2,
+    wobbleSpeed: 0.008,
+    alpha: [0.08, 0.2],
+    glow: false,
+    colorToken: '--ink-muted',
+  },
   // Neon noturno: pontos de luz da cidade em deriva lateral.
-  neon: { ambientCount: 18, size: [1, 2.4], driftX: 0.16, driftY: -0.03, wobble: 0.3, wobbleSpeed: 0.02, alpha: [0.14, 0.46], glow: true, colorToken: '--accent' },
+  neon: {
+    ambientCount: 18,
+    size: [1, 2.4],
+    driftX: 0.16,
+    driftY: -0.03,
+    wobble: 0.3,
+    wobbleSpeed: 0.02,
+    alpha: [0.14, 0.46],
+    glow: true,
+    colorToken: '--accent',
+  },
   // Fliperama: pixels retos, sem oscilar.
-  fliperama: { ambientCount: 12, size: [1.2, 2], driftX: 0.1, driftY: 0.08, wobble: 0, wobbleSpeed: 0, alpha: [0.12, 0.34], glow: false, colorToken: '--accent' },
+  fliperama: {
+    ambientCount: 12,
+    size: [1.2, 2],
+    driftX: 0.1,
+    driftY: 0.08,
+    wobble: 0,
+    wobbleSpeed: 0,
+    alpha: [0.12, 0.34],
+    glow: false,
+    colorToken: '--accent',
+  },
   // Jardim: pólen grande e mole, oscilando.
-  jardim: { ambientCount: 14, size: [1.4, 3], driftX: 0.05, driftY: -0.06, wobble: 1.2, wobbleSpeed: 0.012, alpha: [0.12, 0.34], glow: false, colorToken: '--good' },
+  jardim: {
+    ambientCount: 14,
+    size: [1.4, 3],
+    driftX: 0.05,
+    driftY: -0.06,
+    wobble: 1.2,
+    wobbleSpeed: 0.012,
+    alpha: [0.12, 0.34],
+    glow: false,
+    colorToken: '--good',
+  },
   // Observatório: estrelas lentas, com brilho.
   // Água: bolhas de ar subindo e oscilando.
-  agua: { ambientCount: 12, size: [1.4, 3.2], driftX: 0.03, driftY: -0.2, wobble: 1, wobbleSpeed: 0.02, alpha: [0.12, 0.38], glow: false, colorToken: '--accent' },
-  observatorio: { ambientCount: 20, size: [0.8, 2], driftX: 0.04, driftY: 0.02, wobble: 0.2, wobbleSpeed: 0.006, alpha: [0.14, 0.5], glow: true, colorToken: '--accent' },
+  agua: {
+    ambientCount: 12,
+    size: [1.4, 3.2],
+    driftX: 0.03,
+    driftY: -0.2,
+    wobble: 1,
+    wobbleSpeed: 0.02,
+    alpha: [0.12, 0.38],
+    glow: false,
+    colorToken: '--accent',
+  },
+  observatorio: {
+    ambientCount: 20,
+    size: [0.8, 2],
+    driftX: 0.04,
+    driftY: 0.02,
+    wobble: 0.2,
+    wobbleSpeed: 0.006,
+    alpha: [0.14, 0.5],
+    glow: true,
+    colorToken: '--accent',
+  },
 };
 
 /**
@@ -277,7 +375,16 @@ export const BURST_SPECS: Record<BurstKind, BurstSpec> = {
   // Sequência crescendo: faísca rápida e quente, sem ocupar a tela.
   combo: { count: 20, speed: 5, size: [1.2, 2.4], life: 600, colorToken: '--warn', gravidade: -0.02 },
   // Rodada sem erro nenhum. O OUTRO momento de exagero: confete caindo do topo.
-  perfeito: { count: 70, speed: 2.2, size: [3, 6], life: 2200, colorToken: '--accent', forma: 'confete', origem: 'chuva', gravidade: 0.05 },
+  perfeito: {
+    count: 70,
+    speed: 2.2,
+    size: [3, 6],
+    life: 2200,
+    colorToken: '--accent',
+    forma: 'confete',
+    origem: 'chuva',
+    gravidade: 0.05,
+  },
   // Confete pontual (fim de rodada boa), nascendo do ponto.
   confete: { count: 36, speed: 4, size: [2.5, 5], life: 1500, colorToken: '--good', forma: 'confete', gravidade: 0.06 },
   // Erro: um tremor curto de partículas escuras. Existe para o acerto ter contraste.
@@ -285,25 +392,118 @@ export const BURST_SPECS: Record<BurstKind, BurstSpec> = {
 
   // ── EVENTOS (lib/eventosDeJogo): raros e condicionais. Os objetos são ícones VETORIAIS do motor
   //    (pato, bola, fatia, troféu), pintados com a cor do token — eram emoji, que ignora a cor. ──
-  patos:    { count: 16, speed: 1.6, size: [4, 7], life: 3200, colorToken: '--warn', forma: 'pato', origem: 'chuva', gravidade: 0.03 },
-  voleibol: { count: 3,  speed: 2.6, size: [6, 9], life: 2600, colorToken: '--warn', forma: 'bola', origem: 'travessia' },
-  coracoes: { count: 22, speed: 2.0, size: [3, 6], life: 2400, colorToken: '--accent', forma: 'coracao', origem: 'chuva', gravidade: 0.02, paleta: ['#F04E23', '#FF7BAC', '#FFB3C6', '#E63946'] },
-  raios:    { count: 10, speed: 4.5, size: [3, 5], life: 700,  colorToken: '--warn', forma: 'raio', origem: 'cantos', paleta: ['#F59E0B', '#FFD166', '#FFF3B0'] },
-  fogos:    { count: 34, speed: 5,   size: [1.6, 3.2], life: 1200, colorToken: '--accent', paleta: ['#F04E23', '#F59E0B', '#3E8E4E', '#4C9AFF', '#FF7BAC'], gravidade: 0.03 },
-  pizza:    { count: 12, speed: 1.8, size: [4, 7], life: 3000, colorToken: '--warn', forma: 'fatia', origem: 'chuva', gravidade: 0.035 },
-  trofeu:   { count: 2,  speed: 2.2, size: [8, 10], life: 3000, colorToken: '--warn', forma: 'trofeu', origem: 'travessia' },
-  fumaca:   { count: 14, speed: 1.2, size: [4, 7], life: 1400, colorToken: '--ink-muted', forma: 'fumaca', gravidade: -0.015 },
+  patos: {
+    count: 16,
+    speed: 1.6,
+    size: [4, 7],
+    life: 3200,
+    colorToken: '--warn',
+    forma: 'pato',
+    origem: 'chuva',
+    gravidade: 0.03,
+  },
+  voleibol: {
+    count: 3,
+    speed: 2.6,
+    size: [6, 9],
+    life: 2600,
+    colorToken: '--warn',
+    forma: 'bola',
+    origem: 'travessia',
+  },
+  coracoes: {
+    count: 22,
+    speed: 2.0,
+    size: [3, 6],
+    life: 2400,
+    colorToken: '--accent',
+    forma: 'coracao',
+    origem: 'chuva',
+    gravidade: 0.02,
+    paleta: ['#F04E23', '#FF7BAC', '#FFB3C6', '#E63946'],
+  },
+  raios: {
+    count: 10,
+    speed: 4.5,
+    size: [3, 5],
+    life: 700,
+    colorToken: '--warn',
+    forma: 'raio',
+    origem: 'cantos',
+    paleta: ['#F59E0B', '#FFD166', '#FFF3B0'],
+  },
+  fogos: {
+    count: 34,
+    speed: 5,
+    size: [1.6, 3.2],
+    life: 1200,
+    colorToken: '--accent',
+    paleta: ['#F04E23', '#F59E0B', '#3E8E4E', '#4C9AFF', '#FF7BAC'],
+    gravidade: 0.03,
+  },
+  pizza: {
+    count: 12,
+    speed: 1.8,
+    size: [4, 7],
+    life: 3000,
+    colorToken: '--warn',
+    forma: 'fatia',
+    origem: 'chuva',
+    gravidade: 0.035,
+  },
+  trofeu: {
+    count: 2,
+    speed: 2.2,
+    size: [8, 10],
+    life: 3000,
+    colorToken: '--warn',
+    forma: 'trofeu',
+    origem: 'travessia',
+  },
+  fumaca: {
+    count: 14,
+    speed: 1.2,
+    size: [4, 7],
+    life: 1400,
+    colorToken: '--ink-muted',
+    forma: 'fumaca',
+    gravidade: -0.015,
+  },
 
   // ── RASTRO DO MOUSE (lib/rastroDoMouse): emitido a cada ~45ms — POUCAS particulas e vida curta,
   //    senão o teto de vivas engole as comemorações de verdade. ──
-  rastroFaisca:   { count: 4, speed: 1.6, size: [2, 3.2], life: 650, colorToken: '--accent', gravidade: 0.02 },
+  rastroFaisca: { count: 4, speed: 1.6, size: [2, 3.2], life: 650, colorToken: '--accent', gravidade: 0.02 },
   /* Era ⭐✨ por `fillText`: emoji ignora a paleta (o `gen:estrelas:<paleta>` saía sempre amarelo) e
      a cor do tema. Agora é o lampejo em ziguezague do motor, que pinta com a cor pedida. */
   rastroEstrelas: { count: 2, speed: 1.1, size: [2.4, 3.4], life: 750, colorToken: '--warn', forma: 'raio' },
-  rastroCoracoes: { count: 2, speed: 1.1, size: [3, 4.5], life: 750, colorToken: '--accent', forma: 'coracao', paleta: ['#F04E23', '#FF7BAC', '#E63946'] },
-  rastroPixel:    { count: 4, speed: 1.6, size: [2, 3], life: 650, colorToken: '--accent', forma: 'pixel', paleta: ['#F04E23', '#F59E0B', '#3E8E4E'] },
+  rastroCoracoes: {
+    count: 2,
+    speed: 1.1,
+    size: [3, 4.5],
+    life: 750,
+    colorToken: '--accent',
+    forma: 'coracao',
+    paleta: ['#F04E23', '#FF7BAC', '#E63946'],
+  },
+  rastroPixel: {
+    count: 4,
+    speed: 1.6,
+    size: [2, 3],
+    life: 650,
+    colorToken: '--accent',
+    forma: 'pixel',
+    paleta: ['#F04E23', '#F59E0B', '#3E8E4E'],
+  },
   // Exclusivo de conquista: seis cores, círculos com glow — o arco-íris escorrendo do cursor.
-  rastroArcoiris: { count: 5, speed: 1.5, size: [2.2, 3.4], life: 700, colorToken: '--accent', gravidade: 0.015, paleta: ['#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#0A84FF', '#AF52DE'] },
+  rastroArcoiris: {
+    count: 5,
+    speed: 1.5,
+    size: [2.2, 3.4],
+    life: 700,
+    colorToken: '--accent',
+    gravidade: 0.015,
+    paleta: ['#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#0A84FF', '#AF52DE'],
+  },
 };
 
 // ─────────────────────────────── Barramento de rajadas ───────────────────────────────

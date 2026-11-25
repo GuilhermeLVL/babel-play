@@ -96,7 +96,12 @@ export async function misturarAudios(a: Blob, b: Blob, offsetBMs: number): Promi
   const duracao = Math.max(bufA.duration + offA, bufB.duration + offB) + 0.05;
   const amostras = Math.ceil(duracao * TAXA_SAIDA);
 
-  const config: ConfigOpus = { codec: 'opus', sampleRate: TAXA_SAIDA, numberOfChannels: 1, bitrate: TAXA_DE_BITS_DA_GRAVACAO };
+  const config: ConfigOpus = {
+    codec: 'opus',
+    sampleRate: TAXA_SAIDA,
+    numberOfChannels: 1,
+    bitrate: TAXA_DE_BITS_DA_GRAVACAO,
+  };
   const comOpus = await opusDisponivel(config);
   /* Decidido ANTES de renderizar: sem Opus, uma mistura que não cabe no upload nem é montada — a
      renderização de uma sessão longa custaria centenas de MB de memória para um arquivo inútil. */

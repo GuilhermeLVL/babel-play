@@ -47,11 +47,9 @@ rankRouter.get('/:jogo', async (req, res) => {
     const limite = Math.min(LIMITE_MAXIMO, Math.max(1, Number.isFinite(pedido) ? Math.floor(pedido) : LIMITE_PADRAO))
     res.json({ linhas: await rankRepo.topo(jogo, limite) })
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: erroDeRota(err, { status: 500, event: 'rank_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'rank_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -91,10 +89,8 @@ rankRouter.post('/:jogo', async (req, res) => {
 
     res.json(await rankRepo.registrar({ jogo, apelido, pontos, combo, ipHash, agora }))
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: erroDeRota(err, { status: 500, event: 'rank_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'rank_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })

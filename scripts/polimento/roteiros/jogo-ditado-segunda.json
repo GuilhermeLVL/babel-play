@@ -92,9 +92,5 @@
     ".pj-treme",
     ".pj-link"
   ],
-  "props": [
-    "textDecorationLine",
-    "borderTopStyle",
-    "animationDelay"
-  ]
+  "props": ["textDecorationLine", "borderTopStyle", "animationDelay"]
 }

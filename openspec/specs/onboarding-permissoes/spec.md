@@ -1,6 +1,7 @@
 # onboarding-permissoes Specification
 
 ## Purpose
+
 Pedir permissões no onboarding e reduzir custo de desempenho da captura. Criada pela change `onboarding-permissoes-e-desempenho-da-captura` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-onboarding-permissoes-e-desempenho-da-captura/proposal.md` para o porquê.
 
 ## Requirements

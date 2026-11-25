@@ -34,17 +34,23 @@ afterAll(async () => {
 })
 
 const linha = (id: string, userId: string, extra: Record<string, unknown>) => ({
-  id, userId, createdAt: Date.now(), updatedAt: Date.now(), ...extra,
+  id,
+  userId,
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  ...extra,
 })
 
 describe('relabel acompanha a chave de dedup', () => {
   it('troca norm_key junto e não colide com cartão vivo que já tem a chave nova', async () => {
     const u = asUserId('relabel-chave')
-    await db.insert(schema.vocabCards).values([
-      linha('rk-1', u, { word: 'reunião', srcLang: 'en', tgtLang: 'pt', normKey: 'en|reuniao' }),
-      linha('rk-2', u, { word: 'trabalho', srcLang: 'en', tgtLang: 'pt', normKey: 'en|trabalho' }),
-      linha('rk-3', u, { word: 'trabalho', srcLang: 'pt', tgtLang: 'en', normKey: 'pt|trabalho' }),
-    ])
+    await db
+      .insert(schema.vocabCards)
+      .values([
+        linha('rk-1', u, { word: 'reunião', srcLang: 'en', tgtLang: 'pt', normKey: 'en|reuniao' }),
+        linha('rk-2', u, { word: 'trabalho', srcLang: 'en', tgtLang: 'pt', normKey: 'en|trabalho' }),
+        linha('rk-3', u, { word: 'trabalho', srcLang: 'pt', tgtLang: 'en', normKey: 'pt|trabalho' }),
+      ])
     const n = await vocabRepo.relabel(u, [
       { id: 'rk-1', srcLang: 'pt', tgtLang: 'en' },
       { id: 'rk-2', srcLang: 'pt', tgtLang: 'en' },
@@ -60,11 +66,24 @@ describe('relabel acompanha a chave de dedup', () => {
 describe('reparar-idiomas', () => {
   it('ensaia sem gravar, aplica, e a segunda passada não muda nada', async () => {
     const u = asUserId('reparo-idioma')
-    await db.insert(schema.sessions).values(linha('rs-1', u, { title: 'pt', kind: 'live', sourceLang: 'pt-BR', targetLang: 'en-US' }))
-    await db.insert(schema.utterances).values(linha('ru-1', u, { sessionId: 'rs-1', sourceLang: 'en', sourceText: FALA_PT }))
+    await db
+      .insert(schema.sessions)
+      .values(linha('rs-1', u, { title: 'pt', kind: 'live', sourceLang: 'pt-BR', targetLang: 'en-US' }))
+    await db
+      .insert(schema.utterances)
+      .values(linha('ru-1', u, { sessionId: 'rs-1', sourceLang: 'en', sourceText: FALA_PT }))
     await db
       .insert(schema.vocabCards)
-      .values(linha('rc-1', u, { word: 'reunião', sentence: FALA_PT, srcLang: 'en-US', tgtLang: 'pt-BR', sessionId: 'rs-1', normKey: 'en|reuniao' }))
+      .values(
+        linha('rc-1', u, {
+          word: 'reunião',
+          sentence: FALA_PT,
+          srcLang: 'en-US',
+          tgtLang: 'pt-BR',
+          sessionId: 'rs-1',
+          normKey: 'en|reuniao',
+        }),
+      )
 
     const ensaio = await repararIdiomasNoBanco({ aplicar: false })
     expect(ensaio).toMatchObject({ falas: 1, cartoes: 1 })

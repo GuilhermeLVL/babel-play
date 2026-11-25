@@ -13,15 +13,15 @@ base comum, então não há conflito textual em lugar nenhum.
 
 O que a auditoria da branch (`openspec/audits/2026-09-08-gamificacao.md`) mediu e esta onda resolve:
 
-| Achado | O que estava errado |
-|---|---|
-| G02 | O app tem 8 famílias tipográficas declaradas em `appearance.ts` e o `@import` do CSS carregava 2 |
-| G03 | `coerceFonte` validava só `'pixel'`: as outras seis voltavam ao padrão no próximo boot |
-| G04 | **Nenhum item `tipo: 'fonte'` existia no catálogo** — nenhuma fonte era selecionável, nem a pixel |
-| G26 | O cartão de Créditos afirmava "0" enquanto a carteira carregava |
-| G27 | O cartão de Créditos passava a renderizar sempre, anunciando moeda que o self-host não tem |
-| G28 | A busca do seletor de emojis foi removida justamente quando o acervo subiu para 18 categorias |
-| G31 | A rota de aquisição mostrava o ID da conquista onde o cadeado já mostrava o nome |
+| Achado | O que estava errado                                                                               |
+| ------ | ------------------------------------------------------------------------------------------------- |
+| G02    | O app tem 8 famílias tipográficas declaradas em `appearance.ts` e o `@import` do CSS carregava 2  |
+| G03    | `coerceFonte` validava só `'pixel'`: as outras seis voltavam ao padrão no próximo boot            |
+| G04    | **Nenhum item `tipo: 'fonte'` existia no catálogo** — nenhuma fonte era selecionável, nem a pixel |
+| G26    | O cartão de Créditos afirmava "0" enquanto a carteira carregava                                   |
+| G27    | O cartão de Créditos passava a renderizar sempre, anunciando moeda que o self-host não tem        |
+| G28    | A busca do seletor de emojis foi removida justamente quando o acervo subiu para 18 categorias     |
+| G31    | A rota de aquisição mostrava o ID da conquista onde o cadeado já mostrava o nome                  |
 
 E o defeito que esta onda existe para consertar, que não é da branch e sim da tela de `main`:
 

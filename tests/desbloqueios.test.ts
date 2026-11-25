@@ -1,4 +1,4 @@
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { desbloqueado, nivelNecessario, recompensasDoNivel, rotuloDaRecompensa } from '../src/lib/desbloqueios'
 
@@ -20,7 +20,7 @@ describe('desbloqueios por nível', () => {
     expect(desbloqueado(1, 'tema', 'mochi', 'vercel')).toBe(false)
   })
   it('recompensas por nível alimentam o toast', () => {
-    expect(recompensasDoNivel(6).map(r => r.id)).toContain('mochi')
+    expect(recompensasDoNivel(6).map((r) => r.id)).toContain('mochi')
     // Nível 3 não abre mais aparência (as posições pagas viraram opção livre).
     expect(recompensasDoNivel(3)).toHaveLength(0)
     expect(rotuloDaRecompensa({ tipo: 'fonte', id: 'pixel' })).toMatch(/Arcade/)

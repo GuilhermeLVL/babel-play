@@ -87,10 +87,7 @@
       "indexes": {
         "idx_anki_decks_user": {
           "name": "idx_anki_decks_user",
-          "columns": [
-            "user_id",
-            "deleted_at"
-          ],
+          "columns": ["user_id", "deleted_at"],
           "isUnique": false
         }
       },
@@ -223,10 +220,7 @@
       "indexes": {
         "idx_anki_imports_user_deck": {
           "name": "idx_anki_imports_user_deck",
-          "columns": [
-            "user_id",
-            "deck_id"
-          ],
+          "columns": ["user_id", "deck_id"],
           "isUnique": false
         }
       },
@@ -235,12 +229,8 @@
           "name": "anki_imports_deck_id_anki_decks_id_fk",
           "tableFrom": "anki_imports",
           "tableTo": "anki_decks",
-          "columnsFrom": [
-            "deck_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deck_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -390,26 +380,17 @@
       "indexes": {
         "idx_anki_notes_user_deck": {
           "name": "idx_anki_notes_user_deck",
-          "columns": [
-            "user_id",
-            "deck_id"
-          ],
+          "columns": ["user_id", "deck_id"],
           "isUnique": false
         },
         "uq_anki_notes_deck_guid": {
           "name": "uq_anki_notes_deck_guid",
-          "columns": [
-            "deck_id",
-            "guid"
-          ],
+          "columns": ["deck_id", "guid"],
           "isUnique": true
         },
         "idx_anki_notes_deck_estado": {
           "name": "idx_anki_notes_deck_estado",
-          "columns": [
-            "deck_id",
-            "estado"
-          ],
+          "columns": ["deck_id", "estado"],
           "isUnique": false
         }
       },
@@ -418,12 +399,8 @@
           "name": "anki_notes_deck_id_anki_decks_id_fk",
           "tableFrom": "anki_notes",
           "tableTo": "anki_decks",
-          "columnsFrom": [
-            "deck_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deck_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -431,12 +408,8 @@
           "name": "anki_notes_projected_card_id_vocab_cards_id_fk",
           "tableFrom": "anki_notes",
           "tableTo": "vocab_cards",
-          "columnsFrom": [
-            "projected_card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["projected_card_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -643,16 +616,12 @@
       "indexes": {
         "idx_credit_purchases_user": {
           "name": "idx_credit_purchases_user",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "uq_credit_purchases_payment": {
           "name": "uq_credit_purchases_payment",
-          "columns": [
-            "provider_payment_id"
-          ],
+          "columns": ["provider_payment_id"],
           "isUnique": true,
           "where": "\"credit_purchases\".\"deleted_at\" is null"
         }
@@ -732,17 +701,12 @@
       "indexes": {
         "idx_credit_spends_spend_id": {
           "name": "idx_credit_spends_spend_id",
-          "columns": [
-            "spend_id"
-          ],
+          "columns": ["spend_id"],
           "isUnique": false
         },
         "uq_credit_spends_user_spend": {
           "name": "uq_credit_spends_user_spend",
-          "columns": [
-            "user_id",
-            "spend_id"
-          ],
+          "columns": ["user_id", "spend_id"],
           "isUnique": true,
           "where": "\"credit_spends\".\"deleted_at\" is null"
         }
@@ -885,41 +849,27 @@
       "indexes": {
         "idx_exercise_results_item_ref": {
           "name": "idx_exercise_results_item_ref",
-          "columns": [
-            "item_ref"
-          ],
+          "columns": ["item_ref"],
           "isUnique": false
         },
         "idx_exercise_results_round_id": {
           "name": "idx_exercise_results_round_id",
-          "columns": [
-            "round_id"
-          ],
+          "columns": ["round_id"],
           "isUnique": false
         },
         "idx_exercise_results_kind_round": {
           "name": "idx_exercise_results_kind_round",
-          "columns": [
-            "exercise_kind",
-            "round_id"
-          ],
+          "columns": ["exercise_kind", "round_id"],
           "isUnique": false
         },
         "idx_exercise_results_card": {
           "name": "idx_exercise_results_card",
-          "columns": [
-            "user_id",
-            "card_id",
-            "created_at"
-          ],
+          "columns": ["user_id", "card_id", "created_at"],
           "isUnique": false
         },
         "idx_exercise_results_user_created": {
           "name": "idx_exercise_results_user_created",
-          "columns": [
-            "user_id",
-            "created_at"
-          ],
+          "columns": ["user_id", "created_at"],
           "isUnique": false
         }
       },
@@ -928,12 +878,8 @@
           "name": "exercise_results_session_id_sessions_id_fk",
           "tableFrom": "exercise_results",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -941,12 +887,8 @@
           "name": "exercise_results_card_id_vocab_cards_id_fk",
           "tableFrom": "exercise_results",
           "tableTo": "vocab_cards",
-          "columnsFrom": [
-            "card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["card_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1120,9 +1062,7 @@
       "indexes": {
         "uq_idade_user": {
           "name": "uq_idade_user",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": true
         }
       },
@@ -1180,10 +1120,7 @@
       "indexes": {
         "uq_presencas_user_dia": {
           "name": "uq_presencas_user_dia",
-          "columns": [
-            "user_id",
-            "dia"
-          ],
+          "columns": ["user_id", "dia"],
           "isUnique": true,
           "where": "\"presencas\".\"deleted_at\" is null"
         }
@@ -1273,12 +1210,8 @@
           "name": "provider_credentials_secret_ref_secrets_ref_fk",
           "tableFrom": "provider_credentials",
           "tableTo": "secrets",
-          "columnsFrom": [
-            "secret_ref"
-          ],
-          "columnsTo": [
-            "ref"
-          ],
+          "columnsFrom": ["secret_ref"],
+          "columnsTo": ["ref"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1344,26 +1277,17 @@
       "indexes": {
         "idx_rank_jogo_pontos": {
           "name": "idx_rank_jogo_pontos",
-          "columns": [
-            "jogo",
-            "pontos"
-          ],
+          "columns": ["jogo", "pontos"],
           "isUnique": false
         },
         "uq_rank_jogo_apelido": {
           "name": "uq_rank_jogo_apelido",
-          "columns": [
-            "jogo",
-            "apelido"
-          ],
+          "columns": ["jogo", "apelido"],
           "isUnique": true
         },
         "idx_rank_ip": {
           "name": "idx_rank_ip",
-          "columns": [
-            "ip_hash",
-            "criado_em"
-          ],
+          "columns": ["ip_hash", "criado_em"],
           "isUnique": false
         }
       },
@@ -1470,18 +1394,12 @@
       "indexes": {
         "idx_review_card": {
           "name": "idx_review_card",
-          "columns": [
-            "card_id",
-            "reviewed_at"
-          ],
+          "columns": ["card_id", "reviewed_at"],
           "isUnique": false
         },
         "idx_review_user": {
           "name": "idx_review_user",
-          "columns": [
-            "user_id",
-            "reviewed_at"
-          ],
+          "columns": ["user_id", "reviewed_at"],
           "isUnique": false
         }
       },
@@ -1490,12 +1408,8 @@
           "name": "review_logs_card_id_vocab_cards_id_fk",
           "tableFrom": "review_logs",
           "tableTo": "vocab_cards",
-          "columnsFrom": [
-            "card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["card_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1627,17 +1541,12 @@
       "indexes": {
         "idx_seed_credits_credito_id": {
           "name": "idx_seed_credits_credito_id",
-          "columns": [
-            "credito_id"
-          ],
+          "columns": ["credito_id"],
           "isUnique": false
         },
         "uq_seed_credits_user_credito": {
           "name": "uq_seed_credits_user_credito",
-          "columns": [
-            "user_id",
-            "credito_id"
-          ],
+          "columns": ["user_id", "credito_id"],
           "isUnique": true,
           "where": "\"seed_credits\".\"deleted_at\" is null"
         }
@@ -1717,17 +1626,12 @@
       "indexes": {
         "idx_seed_spends_spend_id": {
           "name": "idx_seed_spends_spend_id",
-          "columns": [
-            "spend_id"
-          ],
+          "columns": ["spend_id"],
           "isUnique": false
         },
         "uq_seed_spends_user_spend": {
           "name": "uq_seed_spends_user_spend",
-          "columns": [
-            "user_id",
-            "spend_id"
-          ],
+          "columns": ["user_id", "spend_id"],
           "isUnique": true,
           "where": "\"seed_spends\".\"deleted_at\" is null"
         }
@@ -1856,26 +1760,18 @@
       "indexes": {
         "uq_sessions_user_origem_local": {
           "name": "uq_sessions_user_origem_local",
-          "columns": [
-            "user_id",
-            "origem_local_id"
-          ],
+          "columns": ["user_id", "origem_local_id"],
           "isUnique": true,
           "where": "\"sessions\".\"deleted_at\" is null and \"sessions\".\"origem_local_id\" is not null"
         },
         "idx_sessions_user": {
           "name": "idx_sessions_user",
-          "columns": [
-            "user_id",
-            "deleted_at"
-          ],
+          "columns": ["user_id", "deleted_at"],
           "isUnique": false
         },
         "idx_sessions_created": {
           "name": "idx_sessions_created",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -1947,9 +1843,7 @@
       "indexes": {
         "uq_settings_user": {
           "name": "uq_settings_user",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": true,
           "where": "\"settings\".\"deleted_at\" is null"
         }
@@ -2052,9 +1946,7 @@
       "indexes": {
         "uq_subscriptions_user": {
           "name": "uq_subscriptions_user",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": true
         }
       },
@@ -2127,19 +2019,12 @@
       "indexes": {
         "idx_usage_counters_metric_window": {
           "name": "idx_usage_counters_metric_window",
-          "columns": [
-            "metric",
-            "window"
-          ],
+          "columns": ["metric", "window"],
           "isUnique": false
         },
         "uq_usage_user_metric_window": {
           "name": "uq_usage_user_metric_window",
-          "columns": [
-            "user_id",
-            "metric",
-            "window"
-          ],
+          "columns": ["user_id", "metric", "window"],
           "isUnique": true
         }
       },
@@ -2197,10 +2082,7 @@
       "indexes": {
         "uq_user_interest": {
           "name": "uq_user_interest",
-          "columns": [
-            "user_id",
-            "slug"
-          ],
+          "columns": ["user_id", "slug"],
           "isUnique": true,
           "where": "\"user_interests\".\"deleted_at\" is null"
         }
@@ -2439,18 +2321,12 @@
       "indexes": {
         "idx_utt_session": {
           "name": "idx_utt_session",
-          "columns": [
-            "session_id",
-            "idx"
-          ],
+          "columns": ["session_id", "idx"],
           "isUnique": false
         },
         "idx_utt_user": {
           "name": "idx_utt_user",
-          "columns": [
-            "user_id",
-            "deleted_at"
-          ],
+          "columns": ["user_id", "deleted_at"],
           "isUnique": false
         }
       },
@@ -2459,12 +2335,8 @@
           "name": "utterances_session_id_sessions_id_fk",
           "tableFrom": "utterances",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2585,24 +2457,17 @@
       "indexes": {
         "uq_vinculo_token": {
           "name": "uq_vinculo_token",
-          "columns": [
-            "token_hash"
-          ],
+          "columns": ["token_hash"],
           "isUnique": true
         },
         "idx_vinculo_menor": {
           "name": "idx_vinculo_menor",
-          "columns": [
-            "user_id",
-            "usado_em"
-          ],
+          "columns": ["user_id", "usado_em"],
           "isUnique": false
         },
         "idx_vinculo_responsavel": {
           "name": "idx_vinculo_responsavel",
-          "columns": [
-            "responsavel_user_id"
-          ],
+          "columns": ["responsavel_user_id"],
           "isUnique": false
         }
       },
@@ -2854,66 +2719,43 @@
       "indexes": {
         "uq_vocab_user_norm": {
           "name": "uq_vocab_user_norm",
-          "columns": [
-            "user_id",
-            "norm_key"
-          ],
+          "columns": ["user_id", "norm_key"],
           "isUnique": true,
           "where": "deleted_at is null"
         },
         "idx_vocab_user_added": {
           "name": "idx_vocab_user_added",
-          "columns": [
-            "user_id",
-            "added_at"
-          ],
+          "columns": ["user_id", "added_at"],
           "isUnique": false
         },
         "idx_vocab_user_occ": {
           "name": "idx_vocab_user_occ",
-          "columns": [
-            "user_id",
-            "occurrences"
-          ],
+          "columns": ["user_id", "occurrences"],
           "isUnique": false
         },
         "idx_vocab_user_cefr": {
           "name": "idx_vocab_user_cefr",
-          "columns": [
-            "user_id",
-            "cefr_level"
-          ],
+          "columns": ["user_id", "cefr_level"],
           "isUnique": false
         },
         "idx_vocab_user_due": {
           "name": "idx_vocab_user_due",
-          "columns": [
-            "user_id",
-            "due_at"
-          ],
+          "columns": ["user_id", "due_at"],
           "isUnique": false
         },
         "idx_vocab_session": {
           "name": "idx_vocab_session",
-          "columns": [
-            "user_id",
-            "session_id"
-          ],
+          "columns": ["user_id", "session_id"],
           "isUnique": false
         },
         "idx_vocab_user_dificuldade": {
           "name": "idx_vocab_user_dificuldade",
-          "columns": [
-            "user_id",
-            "difficulty_score"
-          ],
+          "columns": ["user_id", "difficulty_score"],
           "isUnique": false
         },
         "idx_vocab_src_lang_base": {
           "name": "idx_vocab_src_lang_base",
-          "columns": [
-            "src_lang_base"
-          ],
+          "columns": ["src_lang_base"],
           "isUnique": false
         }
       },
@@ -2922,12 +2764,8 @@
           "name": "vocab_cards_session_id_sessions_id_fk",
           "tableFrom": "vocab_cards",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3020,37 +2858,22 @@
       "indexes": {
         "idx_occ_user_card": {
           "name": "idx_occ_user_card",
-          "columns": [
-            "user_id",
-            "card_id"
-          ],
+          "columns": ["user_id", "card_id"],
           "isUnique": false
         },
         "idx_occ_user_time": {
           "name": "idx_occ_user_time",
-          "columns": [
-            "user_id",
-            "occurred_at"
-          ],
+          "columns": ["user_id", "occurred_at"],
           "isUnique": false
         },
         "idx_occ_origem": {
           "name": "idx_occ_origem",
-          "columns": [
-            "user_id",
-            "origin_kind",
-            "origin_ref"
-          ],
+          "columns": ["user_id", "origin_kind", "origin_ref"],
           "isUnique": false
         },
         "idx_occ_probe": {
           "name": "idx_occ_probe",
-          "columns": [
-            "user_id",
-            "card_id",
-            "origin_kind",
-            "origin_ref"
-          ],
+          "columns": ["user_id", "card_id", "origin_kind", "origin_ref"],
           "isUnique": false
         }
       },
@@ -3059,12 +2882,8 @@
           "name": "vocab_occurrences_card_id_vocab_cards_id_fk",
           "tableFrom": "vocab_occurrences",
           "tableTo": "vocab_cards",
-          "columnsFrom": [
-            "card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["card_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3072,12 +2891,8 @@
           "name": "vocab_occurrences_utterance_id_utterances_id_fk",
           "tableFrom": "vocab_occurrences",
           "tableTo": "utterances",
-          "columnsFrom": [
-            "utterance_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["utterance_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

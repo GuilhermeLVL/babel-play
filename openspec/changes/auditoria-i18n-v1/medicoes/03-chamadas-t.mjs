@@ -17,9 +17,7 @@ const arquivos = andar(SRC, ehFonte);
 /** Remove comentários de linha e de bloco, e o conteúdo de template literals de várias linhas
  *  (prompts de LLM), que não são tela. Preserva o comprimento aproximado para não bagunçar nada. */
 function semComentarios(texto) {
-  return texto
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+  return texto.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
 }
 
 const CHAMADA_T = /(?<![\w.$])t\(/g;
@@ -33,7 +31,8 @@ const BRUTO = /(?<![\w.$])bruto\(/g;
 // Texto entre tags JSX: `>Alguma coisa<`. Exige ao menos duas letras seguidas para não pegar
 // pontuação solta, e recusa o que começa com `{` (interpolação, não literal).
 const TEXTO_JSX = />\s*([^<>{}\n][^<>{}]*[\p{L}][^<>{}]*)\s*</gu;
-const ATRIBUTO_VISIVEL = /\b(?:placeholder|title|aria-label|ariaLabel|alt|label)\s*=\s*(["'])([^"'\n]*[\p{L}][^"'\n]*)\1/gu;
+const ATRIBUTO_VISIVEL =
+  /\b(?:placeholder|title|aria-label|ariaLabel|alt|label)\s*=\s*(["'])([^"'\n]*[\p{L}][^"'\n]*)\1/gu;
 
 const conta = (texto, re) => (texto.match(re) ?? []).length;
 
@@ -103,7 +102,11 @@ texto += tabela(
 
 export default publicar('03 — chamadas de t() e cobertura', texto, {
   arquivosVarridos: arquivos.length,
-  totalT, totalTp, totalCompT, totalVisivel, arquivosComT,
+  totalT,
+  totalTp,
+  totalCompT,
+  totalVisivel,
+  arquivosComT,
   comoORepoConta,
   porArquivo,
 });

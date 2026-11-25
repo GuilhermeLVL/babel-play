@@ -2,10 +2,10 @@ import { randomUUID } from 'node:crypto'
 
 import { and, eq, isNull } from 'drizzle-orm'
 
-import { MAX_INTERESSES,saneiaInteresses } from '../../../src/core/learning/interesses'
+import { MAX_INTERESSES, saneiaInteresses } from '../../../src/core/learning/interesses'
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
-import { userInterests,users } from '../schema'
+import { userInterests, users } from '../schema'
 import { usersRepo } from './users'
 
 /**
@@ -63,7 +63,7 @@ export const perfilRepo = {
       .select({ slug: userInterests.slug })
       .from(userInterests)
       .where(and(eq(userInterests.userId, userId), isNull(userInterests.deletedAt)))
-    return saneiaInteresses(linhas.map(l => l.slug))
+    return saneiaInteresses(linhas.map((l) => l.slug))
   },
 
   /** O perfil completo. Provisiona a conta se for o primeiro acesso — idempotente. */
@@ -128,8 +128,8 @@ export const perfilRepo = {
     const atuais = await this.interesses(userId)
     const now = Date.now()
 
-    const paraRemover = atuais.filter(s => !desejados.includes(s))
-    const paraAdicionar = desejados.filter(s => !atuais.includes(s))
+    const paraRemover = atuais.filter((s) => !desejados.includes(s))
+    const paraAdicionar = desejados.filter((s) => !atuais.includes(s))
 
     for (const slug of paraRemover) {
       await db

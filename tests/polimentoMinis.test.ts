@@ -55,7 +55,14 @@ beforeEach(() => {
   vigias = []
   agora = 50_000
   ;(globalThis as { IntersectionObserver?: unknown }).IntersectionObserver = ObservadorFalso
-  Object.defineProperty(document, 'timeline', { configurable: true, value: { get currentTime() { return agora } } })
+  Object.defineProperty(document, 'timeline', {
+    configurable: true,
+    value: {
+      get currentTime() {
+        return agora
+      },
+    },
+  })
   document.body.innerHTML = `<main><div class="q-grade">${CARTOES(3)}</div><button class="q-tile" id="sem-mini"></button></main>`
 })
 afterEach(() => {
@@ -169,7 +176,10 @@ describe('o CSS da pausa', () => {
   const css = readFileSync(join(__dirname, '../src/styles/polimentoDesempenho.css'), 'utf8')
 
   it('pausa as peças da miniatura e os `::before`/`::after` delas, só no cartão marcado', () => {
-    const regra = /\.q-tile\.px-fora-da-vista \.px-mini \*,\s*\.q-tile\.px-fora-da-vista \.px-mini \*::before,\s*\.q-tile\.px-fora-da-vista \.px-mini \*::after\s*\{([^}]*)\}/.exec(css)
+    const regra =
+      /\.q-tile\.px-fora-da-vista \.px-mini \*,\s*\.q-tile\.px-fora-da-vista \.px-mini \*::before,\s*\.q-tile\.px-fora-da-vista \.px-mini \*::after\s*\{([^}]*)\}/.exec(
+        css,
+      )
     expect(regra).not.toBeNull()
     expect(regra![1].trim()).toBe('animation-play-state: paused !important;')
   })

@@ -5,14 +5,18 @@
  * O caso mais grave era `grade`: cast direto `as Grade`, entrando no FSRS e sendo
  * persistido em `review_logs` sem nenhuma checagem.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import {
-imageSearchQuerySchema,
-patchSessionSchema,   patchUtteranceSchema, relabelUtterancesSchema,
-  reviewGradeSchema, settingsPatchSchema, } from '../../server/validation'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+  imageSearchQuerySchema,
+  patchSessionSchema,
+  patchUtteranceSchema,
+  relabelUtterancesSchema,
+  reviewGradeSchema,
+  settingsPatchSchema,
+} from '../../server/validation'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 describe('reviewGradeSchema — P2-1 (o pior caso: entrava no FSRS sem checagem)', () => {
   it('aceita as notas válidas 1..4', () => {
@@ -43,7 +47,9 @@ describe('settingsPatchSchema — P2-1 (ui virava blob de até 5MB)', () => {
 
 describe('relabelUtterancesSchema — P2-1 (array sem teto virava um UPDATE por item)', () => {
   it('aceita lista pequena', () => {
-    expect(relabelUtterancesSchema.safeParse({ items: [{ id: 'a', sourceLang: 'en', targetLang: 'pt' }] }).success).toBe(true)
+    expect(
+      relabelUtterancesSchema.safeParse({ items: [{ id: 'a', sourceLang: 'en', targetLang: 'pt' }] }).success,
+    ).toBe(true)
   })
   it('recusa lista absurda', () => {
     const itens = Array.from({ length: 20_000 }, (_, i) => ({ id: `i${i}`, sourceLang: 'en', targetLang: 'pt' }))
@@ -83,7 +89,9 @@ describe('exerciseResults.sessionId — P2-8 (FK pendurada cross-tenant)', () =>
     ;({ exerciseResultsRepo: ex } = await h.load('../../server/db/repositories/exerciseResults'))
     ;({ sessionsRepo: sessions } = await h.load('../../server/db/repositories/sessions'))
   })
-  afterAll(async () => { await h.cleanup() })
+  afterAll(async () => {
+    await h.cleanup()
+  })
 
   it('grava normalmente quando a sessão é do próprio usuário', async () => {
     const u = asUserId('val-dono')

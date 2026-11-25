@@ -1,6 +1,7 @@
 # escuta-guiada Specification
 
 ## Purpose
+
 Modos de escuta guiada (ouvir/ler primeiro) na tela de análise por nível. Criada pela change `escuta-guiada-por-nivel` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-escuta-guiada-por-nivel/proposal.md` para o porquê.
 
 ## Requirements

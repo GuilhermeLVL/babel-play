@@ -24,12 +24,12 @@ que faltava era a montagem, e ela ficava do lado de fora por três dependências
 **A montagem vai para `src/core/minigames/rodada.ts` como função pura, e as três dependências de
 navegador entram por parâmetro — duas como funções injetadas, uma como booleano.**
 
-| dependência | como entrou |
-|---|---|
-| `Date.now()` | `agora: number` — o campo que faltava para o teste existir |
+| dependência                                  | como entrou                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `Date.now()`                                 | `agora: number` — o campo que faltava para o teste existir                            |
 | `decisaoAuto` (lê `localStorage` e um `ref`) | função injetada, para manter a chamada preguiçosa: só os ramos que precisam a invocam |
-| `origemDaPalavra` (fecha sobre um memo) | função injetada |
-| `audioParaJogos` (URL de blob) | `temAudio: boolean` — o núcleo precisa saber **se** há áudio, não qual |
+| `origemDaPalavra` (fecha sobre um memo)      | função injetada                                                                       |
+| `audioParaJogos` (URL de blob)               | `temAudio: boolean` — o núcleo precisa saber **se** há áudio, não qual                |
 
 `EntradaDaRodada` tem 22 campos e `RodadaMontada` devolve o material numa união etiquetada, que a
 tela consome com um `switch` exaustivo. Zero `any`; o núcleo é `strict` e sem DOM.
@@ -56,12 +56,12 @@ Piora: a assinatura tem 22 campos. É muita coisa para uma chamada — e é exat
 que existia antes, agora visível. Um parâmetro que ninguém consegue justificar é um parâmetro que
 pode sair; escondido numa closure, não era nem discutível.
 
-**Mudança estrutural declarada:** o material passou a ser calculado no *montar* em vez de dentro do
-*aplicar*. Todos os corpos de ramo eram construção de dados pura, exceto um `Math.random` na ordem
+**Mudança estrutural declarada:** o material passou a ser calculado no _montar_ em vez de dentro do
+_aplicar_. Todos os corpos de ramo eram construção de dados pura, exceto um `Math.random` na ordem
 das alternativas do "Qual foi?" da trilha — igualmente aleatório nos dois momentos.
 
 **Limite honesto do teste:** ele roda contra a função já extraída, não contra a closure anterior.
-Não havia seam — a extração *é* o seam. Quem prova a ausência de regressão de ponta a ponta é o
+Não havia seam — a extração _é_ o seam. Quem prova a ausência de regressão de ponta a ponta é o
 e2e dos jogos, que joga Memória, Termo e Bao até o fim da rodada nos três viewports.
 
 ## O que este ADR não resolve
@@ -75,5 +75,5 @@ uma função de doze parâmetros **sem ganhar teste** — o oposto do que esta e
 `tests/rodadaMontagem.test.ts` (25 casos, os oito ramos). O e2e `sessao-de-jogo.e2e.ts` joga três
 jogos até o fim nos três viewports. E o teste documenta duas **não-determinações pré-existentes**
 que encontrou no caminho: `buildRodadasEscuta`, `buildRodadasDitado` e `buildRodadasConectores`
-chamam `embaralhar` **sem semente**, então com mais falas que o teto do jogo até o *conjunto* de
+chamam `embaralhar` **sem semente**, então com mais falas que o teto do jogo até o _conjunto_ de
 itens varia entre duas montagens idênticas.

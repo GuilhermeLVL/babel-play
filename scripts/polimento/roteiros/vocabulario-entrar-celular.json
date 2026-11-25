@@ -39,9 +39,7 @@
       }
     ]
   },
-  "seletores": [
-    ".q-mais"
-  ],
+  "seletores": [".q-mais"],
   "gravar": {
     "app": [
       {

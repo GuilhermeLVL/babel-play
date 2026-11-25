@@ -1,102 +1,90 @@
 {
- "a": "antes.desktop",
- "b": "depois.desktop",
- "rodadas": [
-  12,
-  12
- ],
- "falas": 8,
- "res": {
-  "p50": {
-   "a": 868,
-   "b": 871,
-   "dif": 3,
-   "ic95": [
-    -165.25,
-    372.5124999999998
-   ]
+  "a": "antes.desktop",
+  "b": "depois.desktop",
+  "rodadas": [12, 12],
+  "falas": 8,
+  "res": {
+    "p50": {
+      "a": 868,
+      "b": 871,
+      "dif": 3,
+      "ic95": [-165.25, 372.5124999999998]
+    },
+    "p75": {
+      "a": 1017.375,
+      "b": 969.875,
+      "dif": -47.5,
+      "ic95": [-163.75, 164.3812499999999]
+    },
+    "p95": {
+      "a": 1463.4499999999998,
+      "b": 1412.3249999999998,
+      "dif": -51.125,
+      "ic95": [-161.50062499999999, 15.726874999999882]
+    }
   },
-  "p75": {
-   "a": 1017.375,
-   "b": 969.875,
-   "dif": -47.5,
-   "ic95": [
-    -163.75,
-    164.3812499999999
-   ]
-  },
-  "p95": {
-   "a": 1463.4499999999998,
-   "b": 1412.3249999999998,
-   "dif": -51.125,
-   "ic95": [
-    -161.50062499999999,
-    15.726874999999882
-   ]
+  "decisao": "sem diferença provada: o IC 95% do p75 cruza 0",
+  "guardas": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 12.898833718135137,
+      "b": 12.984581551563558,
+      "limite": 23.05836720538919,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.91910902696366,
+      "b": 22.91910902696366,
+      "limite": 31.648886283704577,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 90.12787169484177,
+      "b": 102.89336801040312,
+      "limite": 122.65983961855221,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ],
+  "falhas": {
+    "a": {
+      "falhas": 0,
+      "ok": 96,
+      "taxa": 0
+    },
+    "b": {
+      "falhas": 0,
+      "ok": 96,
+      "taxa": 0
+    }
   }
- },
- "decisao": "sem diferença provada: o IC 95% do p75 cruza 0",
- "guardas": [
-  {
-   "nome": "framesLongos.n50",
-   "a": 0,
-   "b": 0,
-   "limite": 5,
-   "status": "ok"
-  },
-  {
-   "nome": "framesLongos.n100",
-   "a": 0,
-   "b": 0,
-   "limite": 3,
-   "status": "ok"
-  },
-  {
-   "nome": "framesLongos.somaMs",
-   "a": 0,
-   "b": 0,
-   "limite": 500,
-   "status": "ok"
-  },
-  {
-   "nome": "cpuSilencio.processoPct",
-   "a": 12.898833718135137,
-   "b": 12.984581551563558,
-   "limite": 23.05836720538919,
-   "status": "ok"
-  },
-  {
-   "nome": "rendersPorS.silencio",
-   "a": 22.91910902696366,
-   "b": 22.91910902696366,
-   "limite": 31.648886283704577,
-   "status": "ok"
-  },
-  {
-   "nome": "rendersPorS.fala",
-   "a": 90.12787169484177,
-   "b": 102.89336801040312,
-   "limite": 122.65983961855221,
-   "status": "ok"
-  },
-  {
-   "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
-   "a": 0,
-   "b": 0,
-   "limite": 0.15,
-   "status": "ok"
-  }
- ],
- "falhas": {
-  "a": {
-   "falhas": 0,
-   "ok": 96,
-   "taxa": 0
-  },
-  "b": {
-   "falhas": 0,
-   "ok": 96,
-   "taxa": 0
-  }
- }
 }

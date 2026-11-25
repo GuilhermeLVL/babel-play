@@ -4,10 +4,10 @@
  * Cobre a dedup POR usuário (A e B podem ter a mesma palavra), o carimbo do review_log e os
  * no-ops de escrita cruzada (review/patch/remove/relabel de A sobre cartão de B).
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')
@@ -30,7 +30,9 @@ beforeAll(async () => {
   aCard = (await vocabRepo.bulkAdd(A, [CARTA])).cards[0]
   bCard = (await vocabRepo.bulkAdd(B, [CARTA])).cards[0]
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('Marco 1 — isolamento vocab/reviewLogs', () => {
   it('dedup é POR usuário: A e B têm a mesma palavra, cartões distintos e carimbados', () => {

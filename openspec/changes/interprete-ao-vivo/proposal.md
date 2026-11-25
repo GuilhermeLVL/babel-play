@@ -25,9 +25,11 @@ cobrem pares limitados (Hibiki: francês→inglês; Hibiki-Zero: quatro idiomas�
 ## Capabilities
 
 ### New Capabilities
+
 - `interprete-ao-vivo`: nível "Ao vivo" de fala→fala simultânea, com proxy no servidor, queda para a cascata, tetos e medidor.
 
 ### Modified Capabilities
+
 <!-- Nenhuma: o comportamento do modo intérprete ainda mora na change `modo-interprete` (não arquivada). -->
 
 ## Impact

@@ -107,11 +107,7 @@
       "rssPicoMb": 0,
       "notas": 4,
       "descartadas": 1,
-      "campos": [
-        "Front",
-        "Back",
-        "Example"
-      ],
+      "campos": ["Front", "Back", "Example"],
       "temMidia": false,
       "regua": {
         "aprovadas": 4,
@@ -199,11 +195,7 @@
       "rssPicoMb": 0,
       "notas": 4,
       "descartadas": 1,
-      "campos": [
-        "Frente",
-        "Verso",
-        "Frase"
-      ],
+      "campos": ["Frente", "Verso", "Frase"],
       "temMidia": false,
       "regua": {
         "aprovadas": 4,
@@ -291,10 +283,7 @@
       "rssPicoMb": 0,
       "notas": 2,
       "descartadas": 0,
-      "campos": [
-        "Front",
-        "Back"
-      ],
+      "campos": ["Front", "Back"],
       "temMidia": false,
       "regua": {
         "aprovadas": 2,

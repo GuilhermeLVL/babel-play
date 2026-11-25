@@ -33,7 +33,7 @@
  */
 import type { VocabWord } from '../types';
 import type { LangConfig } from './langConfig';
-import { baseLang, langLabel,mtCoverage } from './languages';
+import { baseLang, langLabel, mtCoverage } from './languages';
 import { resolveSpokenLang } from './spokenLang';
 import { type FonteDaPalavra, type FontesDaPalavra, traduzirPalavraSolta } from './traducaoDePalavra';
 
@@ -117,11 +117,7 @@ export async function resolveWord(origin: WordOrigin): Promise<ResolvedWord> {
 
 /** O que o gateway precisa expor para traduzir. Mantém este módulo desacoplado do gateway concreto. */
 export interface MtLike {
-  translate(
-    text: string,
-    src: string | null,
-    tgt: string,
-  ): Promise<{ text: string; engine: string }>;
+  translate(text: string, src: string | null, tgt: string): Promise<{ text: string; engine: string }>;
 }
 
 /**

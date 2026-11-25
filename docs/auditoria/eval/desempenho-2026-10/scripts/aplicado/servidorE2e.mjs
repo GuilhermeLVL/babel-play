@@ -15,7 +15,9 @@ const SINAL = path.join(AQUI, 'm', `parar-e2e-${porta}`);
 if (existsSync(SINAL)) rmSync(SINAL);
 for (const s of ['', '-wal', '-shm']) if (existsSync(BANCO + s)) rmSync(BANCO + s);
 mkdirSync(`${TMP}/audio-perf-cli`, { recursive: true });
-const { createClient } = await import('file:///' + REPO + '/node_modules/@libsql/client/lib-esm/node.js').catch(() => import('file:///' + REPO + '/node_modules/@libsql/client/lib-cjs/node.js'));
+const { createClient } = await import('file:///' + REPO + '/node_modules/@libsql/client/lib-esm/node.js').catch(
+  () => import('file:///' + REPO + '/node_modules/@libsql/client/lib-cjs/node.js'),
+);
 const { drizzle } = await import('file:///' + REPO + '/node_modules/drizzle-orm/libsql/index.js');
 const { migrate } = await import('file:///' + REPO + '/node_modules/drizzle-orm/libsql/migrator.js');
 const c = createClient({ url: 'file:' + BANCO });
@@ -24,11 +26,22 @@ c.close();
 const filho = spawn(process.execPath, [`${REPO}/node_modules/.cache/perf-cli/${nome}/server.cjs`], {
   cwd: path.join(AQUI, nome),
   env: {
-    PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP,
-    NODE_ENV: 'production', PORT: porta, HOST: '127.0.0.1',
-    DATABASE_URL: 'file:' + BANCO, MIGRATIONS_DIR: REPO + '/server/db/migrations',
-    AUDIO_DIR: `${TMP}/audio-perf-cli`, BACKUP_DIARIO: '0', SECRET_KEY: randomBytes(32).toString('hex'),
-    AUTH_REQUIRED: '0', SELF_HOST: '1', TRUST_PROXY: 'false', LOG_LEVEL: 'error',
+    PATH: process.env.PATH,
+    SystemRoot: process.env.SystemRoot,
+    TEMP: process.env.TEMP,
+    TMP: process.env.TMP,
+    NODE_ENV: 'production',
+    PORT: porta,
+    HOST: '127.0.0.1',
+    DATABASE_URL: 'file:' + BANCO,
+    MIGRATIONS_DIR: REPO + '/server/db/migrations',
+    AUDIO_DIR: `${TMP}/audio-perf-cli`,
+    BACKUP_DIARIO: '0',
+    SECRET_KEY: randomBytes(32).toString('hex'),
+    AUTH_REQUIRED: '0',
+    SELF_HOST: '1',
+    TRUST_PROXY: 'false',
+    LOG_LEVEL: 'error',
   },
   stdio: ['ignore', 'ignore', 'inherit'],
 });

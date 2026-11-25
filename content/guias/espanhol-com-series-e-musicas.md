@@ -1,10 +1,16 @@
 ---
-titulo: "Espanhol com séries e músicas: como estudar sem se confundir com o português"
-descricao: "Como usar séries e músicas para aprender espanhol sendo brasileiro: aproveite as semelhanças, evite as armadilhas e fixe frases com revisão."
-slug: "espanhol-com-series-e-musicas"
-publicado: "2026-10-25"
+titulo: 'Espanhol com séries e músicas: como estudar sem se confundir com o português'
+descricao: 'Como usar séries e músicas para aprender espanhol sendo brasileiro: aproveite as semelhanças, evite as armadilhas e fixe frases com revisão.'
+slug: 'espanhol-com-series-e-musicas'
+publicado: '2026-10-25'
 revisado: false
-palavrasChave: ["aprender espanhol", "espanhol com séries", "espanhol com músicas", "falsos amigos espanhol português"]
+palavrasChave:
+  [
+    'aprender espanhol',
+    'espanhol com séries',
+    'espanhol com músicas',
+    'falsos amigos espanhol português',
+  ]
 ---
 
 O espanhol é, para quem fala português, uma língua que parece fácil logo de cara. Muita coisa se entende por semelhança, e isso é uma grande vantagem. Mas essa mesma semelhança esconde armadilhas: quem acha que "já entende tudo" tende a parar de prestar atenção, e as diferenças pequenas viram erros que se repetem.

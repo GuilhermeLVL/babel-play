@@ -19,9 +19,9 @@
 
 export interface OpcoesDeNormalizacao {
   /** Remove acentos antes de comparar. Fora do padrão — ver a nota acima. */
-  semAcento?: boolean
+  semAcento?: boolean;
   /** Converte numerais arábicos por extenso não é feito aqui; ver `NOTA-NUMERAIS` abaixo. */
-  manterPontuacao?: boolean
+  manterPontuacao?: boolean;
 }
 
 /**
@@ -32,36 +32,36 @@ export interface OpcoesDeNormalizacao {
  * visível e anotá-la na referência do que esconder atrás de um conversor que também erra.
  */
 export function normalizarPt(texto: string, opcoes: OpcoesDeNormalizacao = {}): string {
-  let t = (texto ?? '').toLowerCase()
+  let t = (texto ?? '').toLowerCase();
 
   // NFC primeiro: "á" pode chegar como um code point ou como "a"+combinante, e sem unificar isso
   // duas strings visualmente idênticas contariam como diferentes.
-  t = t.normalize('NFC')
+  t = t.normalize('NFC');
 
   if (opcoes.semAcento) {
-    t = t.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    t = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
 
   if (!opcoes.manterPontuacao) {
     // Hífen e apóstrofo viram espaço em vez de sumir: "guarda-chuva" é uma palavra na referência e
     // costuma sair como duas do modelo; colapsar em "guardachuva" criaria um erro artificial.
-    t = t.replace(/[-‐-―‘’']/g, ' ')
-    t = t.replace(/[.,;:!?¿¡"“”()[\]{}…]/g, '')
+    t = t.replace(/[-‐-―‘’']/g, ' ');
+    t = t.replace(/[.,;:!?¿¡"“”()[\]{}…]/g, '');
   }
 
-  return t.replace(/\s+/g, ' ').trim()
+  return t.replace(/\s+/g, ' ').trim();
 }
 
 export function palavras(texto: string): string[] {
-  const t = texto.trim()
-  return t ? t.split(' ') : []
+  const t = texto.trim();
+  return t ? t.split(' ') : [];
 }
 
 export interface Distancia {
-  distancia: number
-  substituicoes: number
-  insercoes: number
-  delecoes: number
+  distancia: number;
+  substituicoes: number;
+  insercoes: number;
+  delecoes: number;
 }
 
 /**
@@ -76,58 +76,79 @@ export interface Distancia {
  * entradas aqui (enunciados, não documentos) torna isso barato.
  */
 export function distanciaDeEdicao<T>(ref: T[], hip: T[]): Distancia {
-  const n = ref.length
-  const m = hip.length
-  if (n === 0) return { distancia: m, substituicoes: 0, insercoes: m, delecoes: 0 }
-  if (m === 0) return { distancia: n, substituicoes: 0, insercoes: 0, delecoes: n }
+  const n = ref.length;
+  const m = hip.length;
+  if (n === 0) return { distancia: m, substituicoes: 0, insercoes: m, delecoes: 0 };
+  if (m === 0) return { distancia: n, substituicoes: 0, insercoes: 0, delecoes: n };
 
   // op[i][j]: 'i' inserção, 'd' deleção, 's' substituição, '=' acerto
-  const custo: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0))
-  const op: string[][] = Array.from({ length: n + 1 }, () => new Array<string>(m + 1).fill('='))
+  const custo: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  const op: string[][] = Array.from({ length: n + 1 }, () => new Array<string>(m + 1).fill('='));
 
-  for (let i = 0; i <= n; i++) { custo[i][0] = i; op[i][0] = 'd' }
-  for (let j = 0; j <= m; j++) { custo[0][j] = j; op[0][j] = 'i' }
-  op[0][0] = '='
+  for (let i = 0; i <= n; i++) {
+    custo[i][0] = i;
+    op[i][0] = 'd';
+  }
+  for (let j = 0; j <= m; j++) {
+    custo[0][j] = j;
+    op[0][j] = 'i';
+  }
+  op[0][0] = '=';
 
   for (let i = 1; i <= n; i++) {
     for (let j = 1; j <= m; j++) {
-      const igual = ref[i - 1] === hip[j - 1]
-      const sub = custo[i - 1][j - 1] + (igual ? 0 : 1)
-      const del = custo[i - 1][j] + 1
-      const ins = custo[i][j - 1] + 1
-      const min = Math.min(sub, del, ins)
-      custo[i][j] = min
-      op[i][j] = min === sub ? (igual ? '=' : 's') : min === del ? 'd' : 'i'
+      const igual = ref[i - 1] === hip[j - 1];
+      const sub = custo[i - 1][j - 1] + (igual ? 0 : 1);
+      const del = custo[i - 1][j] + 1;
+      const ins = custo[i][j - 1] + 1;
+      const min = Math.min(sub, del, ins);
+      custo[i][j] = min;
+      op[i][j] = min === sub ? (igual ? '=' : 's') : min === del ? 'd' : 'i';
     }
   }
 
-  let i = n, j = m
-  let substituicoes = 0, insercoes = 0, delecoes = 0
+  let i = n,
+    j = m;
+  let substituicoes = 0,
+    insercoes = 0,
+    delecoes = 0;
   while (i > 0 || j > 0) {
-    const o = op[i][j]
-    if (o === '=' || o === 's') { if (o === 's') substituicoes++; i--; j-- }
-    else if (o === 'd') { delecoes++; i-- }
-    else { insercoes++; j-- }
+    const o = op[i][j];
+    if (o === '=' || o === 's') {
+      if (o === 's') substituicoes++;
+      i--;
+      j--;
+    } else if (o === 'd') {
+      delecoes++;
+      i--;
+    } else {
+      insercoes++;
+      j--;
+    }
   }
 
-  return { distancia: custo[n][m], substituicoes, insercoes, delecoes }
+  return { distancia: custo[n][m], substituicoes, insercoes, delecoes };
 }
 
 export interface ResultadoDeErro extends Distancia {
   /** Erros ÷ unidades da referência. Pode passar de 1 quando a hipótese inventa texto. */
-  taxa: number
-  unidadesNaReferencia: number
+  taxa: number;
+  unidadesNaReferencia: number;
 }
 
 function taxa(d: Distancia, unidades: number): ResultadoDeErro {
-  return { ...d, unidadesNaReferencia: unidades, taxa: unidades === 0 ? (d.insercoes > 0 ? 1 : 0) : d.distancia / unidades }
+  return {
+    ...d,
+    unidadesNaReferencia: unidades,
+    taxa: unidades === 0 ? (d.insercoes > 0 ? 1 : 0) : d.distancia / unidades,
+  };
 }
 
 /** Word Error Rate sobre texto já normalizado por `normalizarPt`. */
 export function wer(referencia: string, hipotese: string, opcoes?: OpcoesDeNormalizacao): ResultadoDeErro {
-  const r = palavras(normalizarPt(referencia, opcoes))
-  const h = palavras(normalizarPt(hipotese, opcoes))
-  return taxa(distanciaDeEdicao(r, h), r.length)
+  const r = palavras(normalizarPt(referencia, opcoes));
+  const h = palavras(normalizarPt(hipotese, opcoes));
+  return taxa(distanciaDeEdicao(r, h), r.length);
 }
 
 /**
@@ -136,26 +157,26 @@ export function wer(referencia: string, hipotese: string, opcoes?: OpcoesDeNorma
  * entre as duas métricas diz se o modelo errou o sentido ou só a terminação.
  */
 export function cer(referencia: string, hipotese: string, opcoes?: OpcoesDeNormalizacao): ResultadoDeErro {
-  const r = [...normalizarPt(referencia, opcoes).replace(/ /g, '')]
-  const h = [...normalizarPt(hipotese, opcoes).replace(/ /g, '')]
-  return taxa(distanciaDeEdicao(r, h), r.length)
+  const r = [...normalizarPt(referencia, opcoes).replace(/ /g, '')];
+  const h = [...normalizarPt(hipotese, opcoes).replace(/ /g, '')];
+  return taxa(distanciaDeEdicao(r, h), r.length);
 }
 
 export interface CasoDeCorpus {
-  id: string
-  referencia: string
-  hipotese: string
+  id: string;
+  referencia: string;
+  hipotese: string;
 }
 
 export interface AgregadoDeErro {
-  casos: number
+  casos: number;
   /** WER do corpus: soma dos erros ÷ soma das palavras. NÃO é a média dos WER por caso. */
-  wer: number
-  cer: number
-  substituicoes: number
-  insercoes: number
-  delecoes: number
-  palavrasNaReferencia: number
+  wer: number;
+  cer: number;
+  substituicoes: number;
+  insercoes: number;
+  delecoes: number;
+  palavrasNaReferencia: number;
 }
 
 /**
@@ -167,24 +188,35 @@ export interface AgregadoDeErro {
  * benchmarks e é a que permite comparar com números publicados.
  */
 export function agregar(casos: CasoDeCorpus[], opcoes?: OpcoesDeNormalizacao): AgregadoDeErro {
-  let erros = 0, palavrasRef = 0, sub = 0, ins = 0, del = 0
-  let errosChar = 0, charsRef = 0
+  let erros = 0,
+    palavrasRef = 0,
+    sub = 0,
+    ins = 0,
+    del = 0;
+  let errosChar = 0,
+    charsRef = 0;
 
   for (const c of casos) {
-    const w = wer(c.referencia, c.hipotese, opcoes)
-    erros += w.distancia; palavrasRef += w.unidadesNaReferencia
-    sub += w.substituicoes; ins += w.insercoes; del += w.delecoes
-    const ce = cer(c.referencia, c.hipotese, opcoes)
-    errosChar += ce.distancia; charsRef += ce.unidadesNaReferencia
+    const w = wer(c.referencia, c.hipotese, opcoes);
+    erros += w.distancia;
+    palavrasRef += w.unidadesNaReferencia;
+    sub += w.substituicoes;
+    ins += w.insercoes;
+    del += w.delecoes;
+    const ce = cer(c.referencia, c.hipotese, opcoes);
+    errosChar += ce.distancia;
+    charsRef += ce.unidadesNaReferencia;
   }
 
   return {
     casos: casos.length,
     wer: palavrasRef === 0 ? 0 : erros / palavrasRef,
     cer: charsRef === 0 ? 0 : errosChar / charsRef,
-    substituicoes: sub, insercoes: ins, delecoes: del,
+    substituicoes: sub,
+    insercoes: ins,
+    delecoes: del,
     palavrasNaReferencia: palavrasRef,
-  }
+  };
 }
 
 /**
@@ -201,16 +233,16 @@ export const FAIXAS_DE_TAMANHO = [
   { nome: '6-10 palavras', min: 6, max: 10 },
   { nome: '11-20 palavras', min: 11, max: 20 },
   { nome: '21+ palavras', min: 21, max: Infinity },
-] as const
+] as const;
 
 export function agregarPorFaixa(casos: CasoDeCorpus[], opcoes?: OpcoesDeNormalizacao): Record<string, AgregadoDeErro> {
-  const saida: Record<string, AgregadoDeErro> = {}
+  const saida: Record<string, AgregadoDeErro> = {};
   for (const faixa of FAIXAS_DE_TAMANHO) {
     const doGrupo = casos.filter((c) => {
-      const n = palavras(normalizarPt(c.referencia, opcoes)).length
-      return n >= faixa.min && n <= faixa.max
-    })
-    saida[faixa.nome] = agregar(doGrupo, opcoes)
+      const n = palavras(normalizarPt(c.referencia, opcoes)).length;
+      return n >= faixa.min && n <= faixa.max;
+    });
+    saida[faixa.nome] = agregar(doGrupo, opcoes);
   }
-  return saida
+  return saida;
 }

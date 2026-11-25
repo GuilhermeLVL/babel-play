@@ -5,8 +5,8 @@
  *
  *   node scripts/corpus-anki/gerar.mjs [--saida <dir>]
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const BARALHOS = {
   es: {
@@ -123,20 +123,20 @@ const BARALHOS = {
       ['ประตู', 'porta', 'ปิดประตู'],
     ],
   },
-};
-
-const args = process.argv.slice(2);
-const iSaida = args.indexOf('--saida');
-const dir = iSaida >= 0 ? args[iSaida + 1] : join(process.cwd(), 'tmp-corpus');
-
-mkdirSync(dir, { recursive: true });
-const gerados = [];
-for (const [lang, deck] of Object.entries(BARALHOS)) {
-  const linhas = ['frente\tverso\texemplo', ...deck.notas.map(n => n.join('\t'))];
-  const arquivo = join(dir, `${lang}-${deck.nome.replace(/\s+/g, '-').toLowerCase()}.txt`);
-  writeFileSync(arquivo, linhas.join('\n'), 'utf8');
-  gerados.push({ lang, escrita: deck.escrita, notas: deck.notas.length, arquivo });
 }
 
-console.log(`${gerados.length} baralhos em ${dir}`);
-for (const g of gerados) console.log(`  ${g.lang.padEnd(3)} ${String(g.notas).padStart(3)} notas  ${g.escrita}`);
+const args = process.argv.slice(2)
+const iSaida = args.indexOf('--saida')
+const dir = iSaida >= 0 ? args[iSaida + 1] : join(process.cwd(), 'tmp-corpus')
+
+mkdirSync(dir, { recursive: true })
+const gerados = []
+for (const [lang, deck] of Object.entries(BARALHOS)) {
+  const linhas = ['frente\tverso\texemplo', ...deck.notas.map((n) => n.join('\t'))]
+  const arquivo = join(dir, `${lang}-${deck.nome.replace(/\s+/g, '-').toLowerCase()}.txt`)
+  writeFileSync(arquivo, linhas.join('\n'), 'utf8')
+  gerados.push({ lang, escrita: deck.escrita, notas: deck.notas.length, arquivo })
+}
+
+console.log(`${gerados.length} baralhos em ${dir}`)
+for (const g of gerados) console.log(`  ${g.lang.padEnd(3)} ${String(g.notas).padStart(3)} notas  ${g.escrita}`)

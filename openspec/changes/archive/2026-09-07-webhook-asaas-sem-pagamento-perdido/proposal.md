@@ -12,6 +12,7 @@
 ## Capabilities
 
 ### New Capabilities
+
 - `pagamento-nunca-perdido`: todo evento de cobranca tem estado, motivo e caminho de reprocessamento.
 
 ## Impact

@@ -28,10 +28,12 @@ meio da captura ao vivo.
 ## Capabilities
 
 ### New Capabilities
+
 - `matriz-de-planos`: fonte única de planos, entitlements e quotas, compartilhada entre servidor e
   cliente, com plano intermediário Essencial e disponibilidade de STT que respeita o plano.
 
 ### Modified Capabilities
+
 <!-- openspec/specs/ ainda não tem specs principais; nada a modificar. -->
 
 ## Impact

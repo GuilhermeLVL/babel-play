@@ -50,7 +50,15 @@ for (let i = 0; i < N; i++) {
       };
     });
     const med = (a) => r1(mediana(a));
-    falas = { primeiras10: med(custos.slice(0, 10)), meio: med(custos.slice(95, 105)), ultimas10: med(custos.slice(-10)), pior: r1(Math.max(...custos)), cpu: deltaMetricas(m0, m1), nos0, ...fim };
+    falas = {
+      primeiras10: med(custos.slice(0, 10)),
+      meio: med(custos.slice(95, 105)),
+      ultimas10: med(custos.slice(-10)),
+      pior: r1(Math.max(...custos)),
+      cpu: deltaMetricas(m0, m1),
+      nos0,
+      ...fim,
+    };
     console.log(`${build} ${nome} r${i} FALAS ${JSON.stringify(falas)}`);
     if (i === 0) await page.screenshot({ path: `captura-falas-${build}-${nome}.png` });
   } catch (e) {
@@ -62,7 +70,24 @@ for (let i = 0; i < N; i++) {
 amb.parar();
 const fs_ = runs.filter(Boolean);
 const m = (f) => mediana(fs_.map(f));
-const med = fs_.length ? { n: fs_.length, primeiras10: m((f) => f.primeiras10), meio: m((f) => f.meio), ultimas10: m((f) => f.ultimas10), pior: m((f) => f.pior), script: m((f) => f.cpu.script_ms), estilo: m((f) => f.cpu.estilo_ms), layout: m((f) => f.cpu.layout_ms), tarefa: m((f) => f.cpu.tarefa_ms), nos0: fs_[0].nos0, nos1: fs_[0].nos, linhas: fs_[0].linhas, apareceu: fs_[0].apareceu, noFim: fs_[0].noFim } : null;
+const med = fs_.length
+  ? {
+      n: fs_.length,
+      primeiras10: m((f) => f.primeiras10),
+      meio: m((f) => f.meio),
+      ultimas10: m((f) => f.ultimas10),
+      pior: m((f) => f.pior),
+      script: m((f) => f.cpu.script_ms),
+      estilo: m((f) => f.cpu.estilo_ms),
+      layout: m((f) => f.cpu.layout_ms),
+      tarefa: m((f) => f.cpu.tarefa_ms),
+      nos0: fs_[0].nos0,
+      nos1: fs_[0].nos,
+      linhas: fs_[0].linhas,
+      apareceu: fs_[0].apareceu,
+      noFim: fs_[0].noFim,
+    }
+  : null;
 console.log('MEDIANA', build, nome, 'FALAS', JSON.stringify(med));
 salvar(`captura-${build}${suf}-${nome}.json`, { mediana: med, runs });
 console.log('FIM');

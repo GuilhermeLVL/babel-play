@@ -7,7 +7,7 @@
  *   2. reportar só o número agregado — que não distingue VAD perdendo fala de embedding
  *      confundindo pessoas, defeitos com correções opostas.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { calcularDer, mapearRotulos, purezaDeClusters, type Turno } from '../src/core/eval/der'
 
@@ -82,7 +82,7 @@ describe('decomposição — cada componente aponta um defeito diferente', () =>
 describe('colar', () => {
   it('desalinhamento menor que o colar não pontua — a fronteira é ambígua até para humanos', () => {
     const hip: Turno[] = [
-      { inicioMs: 0, fimMs: 3100, falante: 'v1' },     // 100 ms além
+      { inicioMs: 0, fimMs: 3100, falante: 'v1' }, // 100 ms além
       { inicioMs: 3100, fimMs: 6000, falante: 'v2' },
       { inicioMs: 6000, fimMs: 9000, falante: 'v1' },
     ]
@@ -106,21 +106,24 @@ describe('colar', () => {
 describe('pureza de cluster — a métrica por ENUNCIADO, que é como o usuário vê', () => {
   it('atribuição perfeita dá 1', () => {
     const r = purezaDeClusters(['A', 'B', 'A', 'B'], ['v1', 'v2', 'v1', 'v2'])
-    expect(r.pureza).toBe(1); expect(r.cobertura).toBe(1); expect(r.f1).toBe(1)
-    expect(r.clustersCriados).toBe(2); expect(r.falantesReais).toBe(2)
+    expect(r.pureza).toBe(1)
+    expect(r.cobertura).toBe(1)
+    expect(r.f1).toBe(1)
+    expect(r.clustersCriados).toBe(2)
+    expect(r.falantesReais).toBe(2)
   })
 
   it('FUNDIR duas pessoas derruba a pureza, não a cobertura', () => {
     const r = purezaDeClusters(['A', 'A', 'B', 'B'], ['v1', 'v1', 'v1', 'v1'])
-    expect(r.pureza).toBe(0.5)     // o cluster único é metade A, metade B
-    expect(r.cobertura).toBe(1)    // cada pessoa ficou concentrada num cluster só
+    expect(r.pureza).toBe(0.5) // o cluster único é metade A, metade B
+    expect(r.cobertura).toBe(1) // cada pessoa ficou concentrada num cluster só
     expect(r.clustersCriados).toBe(1)
     expect(r.falantesReais).toBe(2)
   })
 
   it('FRAGMENTAR uma pessoa derruba a cobertura, não a pureza — o sintoma oposto', () => {
     const r = purezaDeClusters(['A', 'A', 'A', 'A'], ['v1', 'v2', 'v3', 'v4'])
-    expect(r.pureza).toBe(1)       // cada cluster tem uma pessoa só
+    expect(r.pureza).toBe(1) // cada cluster tem uma pessoa só
     expect(r.cobertura).toBe(0.25) // mas A ficou espalhada em quatro
     expect(r.clustersCriados).toBe(4)
     expect(r.falantesReais).toBe(1)

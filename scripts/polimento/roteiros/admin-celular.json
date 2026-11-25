@@ -10,12 +10,5 @@
       }
     ]
   },
-  "seletores": [
-    ".q-palco",
-    ".q-cab h1",
-    ".q-abas",
-    ".q-abas .px-pilula",
-    ".q-cartao",
-    ".q-vazio"
-  ]
+  "seletores": [".q-palco", ".q-cab h1", ".q-abas", ".q-abas .px-pilula", ".q-cartao", ".q-vazio"]
 }

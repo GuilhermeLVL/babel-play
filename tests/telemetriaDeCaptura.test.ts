@@ -17,7 +17,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../src/data/api', () => ({ apiFetch: vi.fn(async () => new Response('{}', { status: 202 })) }))
 const estado = { identidade: 'conta', metricas: true, restrita: false }
 vi.mock('../src/lib/identidade', () => ({ estadoDeIdentidade: () => estado.identidade }))
-vi.mock('../src/lib/preferencias', () => ({ lerPreferencias: () => ({ consentimentos: { metricas: estado.metricas } }) }))
+vi.mock('../src/lib/preferencias', () => ({
+  lerPreferencias: () => ({ consentimentos: { metricas: estado.metricas } }),
+}))
 vi.mock('../src/lib/protecaoDoMenor', () => ({ estadoDaProtecao: () => ({ restrita: estado.restrita }) }))
 
 import { apiFetch } from '../src/data/api'
@@ -109,7 +111,17 @@ describe('envio', () => {
     expect(api.mock.calls[0][1]).toMatchObject({ method: 'POST', keepalive: true })
     const corpo = corpoEnviado()
     expect(Object.keys(corpo).sort()).toEqual(
-      ['descartesAlucinacao', 'fallbacks', 'motorMt', 'motorStt', 'mtMs', 'primeiroParcialMs', 'rtf', 'sttFinalMs', 'v'].sort(),
+      [
+        'descartesAlucinacao',
+        'fallbacks',
+        'motorMt',
+        'motorStt',
+        'mtMs',
+        'primeiroParcialMs',
+        'rtf',
+        'sttFinalMs',
+        'v',
+      ].sort(),
     )
     expect(corpo.v).toBe(1)
     expect(corpo.sttFinalMs).toEqual([800])
@@ -163,7 +175,10 @@ describe('envio', () => {
   it('sem conta (modo anônimo) ou conta de menor restrita: nada sai, nem por beacon', async () => {
     const beacon = vi.fn(() => true)
     Object.defineProperty(navigator, 'sendBeacon', { configurable: true, value: beacon })
-    for (const caso of [{ identidade: 'anonimo', restrita: false }, { identidade: 'conta', restrita: true }]) {
+    for (const caso of [
+      { identidade: 'anonimo', restrita: false },
+      { identidade: 'conta', restrita: true },
+    ]) {
       Object.assign(estado, caso)
       iniciarTelemetriaDeCaptura()
       enunciado(1)

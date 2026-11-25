@@ -40,7 +40,10 @@ for (const arquivo of MEDICOES) {
   // Cada medição imprime em stdout ao ser importada; capturo o texto para gravar em disco.
   const linhas = [];
   const original = console.log;
-  console.log = (...args) => { linhas.push(args.join(' ')); original(...args); };
+  console.log = (...args) => {
+    linhas.push(args.join(' '));
+    original(...args);
+  };
   try {
     const mod = await import(`./${arquivo}`);
     if (mod.default) consolidado.medicoes[mod.default.nome] = mod.default.dados;

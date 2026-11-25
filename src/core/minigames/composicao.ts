@@ -18,32 +18,33 @@
  * testado, não acidental: rodada vazia silenciosa ou tela quebrada seriam piores que uma seleção
  * sem o refinamento do servidor.
  */
-import type { CefrLevel } from '../learning/contract'
-import { baseLangDe } from '../learning/quality'
-import {
-type CartaoFiltravel, type ExtrasDoFiltro,
-type FiltroDaPratica,   passaNoFiltro, } from './filtro'
-import { type MinigameId,MINIGAMES } from './types'
+import type { CefrLevel } from '../learning/contract';
+import { baseLangDe } from '../learning/quality';
+import { type CartaoFiltravel, type ExtrasDoFiltro, type FiltroDaPratica, passaNoFiltro } from './filtro';
+import { type MinigameId, MINIGAMES } from './types';
 
-export type FaixaDificuldade = 'facil' | 'medio' | 'dificil'
-export type EstrategiaDeDistribuicao = 'equilibrado' | 'recentes' | 'frequentes' | 'em-dificuldade'
+export type FaixaDificuldade = 'facil' | 'medio' | 'dificil';
+export type EstrategiaDeDistribuicao = 'equilibrado' | 'recentes' | 'frequentes' | 'em-dificuldade';
 /** O que a UI escolhe: as quatro do servidor OU 'auto' (faixa decidida pela precisão recente,
  *  ver `autoDificuldade.ts`). 'auto' viaja ao servidor como 'equilibrado' + faixa calculada. */
-export type EstrategiaDaUI = EstrategiaDeDistribuicao | 'auto'
+export type EstrategiaDaUI = EstrategiaDeDistribuicao | 'auto';
 
 /** Mesmos cortes do servidor (`core/learning/dificuldade.ts`). Divergir seria ter duas verdades. */
-export const CORTE_FACIL = 0.34
-export const CORTE_DIFICIL = 0.67
+export const CORTE_FACIL = 0.34;
+export const CORTE_DIFICIL = 0.67;
 
-export interface CortesDeFaixa { corte1: number; corte2: number }
+export interface CortesDeFaixa {
+  corte1: number;
+  corte2: number;
+}
 
 /** `cortes` opcional: os do SERVIDOR (por quantil do deck) quando ele os mandou — sem isso o
  *  rótulo da faixa aqui divergia do rótulo com que o servidor selecionou. */
 export function faixaDe(score: number | null | undefined, cortes?: CortesDeFaixa | null): FaixaDificuldade | null {
-  if (score == null) return null
-  const c1 = cortes?.corte1 ?? CORTE_FACIL
-  const c2 = cortes?.corte2 ?? CORTE_DIFICIL
-  return score < c1 ? 'facil' : score < c2 ? 'medio' : 'dificil'
+  if (score == null) return null;
+  const c1 = cortes?.corte1 ?? CORTE_FACIL;
+  const c2 = cortes?.corte2 ?? CORTE_DIFICIL;
+  return score < c1 ? 'facil' : score < c2 ? 'medio' : 'dificil';
 }
 
 /**
@@ -51,85 +52,95 @@ export function faixaDe(score: number | null | undefined, cortes?: CortesDeFaixa
  * (`server/db/repositories/vocab.ts balancear`). Existia só lá: offline, a rodada "equilibrada"
  * saía com uma mistura diferente sob o mesmo rótulo. Completa em ordem quando falta uma faixa.
  */
-export function balancear<T extends { difficultyScore: number | null }>(pool: T[], limite: number, cortes?: CortesDeFaixa | null): T[] {
-  const por: Record<FaixaDificuldade | 'semFaixa', T[]> = { facil: [], medio: [], dificil: [], semFaixa: [] }
-  for (const c of pool) por[faixaDe(c.difficultyScore, cortes) ?? 'semFaixa'].push(c)
-  const querMedio = Math.round(limite * 0.5)
-  const querFacil = Math.round(limite * 0.25)
+export function balancear<T extends { difficultyScore: number | null }>(
+  pool: T[],
+  limite: number,
+  cortes?: CortesDeFaixa | null,
+): T[] {
+  const por: Record<FaixaDificuldade | 'semFaixa', T[]> = { facil: [], medio: [], dificil: [], semFaixa: [] };
+  for (const c of pool) por[faixaDe(c.difficultyScore, cortes) ?? 'semFaixa'].push(c);
+  const querMedio = Math.round(limite * 0.5);
+  const querFacil = Math.round(limite * 0.25);
   const escolhidos: T[] = [
     ...por.medio.slice(0, querMedio),
     ...por.facil.slice(0, querFacil),
     ...por.dificil.slice(0, limite - querMedio - querFacil),
-  ]
+  ];
   if (escolhidos.length < limite) {
-    const ja = new Set(escolhidos)
-    for (const c of pool) { if (escolhidos.length >= limite) break; if (!ja.has(c)) { escolhidos.push(c); ja.add(c) } }
+    const ja = new Set(escolhidos);
+    for (const c of pool) {
+      if (escolhidos.length >= limite) break;
+      if (!ja.has(c)) {
+        escolhidos.push(c);
+        ja.add(c);
+      }
+    }
   }
-  return escolhidos
+  return escolhidos;
 }
 
 /** O filtro de dificuldade só faz sentido onde o item É um cartão de vocabulário. */
 export function aceitaFiltroDeDificuldade(jogo: MinigameId): boolean {
-  return MINIGAMES[jogo]?.modalidade === 'palavra'
+  return MINIGAMES[jogo]?.modalidade === 'palavra';
 }
 
 export interface CartaoParaCompor {
-  id: string
-  word: string
-  back: string | null
-  sentence: string | null
-  srcLang?: string | null
-  tgtLang?: string | null
-  clozePrompt?: string | null
-  clozeAnswer?: string | null
-  cefrLevel: string | null
-  cefrSource: string | null
-  occurrences: number | null
-  difficultyScore: number | null
-  dueAt: number | null
+  id: string;
+  word: string;
+  back: string | null;
+  sentence: string | null;
+  srcLang?: string | null;
+  tgtLang?: string | null;
+  clozePrompt?: string | null;
+  clozeAnswer?: string | null;
+  cefrLevel: string | null;
+  cefrSource: string | null;
+  occurrences: number | null;
+  difficultyScore: number | null;
+  dueAt: number | null;
 }
 
 export interface Proveniencia {
-  origem: 'baralho' | 'sessao' | 'trilha'
-  origemRef: string | null
-  nivel: string | null
-  nivelFonte: string
-  dificuldade: number | null
-  faixa: FaixaDificuldade | null
-  ocorrencias: number | null
-  porQueSelecionado: string
+  origem: 'baralho' | 'sessao' | 'trilha';
+  origemRef: string | null;
+  nivel: string | null;
+  nivelFonte: string;
+  dificuldade: number | null;
+  faixa: FaixaDificuldade | null;
+  ocorrencias: number | null;
+  porQueSelecionado: string;
   /** De onde veio a COMPOSIÇÃO — a UI precisa distinguir seleção servida de fallback. */
-  origemDaComposicao: 'servidor' | 'fallback-local'
+  origemDaComposicao: 'servidor' | 'fallback-local';
 }
 
 export interface ItemComposto {
-  cardId: string | null
-  word: string
-  back: string | null
-  sentence: string | null
-  clozePrompt: string | null
-  clozeAnswer: string | null
-  proveniencia: Proveniencia
+  cardId: string | null;
+  word: string;
+  back: string | null;
+  sentence: string | null;
+  clozePrompt: string | null;
+  clozeAnswer: string | null;
+  proveniencia: Proveniencia;
 }
 
 export interface Composicao {
-  itens: ItemComposto[]
-  total: number
-  origemDaComposicao: 'servidor' | 'fallback-local'
+  itens: ItemComposto[];
+  total: number;
+  origemDaComposicao: 'servidor' | 'fallback-local';
   /** Preenchido quando caiu para local, para o relatório e para a UI poderem dizer por quê. */
-  motivoDoFallback?: string
+  motivoDoFallback?: string;
   /** Os cortes de faixa que o servidor usou (quantis do deck). Guardados para a UI rotular igual. */
-  cortes?: CortesDeFaixa | null
+  cortes?: CortesDeFaixa | null;
 }
 
 /** O que a TELA precisa saber sobre o tamanho da fonte. Ver `contagemDaFonte`. */
 export interface ContagemDaFonte {
   /** Quantos itens esta rodada vai usar. É um RECORTE, e a UI precisa dizer isso. */
-  naRodada: number
+  naRodada: number;
   /** Quantos existem na fonte inteira, sem teto. É este que responde "quantas eu tenho?". */
-  total: number
+  total: number;
   /** true quando a rodada é um pedaço de um conjunto maior. */
-  recortado: boolean
+  recortado: boolean;
 }
 
 /**
@@ -147,16 +158,16 @@ export interface ContagemDaFonte {
  * apenas uma parte do deck em memória.
  */
 export function contagemDaFonte(composicao: Composicao | null, acervoLocal: number): ContagemDaFonte {
-  const naRodada = composicao?.itens.length ?? 0
-  const doServidor = composicao?.total ?? 0
+  const naRodada = composicao?.itens.length ?? 0;
+  const doServidor = composicao?.total ?? 0;
   // `Math.max` não é paranoia: um total menor que a rodada seria um número impossível na tela
   // ("8 nesta rodada · 3 disponíveis") e destruiria a confiança em toda a faixa.
-  const total = Math.max(doServidor, acervoLocal, naRodada)
-  return { naRodada, total, recortado: naRodada > 0 && total > naRodada }
+  const total = Math.max(doServidor, acervoLocal, naRodada);
+  return { naRodada, total, recortado: naRodada > 0 && total > naRodada };
 }
 
 export interface PedidoDeComposicao {
-  jogo: MinigameId
+  jogo: MinigameId;
   /**
    * `lang` É PARTE DA FONTE, e a ausência dele foi um defeito de meses.
    *
@@ -168,18 +179,18 @@ export interface PedidoDeComposicao {
    *
    * Vazio = sem filtro (o comportamento antigo, preservado para quem não escolheu idioma ainda).
    */
-  fonte: { id: 'baralho' | 'sessao' | 'trilha'; ref?: string | null; lang?: string }
-  dificuldade?: FaixaDificuldade[]
-  estrategia?: EstrategiaDeDistribuicao
-  limite: number
-  evitar?: string[]
+  fonte: { id: 'baralho' | 'sessao' | 'trilha'; ref?: string | null; lang?: string };
+  dificuldade?: FaixaDificuldade[];
+  estrategia?: EstrategiaDeDistribuicao;
+  limite: number;
+  evitar?: string[];
   /**
    * O FILTRO FACETADO, NA FORMA DE FIO. Campo OPCIONAL: sem ele, nada muda — é o mesmo pedido de
    * sempre. `compor`/`composicaoLocal` TRANSPORTAM o campo sem interpretá-lo pesadamente: o
    * servidor (dono de outra frente) decide o que fazer dele na rota; o fallback LOCAL usa
    * `passaNoFiltro` quando ele vier — é a paridade de graça entre as duas metades.
    */
-  filtro?: FiltroDeComposicao
+  filtro?: FiltroDeComposicao;
 }
 
 /**
@@ -191,12 +202,12 @@ export interface PedidoDeComposicao {
  * porque o servidor não tem como reconstruir o ranking sozinho.
  */
 export interface FiltroDeComposicao {
-  fontes: Array<'baralho' | 'sessao' | 'trilha'>
-  baralhos?: string[]
-  sessoes?: string[]
-  idiomas?: string[]
-  recorte?: { nuncaVistas?: boolean; pedindoRevisao?: boolean; niveis?: string[]; dificeisIds?: string[] }
-  midia?: { comTraducao?: boolean; comFrase?: boolean }
+  fontes: Array<'baralho' | 'sessao' | 'trilha'>;
+  baralhos?: string[];
+  sessoes?: string[];
+  idiomas?: string[];
+  recorte?: { nuncaVistas?: boolean; pedindoRevisao?: boolean; niveis?: string[]; dificeisIds?: string[] };
+  midia?: { comTraducao?: boolean; comFrase?: boolean };
 }
 
 /**
@@ -212,8 +223,8 @@ export function filtroParaComposicao(f: FiltroDaPratica, rankingDificeis?: strin
     pedindoRevisao: f.recorte.pedindoRevisao || undefined,
     niveis: f.recorte.niveis?.length ? f.recorte.niveis : undefined,
     dificeisIds: f.recorte.dificeis ? (rankingDificeis ?? []) : undefined,
-  }
-  const midia = (f.midia.comTraducao || f.midia.comFrase) ? f.midia : undefined
+  };
+  const midia = f.midia.comTraducao || f.midia.comFrase ? f.midia : undefined;
   return {
     fontes: f.fontes,
     baralhos: f.baralhos.length ? f.baralhos : undefined,
@@ -221,7 +232,7 @@ export function filtroParaComposicao(f: FiltroDaPratica, rankingDificeis?: strin
     idiomas: f.idiomas.length ? f.idiomas : undefined,
     recorte: Object.values(recorte).some((v) => v !== undefined) ? recorte : undefined,
     midia,
-  }
+  };
 }
 
 /**
@@ -231,7 +242,7 @@ export function filtroParaComposicao(f: FiltroDaPratica, rankingDificeis?: strin
  * só o conjunto.
  */
 function filtroLocalDoFio(fc: FiltroDeComposicao): { filtro: FiltroDaPratica; ranking: ReadonlySet<string> } {
-  const ranking = new Set(fc.recorte?.dificeisIds ?? [])
+  const ranking = new Set(fc.recorte?.dificeisIds ?? []);
   const filtro: FiltroDaPratica = {
     versao: 1,
     fontes: fc.fontes,
@@ -245,8 +256,8 @@ function filtroLocalDoFio(fc: FiltroDeComposicao): { filtro: FiltroDaPratica; ra
       niveis: fc.recorte?.niveis as CefrLevel[] | undefined,
     },
     midia: fc.midia ?? {},
-  }
-  return { filtro, ranking }
+  };
+  return { filtro, ranking };
 }
 
 /** `CartaoParaCompor` → `CartaoFiltravel`. Sem `daTrilha`/`sourceSessionId`/`baralhosAnki`: este
@@ -259,11 +270,11 @@ function paraFiltravel(c: CartaoParaCompor): CartaoFiltravel {
     translation: c.back ?? undefined,
     sentence: c.sentence ?? undefined,
     dueAtMs: c.dueAt,
-  }
+  };
 }
 
 function proveniencia(c: CartaoParaCompor, p: PedidoDeComposicao, de: 'servidor' | 'fallback-local'): Proveniencia {
-  const vencido = (c.dueAt ?? Infinity) <= Date.now()
+  const vencido = (c.dueAt ?? Infinity) <= Date.now();
   return {
     origem: p.fonte.id,
     origemRef: p.fonte.ref ?? null,
@@ -274,7 +285,7 @@ function proveniencia(c: CartaoParaCompor, p: PedidoDeComposicao, de: 'servidor'
     ocorrencias: c.occurrences,
     porQueSelecionado: vencido ? 'vencido' : `estrategia:${p.estrategia ?? 'equilibrado'}`,
     origemDaComposicao: de,
-  }
+  };
 }
 
 /**
@@ -284,56 +295,64 @@ function proveniencia(c: CartaoParaCompor, p: PedidoDeComposicao, de: 'servidor'
  * a maior parte do deck seria pior que não filtrar.
  */
 export function composicaoLocal(cartoes: CartaoParaCompor[], p: PedidoDeComposicao, motivo?: string): Composicao {
-  let pool = cartoes
+  let pool = cartoes;
   /* O FALLBACK TINHA O MESMO BURACO DO SERVIDOR. Pôr o filtro de idioma só na rota deixaria a
      composição errada exatamente quando a rede cai, que é quando um app local-first tem de estar
      certo. `baseLangDe` é a mesma normalização de `quality.ts`, para as duas verdades serem uma. */
   if (p.fonte.lang) {
-    const alvo = baseLangDe(p.fonte.lang)
-    if (alvo) pool = pool.filter((c) => baseLangDe(c.srcLang) === alvo)
+    const alvo = baseLangDe(p.fonte.lang);
+    if (alvo) pool = pool.filter((c) => baseLangDe(c.srcLang) === alvo);
   }
   if (p.evitar?.length) {
-    const evitar = new Set(p.evitar)
-    pool = pool.filter((c) => !evitar.has(c.id) && !evitar.has(c.word))
+    const evitar = new Set(p.evitar);
+    pool = pool.filter((c) => !evitar.has(c.id) && !evitar.has(c.word));
   }
   if (p.dificuldade?.length && aceitaFiltroDeDificuldade(p.jogo)) {
-    const querido = new Set(p.dificuldade)
+    const querido = new Set(p.dificuldade);
     pool = pool.filter((c) => {
-      const f = faixaDe(c.difficultyScore)
-      return f == null ? false : querido.has(f)
-    })
+      const f = faixaDe(c.difficultyScore);
+      return f == null ? false : querido.has(f);
+    });
   }
   // A PARIDADE DE GRAÇA: o filtro facetado vale também quando a rede cai — sem isto, um recorte
   // pedido ("só o que está pedindo revisão") desapareceria em silêncio justamente na hora em que
   // o app precisa estar certo offline.
   if (p.filtro) {
-    const { filtro, ranking } = filtroLocalDoFio(p.filtro)
-    pool = pool.filter((c) => passaNoFiltro(paraFiltravel(c), filtro, { rankingDificeis: ranking, idDoCartao: c.id }))
+    const { filtro, ranking } = filtroLocalDoFio(p.filtro);
+    pool = pool.filter((c) => passaNoFiltro(paraFiltravel(c), filtro, { rankingDificeis: ranking, idDoCartao: c.id }));
   }
 
   const ordenado = [...pool].sort((a, b) => {
     switch (p.estrategia) {
-      case 'frequentes': return (b.occurrences ?? 0) - (a.occurrences ?? 0)
-      case 'em-dificuldade': return (b.difficultyScore ?? 0) - (a.difficultyScore ?? 0)
-      case 'recentes': return (b.dueAt ?? 0) - (a.dueAt ?? 0)
+      case 'frequentes':
+        return (b.occurrences ?? 0) - (a.occurrences ?? 0);
+      case 'em-dificuldade':
+        return (b.difficultyScore ?? 0) - (a.difficultyScore ?? 0);
+      case 'recentes':
+        return (b.dueAt ?? 0) - (a.dueAt ?? 0);
       // Equilibrado preserva a prioridade do FSRS: vencido primeiro.
-      default: return (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity)
+      default:
+        return (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity);
     }
-  })
+  });
 
   // Paridade com o servidor: só o equilibrado balanceia 50/25/25 (os outros já são um recorte).
-  const equilibrado = !p.estrategia || p.estrategia === 'equilibrado'
-  const escolhidos = equilibrado ? balancear(ordenado, p.limite) : ordenado.slice(0, p.limite)
+  const equilibrado = !p.estrategia || p.estrategia === 'equilibrado';
+  const escolhidos = equilibrado ? balancear(ordenado, p.limite) : ordenado.slice(0, p.limite);
   return {
     total: pool.length,
     origemDaComposicao: 'fallback-local',
     motivoDoFallback: motivo,
     itens: escolhidos.map((c) => ({
-      cardId: c.id, word: c.word, back: c.back, sentence: c.sentence,
-      clozePrompt: c.clozePrompt ?? null, clozeAnswer: c.clozeAnswer ?? null,
+      cardId: c.id,
+      word: c.word,
+      back: c.back,
+      sentence: c.sentence,
+      clozePrompt: c.clozePrompt ?? null,
+      clozeAnswer: c.clozeAnswer ?? null,
       proveniencia: proveniencia(c, p, 'fallback-local'),
     })),
-  }
+  };
 }
 
 /**
@@ -350,12 +369,12 @@ function parametrosDaComposicao(p: PedidoDeComposicao): Array<[string, string]> 
     ['fonte', p.fonte.id],
     ['limite', String(p.limite)],
     ['estrategia', p.estrategia ?? 'equilibrado'],
-  ]
-  if (p.fonte.ref) partes.push(['fonteRef', p.fonte.ref])
-  if (p.fonte.lang) partes.push(['lang', p.fonte.lang])
+  ];
+  if (p.fonte.ref) partes.push(['fonteRef', p.fonte.ref]);
+  if (p.fonte.lang) partes.push(['lang', p.fonte.lang]);
   // Só manda o filtro de dificuldade onde ele significa algo — ver `aceitaFiltroDeDificuldade`.
-  if (p.dificuldade?.length && aceitaFiltroDeDificuldade(p.jogo)) partes.push(['dificuldade', p.dificuldade.join(',')])
-  if (p.evitar?.length) partes.push(['evitar', p.evitar.join(',')])
+  if (p.dificuldade?.length && aceitaFiltroDeDificuldade(p.jogo)) partes.push(['dificuldade', p.dificuldade.join(',')]);
+  if (p.evitar?.length) partes.push(['evitar', p.evitar.join(',')]);
   /**
    * O FILTRO FACETADO VIAJA. Ele era montado (`Play.tsx`), tipado (`PedidoDeComposicao.filtro`),
    * validado (`filtroQuerySchema`) e aplicado (`selecionarParaJogo`) — e nunca serializado aqui:
@@ -363,8 +382,8 @@ function parametrosDaComposicao(p: PedidoDeComposicao): Array<[string, string]> 
    * de 2026-09-07, achado A17). `fonte`/`fonteRef`/`lang` continuam no pedido de propósito: o
    * servidor dá precedência ao filtro e usa os três só como PROVENIÊNCIA da resposta.
    */
-  if (p.filtro) partes.push(['filtro', JSON.stringify(p.filtro)])
-  return partes
+  if (p.filtro) partes.push(['filtro', JSON.stringify(p.filtro)]);
+  return partes;
 }
 
 /**
@@ -373,12 +392,12 @@ function parametrosDaComposicao(p: PedidoDeComposicao): Array<[string, string]> 
  * 6 KB deixa folga para os pedidos reais (uma lista de ids de "difíceis" com 200 entradas de 36
  * chars já passa de 7 KB) sem inventar um segundo contrato — o corpo tem os MESMOS campos.
  */
-export const TETO_DA_QUERY_DA_COMPOSICAO = 6_000
+export const TETO_DA_QUERY_DA_COMPOSICAO = 6_000;
 
 export interface PedidoHttpDaComposicao {
-  caminho: string
+  caminho: string;
   /** Presente = `POST` com este corpo JSON (os mesmos campos da query, como strings). */
-  corpo?: string
+  corpo?: string;
 }
 
 /**
@@ -389,16 +408,16 @@ export interface PedidoHttpDaComposicao {
  * `encodeURIComponent` é built-in do ES e faz o mesmo trabalho.
  */
 export function pedidoHttpDaComposicao(p: PedidoDeComposicao): PedidoHttpDaComposicao {
-  const partes = parametrosDaComposicao(p)
-  const query = partes.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
-  if (query.length <= TETO_DA_QUERY_DA_COMPOSICAO) return { caminho: `/api/vocab/para-jogo?${query}` }
-  const corpo: Record<string, string> = {}
-  for (const [k, v] of partes) corpo[k] = v
-  return { caminho: '/api/vocab/para-jogo', corpo: JSON.stringify(corpo) }
+  const partes = parametrosDaComposicao(p);
+  const query = partes.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+  if (query.length <= TETO_DA_QUERY_DA_COMPOSICAO) return { caminho: `/api/vocab/para-jogo?${query}` };
+  const corpo: Record<string, string> = {};
+  for (const [k, v] of partes) corpo[k] = v;
+  return { caminho: '/api/vocab/para-jogo', corpo: JSON.stringify(corpo) };
 }
 
 /** O transporte, injetado. Devolve o corpo já decodificado, ou lança. `init` só vem no POST. */
-export type BuscarComposicao = (caminho: string, init?: { method: 'POST'; body: string }) => Promise<unknown>
+export type BuscarComposicao = (caminho: string, init?: { method: 'POST'; body: string }) => Promise<unknown>;
 
 /**
  * Transporte padrão: resolve `fetch` pelo objeto global EM TEMPO DE EXECUÇÃO.
@@ -409,14 +428,23 @@ export type BuscarComposicao = (caminho: string, init?: { method: 'POST'; body: 
  * testado para falha de rede.
  */
 const buscarPadrao: BuscarComposicao = async (caminho, init) => {
-  const g = globalThis as { fetch?: (url: string, init?: unknown) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }> }
-  if (typeof g.fetch !== 'function') throw new Error('sem fetch neste ambiente')
-  const res = await g.fetch(caminho, init
-    ? { method: init.method, body: init.body, headers: { accept: 'application/json', 'content-type': 'application/json' } }
-    : { headers: { accept: 'application/json' } })
-  if (!res.ok) throw new Error(`http ${res.status}`)
-  return res.json()
-}
+  const g = globalThis as {
+    fetch?: (url: string, init?: unknown) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
+  };
+  if (typeof g.fetch !== 'function') throw new Error('sem fetch neste ambiente');
+  const res = await g.fetch(
+    caminho,
+    init
+      ? {
+          method: init.method,
+          body: init.body,
+          headers: { accept: 'application/json', 'content-type': 'application/json' },
+        }
+      : { headers: { accept: 'application/json' } },
+  );
+  if (!res.ok) throw new Error(`http ${res.status}`);
+  return res.json();
+};
 
 /**
  * Compõe a rodada pelo SERVIDOR, com fallback local.
@@ -435,12 +463,17 @@ export async function compor(
   buscar: BuscarComposicao = buscarPadrao,
 ): Promise<Composicao> {
   try {
-    const pedido = pedidoHttpDaComposicao(p)
-    const dados = await buscar(pedido.caminho, pedido.corpo ? { method: 'POST', body: pedido.corpo } : undefined) as { itens?: Array<Record<string, unknown>>; total?: number; cortes?: { corte1?: number; corte2?: number } | null } | null
-    if (!dados || !Array.isArray(dados.itens)) return composicaoLocal(cartoesLocais, p, 'corpo malformado')
-    const cortes = dados.cortes && typeof dados.cortes.corte1 === 'number' && typeof dados.cortes.corte2 === 'number'
-      ? { corte1: dados.cortes.corte1, corte2: dados.cortes.corte2 }
-      : null
+    const pedido = pedidoHttpDaComposicao(p);
+    const dados = (await buscar(pedido.caminho, pedido.corpo ? { method: 'POST', body: pedido.corpo } : undefined)) as {
+      itens?: Array<Record<string, unknown>>;
+      total?: number;
+      cortes?: { corte1?: number; corte2?: number } | null;
+    } | null;
+    if (!dados || !Array.isArray(dados.itens)) return composicaoLocal(cartoesLocais, p, 'corpo malformado');
+    const cortes =
+      dados.cortes && typeof dados.cortes.corte1 === 'number' && typeof dados.cortes.corte2 === 'number'
+        ? { corte1: dados.cortes.corte1, corte2: dados.cortes.corte2 }
+        : null;
     return {
       total: Number(dados.total ?? dados.itens.length),
       origemDaComposicao: 'servidor',
@@ -454,9 +487,9 @@ export async function compor(
         clozeAnswer: (i.clozeAnswer as string) ?? null,
         proveniencia: { ...(i.proveniencia as object), origemDaComposicao: 'servidor' } as Proveniencia,
       })),
-    }
+    };
   } catch (e) {
-    return composicaoLocal(cartoesLocais, p, String((e as Error)?.message ?? e).slice(0, 80))
+    return composicaoLocal(cartoesLocais, p, String((e as Error)?.message ?? e).slice(0, 80));
   }
 }
 
@@ -503,30 +536,30 @@ export function recortarPelaComposicao<T extends { id: string }>(
   usaveis: T[],
   composicao: Composicao | null | undefined,
   opts: { completar: boolean },
-): T[]
+): T[];
 export function recortarPelaComposicao<T extends { id: string } & CartaoFiltravel>(
   usaveis: T[],
   composicao: Composicao | null | undefined,
   opts: { filtro: FiltroDaPratica; extras?: ExtrasDoFiltro },
-): T[]
+): T[];
 export function recortarPelaComposicao<T extends { id: string }>(
   usaveis: T[],
   composicao: Composicao | null | undefined,
   opts: { completar: boolean } | { filtro: FiltroDaPratica; extras?: ExtrasDoFiltro },
 ): T[] {
-  if (!composicao?.itens?.length) return usaveis
+  if (!composicao?.itens?.length) return usaveis;
 
-  const porId = new Map(usaveis.map((c) => [c.id, c]))
-  const escolhidos: T[] = []
-  const jaEntrou = new Set<string>()
+  const porId = new Map(usaveis.map((c) => [c.id, c]));
+  const escolhidos: T[] = [];
+  const jaEntrou = new Set<string>();
 
   // 1) A ordem do servidor (vencido primeiro, faixa, estratégia) — mas só o que a régua aprovou.
   for (const item of composicao.itens) {
-    if (!item.cardId) continue
-    const carta = porId.get(item.cardId)
-    if (!carta || jaEntrou.has(carta.id)) continue
-    escolhidos.push(carta)
-    jaEntrou.add(carta.id)
+    if (!item.cardId) continue;
+    const carta = porId.get(item.cardId);
+    if (!carta || jaEntrou.has(carta.id)) continue;
+    escolhidos.push(carta);
+    jaEntrou.add(carta.id);
   }
 
   /**
@@ -545,21 +578,21 @@ export function recortarPelaComposicao<T extends { id: string }>(
    * encheria a rodada com cartões fora da faixa, apagando em silêncio o que a pessoa escolheu.
    */
   if ('completar' in opts) {
-    if (!opts.completar) return escolhidos
+    if (!opts.completar) return escolhidos;
     for (const carta of usaveis) {
-      if (jaEntrou.has(carta.id)) continue
-      escolhidos.push(carta)
-      jaEntrou.add(carta.id)
+      if (jaEntrou.has(carta.id)) continue;
+      escolhidos.push(carta);
+      jaEntrou.add(carta.id);
     }
-    return escolhidos
+    return escolhidos;
   }
 
   // `{ filtro }`: SEMPRE completa, mas o complemento só admite quem passa no filtro facetado.
   for (const carta of usaveis) {
-    if (jaEntrou.has(carta.id)) continue
-    if (!passaNoFiltro(carta as unknown as CartaoFiltravel, opts.filtro, opts.extras)) continue
-    escolhidos.push(carta)
-    jaEntrou.add(carta.id)
+    if (jaEntrou.has(carta.id)) continue;
+    if (!passaNoFiltro(carta as unknown as CartaoFiltravel, opts.filtro, opts.extras)) continue;
+    escolhidos.push(carta);
+    jaEntrou.add(carta.id);
   }
-  return escolhidos
+  return escolhidos;
 }

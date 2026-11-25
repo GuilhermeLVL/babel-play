@@ -75,7 +75,9 @@ export function urlDeAudio(sessionId: string): Promise<string> {
   cache.set(sessionId, { url, refs: 1 });
 
   // Falhou: sai do cache, senão o erro fica grudado e a próxima tentativa nunca acontece.
-  url.catch(() => { cache.delete(sessionId); });
+  url.catch(() => {
+    cache.delete(sessionId);
+  });
 
   return url;
 }
@@ -97,7 +99,9 @@ export function liberar(sessionId: string, pedido?: Promise<string>): void {
 
   cache.delete(sessionId);
   // A revogação espera a promessa: revogar uma URL que ainda não existe não faria nada.
-  entrada.url.then(URL.revokeObjectURL).catch(() => { /* nunca chegou a existir */ });
+  entrada.url.then(URL.revokeObjectURL).catch(() => {
+    /* nunca chegou a existir */
+  });
 }
 
 /**
@@ -108,7 +112,9 @@ export function descartar(sessionId: string): void {
   const entrada = cache.get(sessionId);
   if (!entrada) return;
   cache.delete(sessionId);
-  entrada.url.then(URL.revokeObjectURL).catch(() => { /* nunca chegou a existir */ });
+  entrada.url.then(URL.revokeObjectURL).catch(() => {
+    /* nunca chegou a existir */
+  });
 }
 
 /**
@@ -152,7 +158,12 @@ export function useAudioDaSessao(sessionId: string | null | undefined, temAudio:
   const refeita = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!sessionId || !temAudio) { setUrl(null); setCarregando(false); setErro(null); return; }
+    if (!sessionId || !temAudio) {
+      setUrl(null);
+      setCarregando(false);
+      setErro(null);
+      return;
+    }
 
     let vivo = true;
     if (donoDaUrl.current !== sessionId) setUrl(null);
@@ -161,13 +172,28 @@ export function useAudioDaSessao(sessionId: string | null | undefined, temAudio:
 
     const pedido = urlDeAudio(sessionId);
     pedido
-      .then(u => { if (vivo) { donoDaUrl.current = sessionId; setUrl(u); setCarregando(false); } })
-      .catch(e => { if (vivo) { setUrl(null); setErro(String(e?.message ?? e)); setCarregando(false); } });
+      .then((u) => {
+        if (vivo) {
+          donoDaUrl.current = sessionId;
+          setUrl(u);
+          setCarregando(false);
+        }
+      })
+      .catch((e) => {
+        if (vivo) {
+          setUrl(null);
+          setErro(String(e?.message ?? e));
+          setCarregando(false);
+        }
+      });
 
     /* A limpeza devolve a referência SEMPRE, inclusive quando o efeito foi cancelado antes de
        resolver, a referência foi tomada em `urlDeAudio`, não em `then`. Devolve depois da carência:
        se o efeito rodar de novo nesse meio-tempo, ele encontra a mesma entrada e a mesma URL. */
-    return () => { vivo = false; setTimeout(() => liberar(sessionId, pedido), CARENCIA_MS); };
+    return () => {
+      vivo = false;
+      setTimeout(() => liberar(sessionId, pedido), CARENCIA_MS);
+    };
   }, [sessionId, temAudio, tentativa]);
 
   const refazer = useCallback(() => {
@@ -176,7 +202,7 @@ export function useAudioDaSessao(sessionId: string | null | undefined, temAudio:
     descartar(sessionId);
     setUrl(null);
     setCarregando(true);
-    setTentativa(n => n + 1);
+    setTentativa((n) => n + 1);
     return true;
   }, [sessionId, temAudio]);
 

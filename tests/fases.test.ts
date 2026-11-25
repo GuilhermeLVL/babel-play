@@ -17,7 +17,15 @@ describe('estrelasDaRodada', () => {
 describe('agruparFases', () => {
   const linhas = [
     // rodada A do termo: 2 acertos em 2, score repetido por linha (formato F3)
-    { roundId: 'a', exerciseKind: 'termo', itemRef: 'gato', correct: 1, score: 120, melhorSequencia: 4, createdAt: 100 },
+    {
+      roundId: 'a',
+      exerciseKind: 'termo',
+      itemRef: 'gato',
+      correct: 1,
+      score: 120,
+      melhorSequencia: 4,
+      createdAt: 100,
+    },
     { roundId: 'a', exerciseKind: 'termo', itemRef: 'cão', correct: 1, score: 120, melhorSequencia: 4, createdAt: 110 },
     // rodada B do termo, mais nova, com 1 erro em 2
     { roundId: 'b', exerciseKind: 'termo', itemRef: 'sol', correct: 0, score: 40, createdAt: 200 },
@@ -30,7 +38,7 @@ describe('agruparFases', () => {
 
   it('agrupa por rodada, mais recente primeiro, só do jogo pedido', () => {
     const fases = agruparFases(linhas, 'termo')
-    expect(fases.map(f => f.roundId)).toEqual(['b', 'a'])
+    expect(fases.map((f) => f.roundId)).toEqual(['b', 'a'])
   })
 
   it('calcula precisão, estrelas, combo e refs de cada fase', () => {

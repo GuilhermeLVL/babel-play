@@ -16,7 +16,7 @@ Nenhuma outra change pode ser medida sobre uma arvore que nem o CI aceita. Esta 
 1. **Decisao registrada sobre a camada nao rastreada** (pergunta 1 do relatorio). Duas saidas aceitas, uma delas escolhida em `design.md` antes de codar:
    - (a) commitar a camada em branch propria atras de um interruptor real (o `modoVisual` vira estado persistido com controle na UI), com `catalogoMestre.ts` incluido no commit; ou
    - (b) descartar (`git stash`/branch de arquivo) e voltar `Loja.tsx`, `core/index.ts` e os 26 arquivos ao HEAD.
-   Em qualquer saida, `/loja` volta a mostrar loja de Seeds, carteira, Passe e Conquistas, e `/loja/passe` monta o Passe.
+     Em qualquer saida, `/loja` volta a mostrar loja de Seeds, carteira, Passe e Conquistas, e `/loja/passe` monta o Passe.
 2. `npm test` verde: `canvas-confetti` isolado atras de um adaptador que nao roda sem canvas (ou mock global no setup de teste); o teste do Termo passa a procurar o controle de dica que existe hoje, ou o controle volta.
 3. `npm run test:e2e` verde: `abrirSeletor` em `tests/e2e/_helpers.ts` aponta para o controle atual do lobby (papel/acessibilidade, nao classe CSS).
 4. `npm run i18n:orfas` verde: chaves orfas removidas de `en.json` e `xx.json` regenerado (`scripts/i18n/pseudo.mjs`).
@@ -27,9 +27,11 @@ Nenhuma outra change pode ser medida sobre uma arvore que nem o CI aceita. Esta 
 ## Capabilities
 
 ### New Capabilities
+
 - `linha-de-base-verde`: o repositorio tem uma definicao executavel de "verde" que o CI e o deploy compartilham.
 
 ### Modified Capabilities
+
 - nenhuma spec vigente existe ainda (ver `spec-vigente-do-codigo`).
 
 ## Impact

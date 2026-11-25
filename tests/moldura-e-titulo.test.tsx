@@ -44,7 +44,10 @@ describe('MolduraETitulo', () => {
   })
 
   it('id que sumiu do catálogo ou posse perdida voltam ao padrão, sem erro', () => {
-    localStorage.setItem('babel.perfil_equipado', JSON.stringify({ moldura: 'moldura-que-saiu', titulo: 'titulo-conquista-memoria' }))
+    localStorage.setItem(
+      'babel.perfil_equipado',
+      JSON.stringify({ moldura: 'moldura-que-saiu', titulo: 'titulo-conquista-memoria' }),
+    )
     // O título existe, mas a conquista que o libera não foi feita.
     expect(molduraETituloEquipados()).toEqual({ moldura: null, titulo: null })
     const { container } = render(<MolduraETitulo />)

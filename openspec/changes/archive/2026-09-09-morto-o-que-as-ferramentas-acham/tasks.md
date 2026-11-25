@@ -6,14 +6,14 @@
 
 33 itens apontados pelo knip, verificados um a um contra o repositorio inteiro:
 
-| categoria | quantos | acao |
-|---|---:|---|
-| (a) morto de verdade | 8 | removidos, com o que so eles usavam (cascata) |
-| (b) re-export de barril | 19 | mantidos, com o consumidor real anotado |
-| (c) copia sem consumidor | 2 | `ehPlanoDeAssinatura` e `temDadosLocais`: o re-export saiu, a origem ficou |
-| (c) DIVERGENTES | 2 | `ExerciseResult` e `LeituraAnki`: nao sao o mesmo tipo — Fase 3 |
-| (d) so testes usam | 2 | mantidos (`bootStatus`, ja documentado no arquivo) |
-| (e) named + default | 2 | o named saiu; os consumidores usam o default |
+| categoria                | quantos | acao                                                                       |
+| ------------------------ | ------: | -------------------------------------------------------------------------- |
+| (a) morto de verdade     |       8 | removidos, com o que so eles usavam (cascata)                              |
+| (b) re-export de barril  |      19 | mantidos, com o consumidor real anotado                                    |
+| (c) copia sem consumidor |       2 | `ehPlanoDeAssinatura` e `temDadosLocais`: o re-export saiu, a origem ficou |
+| (c) DIVERGENTES          |       2 | `ExerciseResult` e `LeituraAnki`: nao sao o mesmo tipo — Fase 3            |
+| (d) so testes usam       |       2 | mantidos (`bootStatus`, ja documentado no arquivo)                         |
+| (e) named + default      |       2 | o named saiu; os consumidores usam o default                               |
 
 Removidos: `calculateMultiplier` (gameFeel), `LearningMetric` + `MetricSource`, `Flashcard` +
 `CefrBadge` (contract), `isModelCached`, `bytesFaltando` (modelCache), `StatPill` (ShellBits, com

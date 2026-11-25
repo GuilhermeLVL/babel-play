@@ -1,20 +1,29 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { buscarPaletas, paletaPorId,todasAsPaletas } from '../src/lib/galeria/paletas'
-import { apagarPerfil, perfisSalvos, PRESETS, renomearPerfil,salvarPerfil } from '../src/lib/galeria/perfis'
+import { buscarPaletas, paletaPorId, todasAsPaletas } from '../src/lib/galeria/paletas'
+import { apagarPerfil, perfisSalvos, PRESETS, renomearPerfil, salvarPerfil } from '../src/lib/galeria/perfis'
 import { restaurarVisualPadrao } from '../src/lib/galeria/restaurar'
-import { estiloDeRastro, idDeRastroGerado, rastroValido,readRastro, setRastro } from '../src/lib/rastroDoMouse'
+import { estiloDeRastro, idDeRastroGerado, rastroValido, readRastro, setRastro } from '../src/lib/rastroDoMouse'
 
 /** Luminância relativa aproximada (0..1) de um #RRGGBB. */
 function lum(hex: string): number {
   const n = parseInt(hex.slice(1), 16)
-  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4 })
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    const s = v / 255
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  })
   return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
 }
-const contraste = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05) }
+const contraste = (a: string, b: string) => {
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p)
+  return (x + 0.05) / (y + 0.05)
+}
 
-beforeEach(() => { for (const k of ['babel.rastro', 'babel.cursor', 'app_particulas_pack', 'babel.pack_custom', 'babel.perfis']) localStorage.removeItem(k) })
+beforeEach(() => {
+  for (const k of ['babel.rastro', 'babel.cursor', 'app_particulas_pack', 'babel.pack_custom', 'babel.perfis'])
+    localStorage.removeItem(k)
+})
 
 describe('galeria de paletas — centenas sem CSS', () => {
   it('tem ao menos 200 paletas, ids únicos, e escura/clara coerente', () => {
@@ -62,20 +71,58 @@ describe('perfis', () => {
     expect(PRESETS.length).toBeGreaterThanOrEqual(12)
   })
   it('salvar, listar e apagar perfis próprios', () => {
-    const p = salvarPerfil({ nome: 'Meu pato roxo', icone: 'passaro', desc: '', paleta: 'roxo-escuro', fonte: 'padrao', particulas: 'estrelas', rastro: 'off' })
+    const p = salvarPerfil({
+      nome: 'Meu pato roxo',
+      icone: 'passaro',
+      desc: '',
+      paleta: 'roxo-escuro',
+      fonte: 'padrao',
+      particulas: 'estrelas',
+      rastro: 'off',
+    })
     expect(perfisSalvos().map((x) => x.id)).toContain(p.id)
     expect(perfisSalvos()[0].proprio).toBe(true)
     apagarPerfil(p.id)
     expect(perfisSalvos()).toEqual([])
   })
   it('perfil salvo antes do ícone lucide (com `emoji`, sem `icone`) ganha o brilho', () => {
-    localStorage.setItem('babel.perfis', JSON.stringify([{ id: 'meu-v1', nome: 'Antigo', emoji: 'x', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' }]))
+    localStorage.setItem(
+      'babel.perfis',
+      JSON.stringify([
+        {
+          id: 'meu-v1',
+          nome: 'Antigo',
+          emoji: 'x',
+          desc: '',
+          tema: 'babel',
+          fonte: 'padrao',
+          particulas: 'tema',
+          rastro: 'off',
+        },
+      ]),
+    )
     expect(perfisSalvos()[0].icone).toBe('brilho')
     localStorage.removeItem('babel.perfis')
   })
   it('renomear muda só o nome, no lugar, e rejeita vazio', () => {
-    const a = salvarPerfil({ nome: 'A', icone: 'sol', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' })
-    const b = salvarPerfil({ nome: 'B', icone: 'lua', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', rastro: 'off' })
+    const a = salvarPerfil({
+      nome: 'A',
+      icone: 'sol',
+      desc: '',
+      tema: 'babel',
+      fonte: 'padrao',
+      particulas: 'tema',
+      rastro: 'off',
+    })
+    const b = salvarPerfil({
+      nome: 'B',
+      icone: 'lua',
+      desc: '',
+      tema: 'babel',
+      fonte: 'padrao',
+      particulas: 'tema',
+      rastro: 'off',
+    })
     expect(renomearPerfil(a.id, '  ')).toBeNull()
     expect(renomearPerfil('nao-existe', 'X')).toBeNull()
     const novo = renomearPerfil(a.id, 'A renomeado')
@@ -83,14 +130,30 @@ describe('perfis', () => {
     // Ordem preservada: renomear não é re-salvar (salvarPerfil põe no topo; renomear não).
     expect(perfisSalvos().map((x) => x.id)).toEqual([b.id, a.id])
     expect(perfisSalvos().find((x) => x.id === a.id)?.rastro).toBe('off')
-    apagarPerfil(a.id); apagarPerfil(b.id)
+    apagarPerfil(a.id)
+    apagarPerfil(b.id)
   })
 })
 
 describe('restaurarVisualPadrao', () => {
   it('devolve os padrões e limpa a paleta ativa, sem tocar em posse', () => {
     localStorage.setItem('babel.paleta_ativa', 'arcade')
-    localStorage.setItem('babel.perfis', JSON.stringify([{ id: 'meu-1', nome: 'Meu', emoji: '✨', desc: '', fonte: 'pixel', particulas: 'emoji', pack: ['🦆'], cursor: 'pato', rastro: 'emojis:🦆' }]))
+    localStorage.setItem(
+      'babel.perfis',
+      JSON.stringify([
+        {
+          id: 'meu-1',
+          nome: 'Meu',
+          emoji: '✨',
+          desc: '',
+          fonte: 'pixel',
+          particulas: 'emoji',
+          pack: ['🦆'],
+          cursor: 'pato',
+          rastro: 'emojis:🦆',
+        },
+      ]),
+    )
     const r = restaurarVisualPadrao()
     expect(r).toEqual({ tema: 'babel', fonte: 'padrao' })
     expect(localStorage.getItem('babel.paleta_ativa')).toBeNull()

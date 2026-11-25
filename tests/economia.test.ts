@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-diaLocal, marcosDeSequencia, palavrasPremiadas, REGRAS, sequencias, TETO_PALAVRAS_SALVAS_POR_DIA,
+  diaLocal,
+  marcosDeSequencia,
+  palavrasPremiadas,
+  REGRAS,
+  sequencias,
+  TETO_PALAVRAS_SALVAS_POR_DIA,
 } from '../src/core/learning/economia'
 import { PESOS_SEEDS, PESOS_XP, seedsGanhasDeEventos, xpDeEventos } from '../src/core/learning/xp'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
@@ -23,8 +28,13 @@ describe('economia v2 — a tabela é a regra', () => {
   it('um dia ativo rende Seeds só de resultado (recompensas v2)', () => {
     // 10 palavras salvas + 20 revisões certas + 30 acertos de jogo + 1 rodada perfeita + meta do dia
     const dia = seedsGanhasDeEventos({
-      palavrasSalvasPremiadas: 10, revisoesCertas: 20, itensDeJogoCertos: 30,
-      rodadasPerfeitas: 1, cartoesCriados: 0, sequencias7: 0, seedsCreditadas: PESOS_SEEDS.metaDiaria,
+      palavrasSalvasPremiadas: 10,
+      revisoesCertas: 20,
+      itensDeJogoCertos: 30,
+      rodadasPerfeitas: 1,
+      cartoesCriados: 0,
+      sequencias7: 0,
+      seedsCreditadas: PESOS_SEEDS.metaDiaria,
     })
     expect(dia).toBe(10 + 40 + 30 + 5 + 15)
   })
@@ -32,7 +42,13 @@ describe('economia v2 — a tabela é a regra', () => {
   /* Recompensas v2: a meta deixou de ser "lendário em ≈ 1 semana" e passou a ser a da simulação
      (`tests/economia-calibragem.test.ts`): comum em 2–3 dias, lendário em ≈ 1 mês. */
   it('o item lendário mais caro não sai em menos de 3 semanas de dia ativo sem baú', () => {
-    const dia = seedsGanhasDeEventos({ palavrasSalvasPremiadas: 10, revisoesCertas: 20, itensDeJogoCertos: 30, rodadasPerfeitas: 1, seedsCreditadas: PESOS_SEEDS.metaDiaria })
+    const dia = seedsGanhasDeEventos({
+      palavrasSalvasPremiadas: 10,
+      revisoesCertas: 20,
+      itensDeJogoCertos: 30,
+      rodadasPerfeitas: 1,
+      seedsCreditadas: PESOS_SEEDS.metaDiaria,
+    })
     const maisCaro = Math.max(...CATALOGO_DA_LOJA.map((i) => i.precoSeeds ?? 0))
     expect(Math.ceil(maisCaro / dia)).toBeGreaterThanOrEqual(21)
   })
@@ -55,7 +71,11 @@ describe('tetos e sequências', () => {
     const quinzeSeguidos = Array.from({ length: 15 }, (_, i) => 100 + i)
     expect(marcosDeSequencia(quinzeSeguidos)).toBe(2)
     // três sequências separadas de 7 = 3 marcos
-    const tres = [...Array.from({ length: 7 }, (_, i) => 1 + i), ...Array.from({ length: 7 }, (_, i) => 20 + i), ...Array.from({ length: 7 }, (_, i) => 40 + i)]
+    const tres = [
+      ...Array.from({ length: 7 }, (_, i) => 1 + i),
+      ...Array.from({ length: 7 }, (_, i) => 20 + i),
+      ...Array.from({ length: 7 }, (_, i) => 40 + i),
+    ]
     expect(marcosDeSequencia(tres)).toBe(3)
     expect(marcosDeSequencia([1, 2, 3])).toBe(0)
     // dia repetido não conta duas vezes

@@ -2,7 +2,7 @@
  * REGRESSÃO — M-01 (mínimo): logger estruturado com ALLOWLIST de campos. Garante que transcrição /
  * chave / prompt NUNCA vão para o log, mesmo que um caller passe por engano. (server/lib/logger.ts)
  */
-import { afterEach,describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { log } from '../../server/lib/logger'
 
@@ -12,9 +12,15 @@ describe('M-01 — logger com allowlist', () => {
   it('emite só os campos permitidos e DESCARTA os proibidos (PII)', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     // campos proibidos passados de propósito (transcrição, chave, prompt do usuário)
-    log('error', { event: 'x', route: '/api/ai', error: 'HTTP 502',
+    log('error', {
+      event: 'x',
+      route: '/api/ai',
+      error: 'HTTP 502',
       // @ts-expect-error — de propósito: o logger deve descartar
-      transcript: 'texto secreto do usuário', apiKey: 'sk-ABCDEF', prompt: 'system prompt' })
+      transcript: 'texto secreto do usuário',
+      apiKey: 'sk-ABCDEF',
+      prompt: 'system prompt',
+    })
     const line = spy.mock.calls[0][0] as string
     const obj = JSON.parse(line)
     expect(obj.event).toBe('x')

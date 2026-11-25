@@ -274,9 +274,16 @@ describe('a cena do cartão', () => {
   })
 
   it('acha a fala pelo texto (o servidor não guarda o id da fala), ignorando pontuação e caixa', () => {
-    expect(acharFala([fala] as never, { utteranceId: null, sentence: "THAT'S a big deal, customers were complaining about it" })).toBe(fala)
+    expect(
+      acharFala([fala] as never, {
+        utteranceId: null,
+        sentence: "THAT'S a big deal, customers were complaining about it",
+      }),
+    ).toBe(fala)
     expect(acharFala([fala] as never, { utteranceId: 'u1', sentence: 'outra coisa' })).toBe(fala)
-    expect(acharFala([fala] as never, { utteranceId: null, sentence: 'Customers were complaining about it.' })).toBe(fala)
+    expect(acharFala([fala] as never, { utteranceId: null, sentence: 'Customers were complaining about it.' })).toBe(
+      fala,
+    )
     expect(acharFala([fala] as never, { utteranceId: null, sentence: 'Nothing like it.' })).toBeUndefined()
   })
 

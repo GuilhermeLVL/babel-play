@@ -264,7 +264,11 @@ export const JOGOS: JogoUI[] = [
     chave: 'shiritori',
     id: 'shiritori',
     icone: <IconePixel id="shiritori" className="w-5 h-5" />,
-    titulo: { kids: 'Corrente de palavras', pro: 'Shiritori: encadeie pela última letra', senior: 'Corrente de palavras' },
+    titulo: {
+      kids: 'Corrente de palavras',
+      pro: 'Shiritori: encadeie pela última letra',
+      senior: 'Corrente de palavras',
+    },
     descricao: {
       kids: 'Cada palavra começa com a última letra da anterior',
       pro: 'Encadeie: a próxima começa com a última letra da anterior',

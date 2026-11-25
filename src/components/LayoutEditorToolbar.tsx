@@ -1,4 +1,4 @@
-import { Check, Eye, EyeOff,RotateCcw, Sparkles } from 'lucide-react';
+import { Check, Eye, EyeOff, RotateCcw, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 
 import { useLayout } from '../hooks/useLayout';
@@ -6,14 +6,7 @@ import { t } from '../lib/i18n';
 import { PANEL_TITLES } from '../lib/panelMeta';
 
 export default function LayoutEditorToolbar() {
-  const { 
-    editMode, 
-    toggleEditMode, 
-    applyIntelligentLayout, 
-    resetToDefault,
-    layout,
-    updatePanel
-  } = useLayout();
+  const { editMode, toggleEditMode, applyIntelligentLayout, resetToDefault, layout, updatePanel } = useLayout();
 
   const [showNotification, setShowNotification] = useState<string | null>(null);
   const [showHiddenMenu, setShowHiddenMenu] = useState(false);
@@ -26,7 +19,7 @@ export default function LayoutEditorToolbar() {
     }, 3000);
   };
 
-  const hiddenItems: { view: string, panel: string, title: string }[] = [];
+  const hiddenItems: { view: string; panel: string; title: string }[] = [];
   Object.entries(layout).forEach(([viewKey, viewConfig]) => {
     Object.entries(viewConfig).forEach(([panelKey, panelConfig]) => {
       if (!(panelConfig as any).show) {
@@ -40,7 +33,6 @@ export default function LayoutEditorToolbar() {
       {editMode && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center pointer-events-none">
           <div className="bg-surface-hover/95 border border-border-subtle rounded-2xl p-2 flex items-center gap-2 shadow-2xl backdrop-blur-md pointer-events-auto">
-            
             {/* Active Notification Pill */}
             {showNotification && (
               <div className="flex items-center gap-1.5 bg-accent-soft text-accent-ink px-3 py-1.5 rounded-xl text-[10px] font-bold font-mono animate-in fade-in zoom-in-95 duration-200">
@@ -54,7 +46,7 @@ export default function LayoutEditorToolbar() {
               {hiddenItems.length > 0 && (
                 <div className="relative flex items-center">
                   <button
-                    onClick={() => setShowHiddenMenu(v => !v)}
+                    onClick={() => setShowHiddenMenu((v) => !v)}
                     className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-bold transition-colors border cursor-pointer ${
                       showHiddenMenu
                         ? 'bg-error-soft text-error border-error ring-2 ring-error/20'
@@ -62,7 +54,9 @@ export default function LayoutEditorToolbar() {
                     }`}
                   >
                     <EyeOff className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{hiddenItems.length} {hiddenItems.length === 1 ? 'Oculto' : 'Ocultos'}</span>
+                    <span className="hidden sm:inline">
+                      {hiddenItems.length} {hiddenItems.length === 1 ? 'Oculto' : 'Ocultos'}
+                    </span>
                   </button>
                   {showHiddenMenu && (
                     <>

@@ -1,7 +1,9 @@
 # matriz-de-planos Specification
 
 ## Purpose
+
 TBD - created by archiving change planos-essencial. Update Purpose after archive.
+
 ## Requirements
 
 ### Requirement: Fonte única de planos
@@ -10,10 +12,12 @@ Planos, entitlements, quotas e rótulos SHALL viver numa única matriz, num mód
 entre servidor e cliente. Nenhum outro arquivo SHALL enumerar a lista de planos à mão.
 
 #### Scenario: Servidor e cliente concordam
+
 - **WHEN** o teste de paridade compara os planos, flags e rótulos vistos pelo servidor e pelo cliente
 - **THEN** eles são idênticos, porque ambos leem a mesma matriz
 
 #### Scenario: Plano novo entra num lugar só
+
 - **WHEN** um plano é adicionado à matriz
 - **THEN** entitlements, quotas, validação do admin e rótulos da UI passam a conhecê-lo sem nenhuma
   outra edição de lista
@@ -93,6 +97,7 @@ Um plano desconhecido vindo do banco SHALL degradar para `free` no servidor com 
 cliente SHALL NOT descartar uma resposta de entitlements por conter plano que ele não conhece.
 
 #### Scenario: Linha de assinatura corrompida
+
 - **WHEN** `subscriptions.plan` contém um valor fora da matriz
 - **THEN** o usuário opera como `free` e o servidor registra `plano_desconhecido` — nunca um 500,
   nunca silêncio
@@ -103,11 +108,13 @@ cliente SHALL NOT descartar uma resposta de entitlements por conter plano que el
 usuário tiver o entitlement de STT gerenciado ou uma credencial BYOK própria.
 
 #### Scenario: Grátis não é roteado para a nuvem de STT
+
 - **WHEN** um usuário `free` sem BYOK consulta a disponibilidade (sem pedir a nuvem de alívio)
 - **THEN** a resposta é indisponível, o roteador escolhe o modelo local, e nenhum 402 acontece no
   meio da captura
 
 #### Scenario: BYOK continua livre
+
 - **WHEN** um usuário de qualquer plano tem credencial BYOK de STT
 - **THEN** a disponibilidade responde disponível — a chave é dele, o custo é dele
 

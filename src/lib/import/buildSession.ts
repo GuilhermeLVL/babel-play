@@ -5,31 +5,34 @@
  * Invariante do projeto: idioma DETECTADO do texto (reconciliado com o hint do servidor), nunca
  * chutado; documento/web ficam SEM timestamps (Análise narra por TTS com espaçamento honesto).
  */
-import { apiFetch, createSession, type NewUtterancePayload,replaceSessionUtterances } from '../../data/api'
-import { type OfflineProgress,offlineTranscribe } from '../../gateway/offlineTranscribe'
-import type { Recording } from '../../types'
-import { fetchLangConfig } from '../langConfig'
-import { detectLanguage } from '../langDetect'
-import { toBcp47 } from '../languages'
-import { motorDeNuvemDaImportacao } from './nuvemDaImportacao'
+import { apiFetch, createSession, type NewUtterancePayload, replaceSessionUtterances } from '../../data/api';
+import { type OfflineProgress, offlineTranscribe } from '../../gateway/offlineTranscribe';
+import type { Recording } from '../../types';
+import { fetchLangConfig } from '../langConfig';
+import { detectLanguage } from '../langDetect';
+import { toBcp47 } from '../languages';
+import { motorDeNuvemDaImportacao } from './nuvemDaImportacao';
 
 /**
  * Segmenta um texto em frases, CIENTE de idioma via `Intl.Segmenter` (não regex ingênua). Fallback
  * por pontuação/linha quando o `Intl.Segmenter` não existe ou não devolve nada.
  */
 function segmentSentences(text: string, lang?: string): string[] {
-  const clean = text.replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').trim()
-  if (!clean) return []
-  const SegAny = (Intl as unknown as { Segmenter?: any }).Segmenter
+  const clean = text
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+  if (!clean) return [];
+  const SegAny = (Intl as unknown as { Segmenter?: any }).Segmenter;
   if (SegAny) {
     try {
-      const seg = new SegAny(lang || undefined, { granularity: 'sentence' })
-      const out: string[] = []
+      const seg = new SegAny(lang || undefined, { granularity: 'sentence' });
+      const out: string[] = [];
       for (const part of seg.segment(clean)) {
-        const s = String(part.segment).trim()
-        if (s) out.push(s)
+        const s = String(part.segment).trim();
+        if (s) out.push(s);
       }
-      if (out.length) return out
+      if (out.length) return out;
     } catch {
       /* cai no fallback */
     }
@@ -37,12 +40,12 @@ function segmentSentences(text: string, lang?: string): string[] {
   return clean
     .split(/(?<=[.!?。！？])\s+|\n+/)
     .map((s) => s.trim())
-    .filter(Boolean)
+    .filter(Boolean);
 }
 
 export interface BuildResult {
-  recording: Recording
-  sentences: number
+  recording: Recording;
+  sentences: number;
 }
 
 /**
@@ -51,17 +54,17 @@ export interface BuildResult {
  * você fala (`mine`), que orienta a direção de tradução do vocabulário.
  */
 export async function buildDocumentSession(input: {
-  title: string
-  text: string
-  langHint?: string
+  title: string;
+  text: string;
+  langHint?: string;
 }): Promise<BuildResult> {
-  const cfg = await fetchLangConfig()
-  const det = await detectLanguage(input.text)
-  const detected = det?.lang ? toBcp47(det.lang) : undefined
-  const sourceLang = detected || (input.langHint ? toBcp47(input.langHint) : undefined) || cfg.studying
-  const targetLang = cfg.mine
+  const cfg = await fetchLangConfig();
+  const det = await detectLanguage(input.text);
+  const detected = det?.lang ? toBcp47(det.lang) : undefined;
+  const sourceLang = detected || (input.langHint ? toBcp47(input.langHint) : undefined) || cfg.studying;
+  const targetLang = cfg.mine;
 
-  const sentences = segmentSentences(input.text, sourceLang)
+  const sentences = segmentSentences(input.text, sourceLang);
   const utterances: NewUtterancePayload[] = sentences.map((s, i) => ({
     idx: i,
     source: 'tab',
@@ -69,7 +72,7 @@ export async function buildDocumentSession(input: {
     sourceText: s,
     targetLang,
     engine: 'import-text', // selo de procedência: texto importado (sem timestamps, sem áudio)
-  }))
+  }));
 
   const recording = await createSession({
     kind: 'document',
@@ -78,8 +81,8 @@ export async function buildDocumentSession(input: {
     targetLang,
     status: 'ready',
     utterances,
-  })
-  return { recording, sentences: sentences.length }
+  });
+  return { recording, sentences: sentences.length };
 }
 
 /**
@@ -93,15 +96,15 @@ export async function transcribeImportedAudio(
   sourceLang: string | undefined,
   onProgress?: (p: OfflineProgress) => void,
 ): Promise<number> {
-  const res = await apiFetch(`/api/sessions/${sessionId}/audio`)
-  if (!res.ok) throw new Error('não consegui ler o áudio baixado para transcrever')
-  const blob = await res.blob()
-  const nuvem = await motorDeNuvemDaImportacao(sourceLang)
+  const res = await apiFetch(`/api/sessions/${sessionId}/audio`);
+  if (!res.ok) throw new Error('não consegui ler o áudio baixado para transcrever');
+  const blob = await res.blob();
+  const nuvem = await motorDeNuvemDaImportacao(sourceLang);
   const segs = await offlineTranscribe(blob, {
     languageHint: sourceLang ? sourceLang.split('-')[0] : undefined,
     onProgress,
     nuvem,
-  })
+  });
   const utterances: NewUtterancePayload[] = segs.map((s, i) => ({
     idx: i,
     source: 'tab',
@@ -110,7 +113,7 @@ export async function transcribeImportedAudio(
     tStartMs: s.tStartMs,
     tEndMs: s.tEndMs,
     engine: s.engine,
-  }))
-  await replaceSessionUtterances(sessionId, utterances)
-  return utterances.length
+  }));
+  await replaceSessionUtterances(sessionId, utterances);
+  return utterances.length;
 }

@@ -166,7 +166,10 @@ describe('meta do dia no Express — `meta:<AAAA-MM-DD>` (recompensas v2)', () =
 
   it('dia fora da janela do fuso é recusado', async () => {
     const r = mockRes()
-    await handler('/seeds/creditar')(req({ creditoId: `meta:${diaNoFuso(Date.now() - 3 * 86_400_000, fuso)}`, fuso }, 'u-meta2'), r)
+    await handler('/seeds/creditar')(
+      req({ creditoId: `meta:${diaNoFuso(Date.now() - 3 * 86_400_000, fuso)}`, fuso }, 'u-meta2'),
+      r,
+    )
     expect(r.statusCode).toBe(400)
     expect(r.body.code).toBe('dia_fora_da_janela')
   })

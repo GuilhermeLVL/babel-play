@@ -1,8 +1,8 @@
 import type { VocabCard } from '../../types';
 import type { CefrLevel } from '../learning/contract';
-import { baseLangDe, pistasDaTriagem, type Triagem,triarCartoes } from '../learning/quality';
-import { type CartaoFiltravel, type ExtrasDoFiltro,type FiltroDaPratica, passaNoFiltro } from './filtro';
-import type { FonteDeItens,FonteId } from './types';
+import { baseLangDe, pistasDaTriagem, type Triagem, triarCartoes } from '../learning/quality';
+import { type CartaoFiltravel, type ExtrasDoFiltro, type FiltroDaPratica, passaNoFiltro } from './filtro';
+import type { FonteDeItens, FonteId } from './types';
 
 /**
  * DE ONDE VÊM OS ITENS DESTA RODADA.
@@ -31,7 +31,7 @@ import type { FonteDeItens,FonteId } from './types';
  *
  * `types.ts` é o contrato dos minigames e não importa nenhum dos dois — é o lugar certo para um
  * tipo que os dois lados precisam. Reexportados abaixo para nenhum chamador mudar de import. */
-export type { FonteDeItens,FonteId } from './types';
+export type { FonteDeItens, FonteId } from './types';
 
 /**
  * O id sintético com que a trilha ESCREVE — e só isso.
@@ -75,16 +75,18 @@ export function cartoesDaFonte(cards: VocabCard[], fonte: FonteDeItens): Triagem
    */
   const doEscopo =
     fonte.id === 'sessao'
-      // Sem `sessionId` a resposta é VAZIO, não "o baralho inteiro". O fallback silencioso que
-      // existia aqui entregava tudo quando a gravação não tinha sido escolhida ainda.
-      ? (fonte.sessionId ? todos.filter(c => c.sourceSessionId === fonte.sessionId) : [])
+      ? // Sem `sessionId` a resposta é VAZIO, não "o baralho inteiro". O fallback silencioso que
+        // existia aqui entregava tudo quando a gravação não tinha sido escolhida ainda.
+        fonte.sessionId
+        ? todos.filter((c) => c.sourceSessionId === fonte.sessionId)
+        : []
       : fonte.id === 'trilha'
-        ? todos.filter(c => c.daTrilha && doNivel(c, fonte.nivel))
+        ? todos.filter((c) => c.daTrilha && doNivel(c, fonte.nivel))
         : fonte.id === 'dificeis'
-          // Difícil ATRAVESSA a partição gravações/trilha: o ranking mede erro onde ele
-          // aconteceu. Sem cardIds injetados, a resposta é VAZIO (mesma regra da sessão sem id).
-          ? doRanking(todos, fonte.cardIds)
-          : todos.filter(c => !c.daTrilha);
+          ? // Difícil ATRAVESSA a partição gravações/trilha: o ranking mede erro onde ele
+            // aconteceu. Sem cardIds injetados, a resposta é VAZIO (mesma regra da sessão sem id).
+            doRanking(todos, fonte.cardIds)
+          : todos.filter((c) => !c.daTrilha);
 
   return triarCartoes(doEscopo, { lang: fonte.lang });
 }
@@ -106,9 +108,7 @@ export function cartoesDaFonte(cards: VocabCard[], fonte: FonteDeItens): Triagem
 function doRanking(todos: VocabCard[], cardIds?: string[]): VocabCard[] {
   if (!cardIds?.length) return [];
   const posicao = new Map(cardIds.map((id, i) => [id, i]));
-  return todos
-    .filter(c => posicao.has(c.id))
-    .sort((a, b) => (posicao.get(a.id) ?? 0) - (posicao.get(b.id) ?? 0));
+  return todos.filter((c) => posicao.has(c.id)).sort((a, b) => (posicao.get(a.id) ?? 0) - (posicao.get(b.id) ?? 0));
 }
 
 function doNivel(card: VocabCard, nivel?: string): boolean {
@@ -137,16 +137,19 @@ export function idiomasDisponiveis(cards: VocabCard[]): Array<{ lang: string; to
     const l = baseLangDe(c.srcLang);
     if (!l) continue;
     const lista = porIdioma.get(l);
-    if (lista) lista.push(c); else porIdioma.set(l, [c]);
+    if (lista) lista.push(c);
+    else porIdioma.set(l, [c]);
   }
 
-  return [...porIdioma.entries()]
-    .map(([lang, doIdioma]) => {
-      const t = triarCartoes(doIdioma, { lang });
-      return { lang, total: doIdioma.length, jogaveis: pistasDaTriagem(t).comTraducao.length };
-    })
-    // Ordena pelo que se pode JOGAR, não pelo que se tem guardado — é a pergunta da sala.
-    .sort((a, b) => b.jogaveis - a.jogaveis || b.total - a.total);
+  return (
+    [...porIdioma.entries()]
+      .map(([lang, doIdioma]) => {
+        const t = triarCartoes(doIdioma, { lang });
+        return { lang, total: doIdioma.length, jogaveis: pistasDaTriagem(t).comTraducao.length };
+      })
+      // Ordena pelo que se pode JOGAR, não pelo que se tem guardado — é a pergunta da sala.
+      .sort((a, b) => b.jogaveis - a.jogaveis || b.total - a.total)
+  );
 }
 
 /**
@@ -222,10 +225,12 @@ export function fonteDaEscolha(e: EscolhaDaPratica): FonteDeItens {
  * descrevem o mesmo recorte e precisam ser iguais aqui.
  */
 export function mesmaFonte(a: FonteDeItens, b: FonteDeItens): boolean {
-  return a.id === b.id
-    && a.lang === b.lang
-    && (a.sessionId ?? '') === (b.sessionId ?? '')
-    && (a.nivel ?? '') === (b.nivel ?? '');
+  return (
+    a.id === b.id &&
+    a.lang === b.lang &&
+    (a.sessionId ?? '') === (b.sessionId ?? '') &&
+    (a.nivel ?? '') === (b.nivel ?? '')
+  );
 }
 
 export function escolhaDaFonte(f: FonteDeItens): EscolhaDaPratica {
@@ -254,7 +259,7 @@ export function escolhaDaFonte(f: FonteDeItens): EscolhaDaPratica {
 export function priorizar<T>(lista: T[], alvo: string | undefined, texto: (x: T) => string): T[] {
   const chave = (alvo ?? '').trim().toLowerCase();
   if (!chave) return lista;
-  const i = (lista ?? []).findIndex(x => (texto(x) ?? '').trim().toLowerCase().includes(chave));
+  const i = (lista ?? []).findIndex((x) => (texto(x) ?? '').trim().toLowerCase().includes(chave));
   return i <= 0 ? lista : [lista[i], ...lista.slice(0, i), ...lista.slice(i + 1)];
 }
 
@@ -276,15 +281,15 @@ export function priorizar<T>(lista: T[], alvo: string | undefined, texto: (x: T)
 
 export interface ContextoDeFonte {
   /** `true` quando o lobby está dentro da aba "Jogos" de uma sessão. */
-  embutido: boolean
+  embutido: boolean;
   /** Há uma gravação em contexto? */
-  temSessao: boolean
+  temSessao: boolean;
   /** O idioma escolhido tem lista curada? */
-  temTrilha: boolean
+  temTrilha: boolean;
   /** Quantas gravações existem para escolher. */
-  sessoesDisponiveis?: number
+  sessoesDisponiveis?: number;
   /** O ranking de palavras difíceis tem material para uma rodada? */
-  temDificeis?: boolean
+  temDificeis?: boolean;
 }
 
 /**
@@ -294,13 +299,13 @@ export interface ContextoDeFonte {
  * Jogar), não um controle escondido num contexto que promete outra coisa.
  */
 export function fontesDisponiveis(ctx: ContextoDeFonte): FonteId[] {
-  if (ctx.embutido) return ['sessao']
-  const fontes: FonteId[] = ['baralho']
+  if (ctx.embutido) return ['sessao'];
+  const fontes: FonteId[] = ['baralho'];
   // Botão que não faz nada é pior que ausente — as demais só entram quando existem de fato.
-  if (ctx.temSessao) fontes.push('sessao')
-  if (ctx.temTrilha) fontes.push('trilha')
-  if (ctx.temDificeis) fontes.push('dificeis')
-  return fontes
+  if (ctx.temSessao) fontes.push('sessao');
+  if (ctx.temTrilha) fontes.push('trilha');
+  if (ctx.temDificeis) fontes.push('dificeis');
+  return fontes;
 }
 
 /**
@@ -310,21 +315,18 @@ export function fontesDisponiveis(ctx: ContextoDeFonte): FonteId[] {
  * silenciosa que esta regra fecha.
  */
 export function podeTrocarDeGravacao(ctx: { embutido: boolean; sessoesDisponiveis: number }): boolean {
-  if (ctx.embutido) return false
-  return ctx.sessoesDisponiveis > 1
+  if (ctx.embutido) return false;
+  return ctx.sessoesDisponiveis > 1;
 }
 
 /**
  * Triagem por FILTRO — o caminho multi-fonte. `cartoesDaFonte` particiona de forma exclusiva
  * (uma casa por cartão); aqui a união é o predicado, que já sabe somar fontes.
  */
-export function cartoesDoFiltro(
-  cards: VocabCard[],
-  filtro: FiltroDaPratica,
-  extras?: ExtrasDoFiltro,
-): Triagem {
-  const doEscopo = (cards ?? []).filter(c =>
-    passaNoFiltro(c as unknown as CartaoFiltravel, filtro, { ...extras, idDoCartao: c.id }));
+export function cartoesDoFiltro(cards: VocabCard[], filtro: FiltroDaPratica, extras?: ExtrasDoFiltro): Triagem {
+  const doEscopo = (cards ?? []).filter((c) =>
+    passaNoFiltro(c as unknown as CartaoFiltravel, filtro, { ...extras, idDoCartao: c.id }),
+  );
   return triarCartoes(doEscopo, { lang: filtro.idiomas[0] ?? '' });
 }
 

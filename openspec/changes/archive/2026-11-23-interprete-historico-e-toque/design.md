@@ -13,11 +13,13 @@ já existe** (memória `feedback-design-consistencia-nao-reinventar`).
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Mostrar a conversa inteira sem custo no pipeline (só apresentação) e sem perder desempenho em conversas longas.
 - Tocar para ouvir em qualquer palavra ou frase, sem quebrar o turno nem o guarda de eco.
 - Corrigir, favoritar e exportar com o que já existe.
 
 **Non-Goals:**
+
 - Mudar VAD, STT, MT ou TTS (Fase 2). Vozes por falante (Fase 3). Captura do PC (Fase 4).
 - Pinyin/romanização ao tocar (ideia de modo "ensino"): fica para depois, só se a folha da palavra já a trouxer.
 - Nível do microfone e tamanho de letra ajustável: dependem de dados que a captura não entrega à tela; etapa própria.

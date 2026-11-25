@@ -75,14 +75,38 @@ const botao = (nome) => ({ tipo: 'botao', nome })
 const tecla = (tecla) => ({ tipo: 'tecla', tecla })
 const aba = (nome) => ({ tipo: 'aba', nome })
 const TELAS = [
-  { id: 'inicio', rota: '/', passos: [botao(/^Áudio/), botao(/^Tudo/), botao('Notificações'), tecla('Escape'), botao('Biblioteca')] },
-  { id: 'capturar', rota: '/capturar', passos: [botao('Ajustes da captura'), tecla('Escape'), botao('Ajuda'), tecla('Escape')] },
-  { id: 'jogar', rota: '/jogar?fonte=trilha&idioma=en', passos: [botao('Vocabulário'), botao('Escuta & fala'), botao('Todas'), botao(/^Clássicos/), botao(/^Todos/)] },
-  { id: 'biblioteca', rota: '/biblioteca', passos: [botao(/^Áudio/), botao(/^Tudo/), botao('Filtros'), tecla('Escape')] },
-  { id: 'vocabulario', rota: '/vocabulario', passos: [botao(/^A1/), botao(/^A1/), botao(/^Mostrar mais/), botao('Visão geral'), botao('Minhas palavras')] },
+  {
+    id: 'inicio',
+    rota: '/',
+    passos: [botao(/^Áudio/), botao(/^Tudo/), botao('Notificações'), tecla('Escape'), botao('Biblioteca')],
+  },
+  {
+    id: 'capturar',
+    rota: '/capturar',
+    passos: [botao('Ajustes da captura'), tecla('Escape'), botao('Ajuda'), tecla('Escape')],
+  },
+  {
+    id: 'jogar',
+    rota: '/jogar?fonte=trilha&idioma=en',
+    passos: [botao('Vocabulário'), botao('Escuta & fala'), botao('Todas'), botao(/^Clássicos/), botao(/^Todos/)],
+  },
+  {
+    id: 'biblioteca',
+    rota: '/biblioteca',
+    passos: [botao(/^Áudio/), botao(/^Tudo/), botao('Filtros'), tecla('Escape')],
+  },
+  {
+    id: 'vocabulario',
+    rota: '/vocabulario',
+    passos: [botao(/^A1/), botao(/^A1/), botao(/^Mostrar mais/), botao('Visão geral'), botao('Minhas palavras')],
+  },
   { id: 'estatisticas', rota: '/estatisticas', passos: [botao('7 dias'), botao('90 dias'), botao('30 dias')] },
   { id: 'loja', rota: '/loja/desafios', passos: [botao(/^Meu visual/), botao(/^Desafios/)] },
-  { id: 'ajustes', rota: '/ajustes', passos: [aba('Aparência'), aba('Notificações'), aba('Processamento'), aba('Idiomas')] },
+  {
+    id: 'ajustes',
+    rota: '/ajustes',
+    passos: [aba('Aparência'), aba('Notificações'), aba('Processamento'), aba('Idiomas')],
+  },
   { id: 'personalizar', rota: '/loja/meu-visual', passos: [botao(/^Ver tudo que existe/), botao('Equipar')] },
 ]
 const CONTROLES_DO_JOGO =
@@ -106,7 +130,8 @@ function instrumentar() {
     (e) => {
       if (!e.interactionId) return
       const atual = m.eventos.get(e.interactionId)
-      if (!atual || e.duration > atual.d) m.eventos.set(e.interactionId, { d: e.duration, tipo: e.name, t: e.startTime })
+      if (!atual || e.duration > atual.d)
+        m.eventos.set(e.interactionId, { d: e.duration, tipo: e.name, t: e.startTime })
     },
     { durationThreshold: 16 },
   )
@@ -199,7 +224,11 @@ async function fecharDialogos(p) {
     await p.waitForTimeout(400)
     if (!(await p.locator('dialog[open]').count())) return
     const r = p.locator('dialog[open]').getByRole('button', { name: /Resgatar|continuar|Fechar|Entendi|Agora não/i })
-    if (await r.count()) await r.first().click({ timeout: 2000 }).catch(() => {})
+    if (await r.count())
+      await r
+        .first()
+        .click({ timeout: 2000 })
+        .catch(() => {})
     else await p.keyboard.press('Escape')
   }
 }
@@ -209,7 +238,12 @@ async function executarPasso(p, passo) {
   // Botão, aba ou rádio (as abas e os seletores de período do app são `<button role=...>`).
   const opcoes = typeof passo.nome === 'string' ? { name: passo.nome, exact: true } : { name: passo.nome }
   if (passo.tipo === 'aba') return p.getByRole('tab', opcoes).locator('visible=true').first().click({ timeout: 4000 })
-  const el = p.getByRole('button', opcoes).or(p.getByRole('tab', opcoes)).or(p.getByRole('radio', opcoes)).locator('visible=true').first()
+  const el = p
+    .getByRole('button', opcoes)
+    .or(p.getByRole('tab', opcoes))
+    .or(p.getByRole('radio', opcoes))
+    .locator('visible=true')
+    .first()
   await el.click({ timeout: 4000 })
 }
 
@@ -238,20 +272,28 @@ async function medirUma(navegador, estado, base, { id, rota, passos, jogo }) {
       tbt: m.longas.reduce((a, x) => a + Math.max(0, x.d - 50), 0),
       commits: m.commits,
       fibras: m.fibras,
-      jsKB: performance
-        .getEntriesByType('resource')
-        .filter((x) => /\.m?js(\?|$)/.test(x.name))
-        .reduce((a, x) => a + (x.transferSize || 0), 0) / 1024,
+      jsKB:
+        performance
+          .getEntriesByType('resource')
+          .filter((x) => /\.m?js(\?|$)/.test(x.name))
+          .reduce((a, x) => a + (x.transferSize || 0), 0) / 1024,
     }
   })
   const falhas = []
   // Jogo: entra pela vitrine com a trilha e começa a partida.
   if (jogo) {
     try {
-      await p.getByRole('button', { name: `Jogar: ${jogo}`, exact: true }).first().click({ timeout: 5000 })
+      await p
+        .getByRole('button', { name: `Jogar: ${jogo}`, exact: true })
+        .first()
+        .click({ timeout: 5000 })
       await p.waitForTimeout(1500)
       const pular = p.getByRole('button', { name: 'Pular a explicação' })
-      if (await pular.count()) await pular.first().click({ timeout: 2000 }).catch(() => {})
+      if (await pular.count())
+        await pular
+          .first()
+          .click({ timeout: 2000 })
+          .catch(() => {})
       await p.waitForTimeout(800)
     } catch (e) {
       falhas.push(`abrir: ${e.message.split('\n')[0]}`)
@@ -259,8 +301,15 @@ async function medirUma(navegador, estado, base, { id, rota, passos, jogo }) {
   }
   const quadrosParado = resumirQuadros(await p.evaluate((ms) => window.__quadros(ms), jogo ? 4000 : 3000))
   // Passos: os típicos da tela, ou, no jogo, até 4 toques nas peças da partida + uma tecla.
-  const antesPassos = await p.evaluate(() => ({ c: window.__perf.commits, f: window.__perf.fibras, l: window.__perf.longas.length }))
-  await p.evaluate(() => { window.__perf.eventos.clear(); window.__perf.porComponente = {} })
+  const antesPassos = await p.evaluate(() => ({
+    c: window.__perf.commits,
+    f: window.__perf.fibras,
+    l: window.__perf.longas.length,
+  }))
+  await p.evaluate(() => {
+    window.__perf.eventos.clear()
+    window.__perf.porComponente = {}
+  })
   let feitos = 0
   const lista = jogo ? [] : passos
   for (const passo of lista) {
@@ -299,7 +348,9 @@ async function medirUma(navegador, estado, base, { id, rota, passos, jogo }) {
     c: window.__perf.commits,
     f: window.__perf.fibras,
     longas: window.__perf.longas,
-    porComponente: Object.entries(window.__perf.porComponente).sort((a, b) => b[1].ms - a[1].ms || b[1].renders - a[1].renders).slice(0, 12),
+    porComponente: Object.entries(window.__perf.porComponente)
+      .sort((a, b) => b[1].ms - a[1].ms || b[1].renders - a[1].renders)
+      .slice(0, 12),
   }))
   const quadrosJogando = jogo ? resumirQuadros(await p.evaluate(() => window.__quadros(3000))) : null
   const motor = await cdpMetricas(cdp)
@@ -352,7 +403,9 @@ for (const [k, l] of lados.entries()) {
     alvo === 'estatica'
       ? await subirEstatica({ raiz: l.raiz, porta: porta0 + k })
       : await subirProducao({ raiz: l.raiz, porta: porta0 + k, pasta: l.pasta })
-  console.log(`# [${l.nome}] ${alvo} em ${l.servidor.base} (PID ${l.servidor.pid}), raiz ${l.raiz}, CPU ${cpu}×, ${perfil}, ${execucoes} execução(ões)`)
+  console.log(
+    `# [${l.nome}] ${alvo} em ${l.servidor.base} (PID ${l.servidor.pid}), raiz ${l.raiz}, CPU ${cpu}×, ${perfil}, ${execucoes} execução(ões)`,
+  )
 }
 const navegador = await chromium.launch()
 
@@ -384,7 +437,28 @@ const alvos = [
   ...jogos.map((j) => ({ id: `jogo:${j}`, rota: '/jogar?fonte=trilha&idioma=en', passos: [], jogo: j })),
 ]
 for (const l of lados) l.linhas = []
-const CAMPOS = ['lcp', 'cls', 'fcp', 'tbtCarga', 'longasCarga', 'jsKB', 'inp', 'inpMediana', 'tbtInteracoes', 'commitsPorPasso', 'fibrasPorPasso', 'fps', 'jank', 'quadroP95', 'fpsJogando', 'jankJogando', 'heapMB', 'layouts', 'recalcs', 'scriptMs']
+const CAMPOS = [
+  'lcp',
+  'cls',
+  'fcp',
+  'tbtCarga',
+  'longasCarga',
+  'jsKB',
+  'inp',
+  'inpMediana',
+  'tbtInteracoes',
+  'commitsPorPasso',
+  'fibrasPorPasso',
+  'fps',
+  'jank',
+  'quadroP95',
+  'fpsJogando',
+  'jankJogando',
+  'heapMB',
+  'layouts',
+  'recalcs',
+  'scriptMs',
+]
 const medianasDe = (linhas) =>
   alvos.map((a) => {
     const xs = linhas.filter((l) => l.id === a.id)
@@ -396,7 +470,17 @@ const gravar = (l) =>
   writeFileSync(
     l.saida,
     JSON.stringify(
-      { alvo, raiz: l.raiz, cpu, perfil, execucoes, intercalado: lados.length > 1, quando: new Date().toISOString(), medianas: medianasDe(l.linhas), linhas: l.linhas },
+      {
+        alvo,
+        raiz: l.raiz,
+        cpu,
+        perfil,
+        execucoes,
+        intercalado: lados.length > 1,
+        quando: new Date().toISOString(),
+        medianas: medianasDe(l.linhas),
+        linhas: l.linhas,
+      },
       null,
       1,
     ),
@@ -423,7 +507,9 @@ for (const a of alvos)
         const r = await comTeto(medirUma(navegador, l.estado, l.servidor.base, a))
         l.linhas.push({ ...r, n })
         gravar(l)
-        process.stdout.write(`[${l.nome}] ${a.id} #${n}: LCP ${r.lcp} INP ${r.inp} TBT ${r.tbtCarga} fps ${r.fps}${r.falhas.length ? ` (falhas: ${r.falhas.join('; ')})` : ''}\n`)
+        process.stdout.write(
+          `[${l.nome}] ${a.id} #${n}: LCP ${r.lcp} INP ${r.inp} TBT ${r.tbtCarga} fps ${r.fps}${r.falhas.length ? ` (falhas: ${r.falhas.join('; ')})` : ''}\n`,
+        )
       } catch (e) {
         console.log(`[${l.nome}] ${a.id} #${n}: ERRO ${e.message.split('\n')[0]}`)
       }
@@ -435,10 +521,14 @@ for (const l of lados) {
   gravar(l)
   console.log(`
 [${l.nome}] ${l.raiz}`)
-  console.log(`| tela | LCP ms | CLS | TBT carga ms | JS KB | INP ms | TBT interações ms | commits/passo | fibras/passo | FPS parado | jank | FPS jogando | heap MB |`)
+  console.log(
+    `| tela | LCP ms | CLS | TBT carga ms | JS KB | INP ms | TBT interações ms | commits/passo | fibras/passo | FPS parado | jank | FPS jogando | heap MB |`,
+  )
   console.log('|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|')
   for (const m of medianasDe(l.linhas))
-    console.log(`| ${m.id} | ${m.lcp} | ${m.cls} | ${m.tbtCarga} | ${m.jsKB} | ${m.inp} | ${m.tbtInteracoes} | ${m.commitsPorPasso} | ${m.fibrasPorPasso} | ${m.fps} | ${m.jank} | ${m.fpsJogando ?? '—'} | ${m.heapMB} |`)
+    console.log(
+      `| ${m.id} | ${m.lcp} | ${m.cls} | ${m.tbtCarga} | ${m.jsKB} | ${m.inp} | ${m.tbtInteracoes} | ${m.commitsPorPasso} | ${m.fibrasPorPasso} | ${m.fps} | ${m.jank} | ${m.fpsJogando ?? '—'} | ${m.heapMB} |`,
+    )
   console.log(`# gravado em ${l.saida}`)
 }
 process.exit(0)

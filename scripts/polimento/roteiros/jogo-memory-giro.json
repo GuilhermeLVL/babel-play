@@ -71,9 +71,7 @@
     ],
     "depois": 2500
   },
-  "seletores": [
-    ".carta"
-  ],
+  "seletores": [".carta"],
   "gravar": {
     "app": [
       {

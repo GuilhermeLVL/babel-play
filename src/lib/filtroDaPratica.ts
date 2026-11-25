@@ -1,8 +1,8 @@
-import type { CefrLevel,FiltroDaPratica } from '@core';
+import type { CefrLevel, FiltroDaPratica } from '@core';
 import { FILTRO_PADRAO, fonteDominante } from '@core';
 import { escolhaDaFonte } from '@core';
 
-import { type FonteGuardada,gravarFonteGuardada, lerFonteGuardada } from './fonteDaPratica';
+import { type FonteGuardada, gravarFonteGuardada, lerFonteGuardada } from './fonteDaPratica';
 
 /**
  * A ÚLTIMA ESCOLHA DE FILTRO, LEMBRADA ENTRE VISITAS — o molde de `fonteDaPratica.ts`, adaptado
@@ -61,7 +61,10 @@ function filtroDaLegada(f: FonteGuardada): FiltroDaPratica {
  * sessão ou um deck apagados ficariam presos na lista para sempre, e a rodada abriria vazia sem
  * explicar por quê — o mesmo cuidado que `lerFonteGuardada` já toma com `sessionId`.
  */
-export function lerFiltroGuardado(sessoesExistentes: readonly string[], decksExistentes: readonly string[]): FiltroDaPratica {
+export function lerFiltroGuardado(
+  sessoesExistentes: readonly string[],
+  decksExistentes: readonly string[],
+): FiltroDaPratica {
   let cru: unknown;
   try {
     const texto = localStorage.getItem(CHAVE);
@@ -118,10 +121,17 @@ export function lerFiltroGuardado(sessoesExistentes: readonly string[], decksExi
 export function gravarFiltro(f: FiltroDaPratica): void {
   try {
     localStorage.setItem(CHAVE, JSON.stringify(f));
-  } catch { /* storage bloqueado */ }
+  } catch {
+    /* storage bloqueado */
+  }
 
   const escolha = escolhaDaFonte(fonteDominante(f));
-  gravarFonteGuardada({ origem: escolha.origem, escopo: escolha.escopo, sessionId: escolha.sessionId, nivel: escolha.nivel });
+  gravarFonteGuardada({
+    origem: escolha.origem,
+    escopo: escolha.escopo,
+    sessionId: escolha.sessionId,
+    nivel: escolha.nivel,
+  });
 }
 
 /* ── O filtro na URL ─────────────────────────────────────────────────────

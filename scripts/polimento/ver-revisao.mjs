@@ -133,5 +133,7 @@ await passo('praticar', async () => {
   await foto('13-pratica-completar-depois')
 })
 
-console.log(erros.length ? `ERROS DE CONSOLE (${erros.length}):\n  ` + [...new Set(erros)].join('\n  ') : 'sem erro de console')
+console.log(
+  erros.length ? `ERROS DE CONSOLE (${erros.length}):\n  ` + [...new Set(erros)].join('\n  ') : 'sem erro de console',
+)
 await browser.close()

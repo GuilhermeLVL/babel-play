@@ -101,7 +101,8 @@ export interface VozParaOQuest {
  * de leitura (`lib/tts.ts`). Sem voz para o idioma do baralho, o jogo abriria mudo.
  */
 const dependeDeVozSintetizada = (j: JogoParaOQuest): boolean =>
-  (!!MINIGAMES[j.id].aceitaPalavraFalada || !!MINIGAMES[j.id].doIdioma) && (j.estado.motivo === 'sem-voz' || j.estado.fonte === 'baralho');
+  (!!MINIGAMES[j.id].aceitaPalavraFalada || !!MINIGAMES[j.id].doIdioma) &&
+  (j.estado.motivo === 'sem-voz' || j.estado.fonte === 'baralho');
 
 /**
  * A preferência de ordem do usuário (`lib/ordemDosJogos`): os fixados (a estrela) e a ordem que a

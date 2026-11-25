@@ -29,8 +29,12 @@ const ICONES: Record<MinigameId, (className?: string) => React.ReactNode> = {
   wordsearch: (c) => (
     <Px className={c}>
       <rect x="3" y="3" width="18" height="18" fill="var(--surface-hover)" />
-      {[6, 11, 16].map((y) => <rect key={y} x="3" y={y} width="18" height="1" fill="var(--border-subtle)" />)}
-      {[8, 13, 18].map((x) => <rect key={x} x={x} y="3" width="1" height="18" fill="var(--border-subtle)" />)}
+      {[6, 11, 16].map((y) => (
+        <rect key={y} x="3" y={y} width="18" height="1" fill="var(--border-subtle)" />
+      ))}
+      {[8, 13, 18].map((x) => (
+        <rect key={x} x={x} y="3" width="1" height="18" fill="var(--border-subtle)" />
+      ))}
       <rect x="4" y="7" width="4" height="4" fill="var(--accent)" />
       <rect x="9" y="7" width="4" height="4" fill="var(--accent)" />
       <rect x="14" y="7" width="4" height="4" fill="var(--accent)" />

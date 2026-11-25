@@ -12,23 +12,23 @@ copiada quinze vezes" — está errada, e agir sobre ela quebraria o produto.
 
 Abrindo os quinze, eles se separam em **três perguntas diferentes**:
 
-| pergunta | o que faz | onde |
-|---|---|---|
-| **1. Estas duas palavras são a mesma?** | tira acento e caixa, e remove **tudo** que não é letra ou número, inclusive espaço | `src/core/texto/palavra.ts:14` (`chaveDaPalavra`) |
-| **2. Estes dois textos são o mesmo?** | tira acento e caixa e **preserva os espaços**, porque o texto é uma frase | `languages.ts:79`, `cefrWordlist.ts:52`, `dictionary.ts:148`, `escuta.ts:61` |
-| **3. Esta letra cabe na grade?** | passa pela base latina (`ł`→`l`, `ø`→`o`), tira acento, sobe para maiúscula e mantém só A-Z | `termo.ts:27`, `wordsearch.ts:60` |
+| pergunta                                | o que faz                                                                                   | onde                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **1. Estas duas palavras são a mesma?** | tira acento e caixa, e remove **tudo** que não é letra ou número, inclusive espaço          | `src/core/texto/palavra.ts:14` (`chaveDaPalavra`)                            |
+| **2. Estes dois textos são o mesmo?**   | tira acento e caixa e **preserva os espaços**, porque o texto é uma frase                   | `languages.ts:79`, `cefrWordlist.ts:52`, `dictionary.ts:148`, `escuta.ts:61` |
+| **3. Esta letra cabe na grade?**        | passa pela base latina (`ł`→`l`, `ø`→`o`), tira acento, sobe para maiúscula e mantém só A-Z | `termo.ts:27`, `wordsearch.ts:60`                                            |
 
 Unificar as três numa só apagaria o espaço das frases (quebrando a comparação do Escuta e a busca
 de idioma) ou traria espaço para dentro da chave de palavra (fazendo `água doce` e `águadoce`
 deixarem de ser distinguíveis). A duplicação real é **dentro da pergunta 2**: quatro cópias que
 diferem só no tratamento do espaço em branco.
 
-| lugar | espaços |
-|---|---|
-| `languages.ts:79` (`fold`) | preserva como estão |
-| `cefrWordlist.ts:52` (`chave`) | apara as bordas |
+| lugar                           | espaços                     |
+| ------------------------------- | --------------------------- |
+| `languages.ts:79` (`fold`)      | preserva como estão         |
+| `cefrWordlist.ts:52` (`chave`)  | apara as bordas             |
 | `escuta.ts:61` (`chaveDeTexto`) | apara e colapsa os internos |
-| `dictionary.ts:148` (`norm`) | colapsa e apara |
+| `dictionary.ts:148` (`norm`)    | colapsa e apara             |
 
 ## Decisão
 

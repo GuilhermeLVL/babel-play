@@ -320,23 +320,23 @@ export function useJanelaFlutuante(o: Opcoes) {
       {caminho === 'documento' && (
         <DocumentPiP janela={janela} aoFechar={fechar} backgroundColor="#141210">
           <ComAvatarNoPip janela={janela}>
-          <LegendasFlutuantes
-            naJanela
-            formatoInicial={formato}
-            aoTrocarFormato={trocarFormato}
-            falas={o.falas}
-            aprendidas={o.aprendidas}
-            etiquetador={o.etiquetador}
-            aoRevelarTraducao={o.aoRevelarTraducao}
-            aoConsultarPalavra={o.aoConsultarPalavra}
-            aoOuvir={o.aoOuvir}
-            aoSalvarPalavra={o.aoSalvarPalavra}
-            aoFechar={fechar}
-            abasExtras={abasDoAssistente}
-            abaInicial={assistente?.ajustes.abrirNaAba ? 'assistente' : undefined}
-            assistente={doAssistente}
-            aoMudarPausa={setPausaDaJanela}
-          />
+            <LegendasFlutuantes
+              naJanela
+              formatoInicial={formato}
+              aoTrocarFormato={trocarFormato}
+              falas={o.falas}
+              aprendidas={o.aprendidas}
+              etiquetador={o.etiquetador}
+              aoRevelarTraducao={o.aoRevelarTraducao}
+              aoConsultarPalavra={o.aoConsultarPalavra}
+              aoOuvir={o.aoOuvir}
+              aoSalvarPalavra={o.aoSalvarPalavra}
+              aoFechar={fechar}
+              abasExtras={abasDoAssistente}
+              abaInicial={assistente?.ajustes.abrirNaAba ? 'assistente' : undefined}
+              assistente={doAssistente}
+              aoMudarPausa={setPausaDaJanela}
+            />
           </ComAvatarNoPip>
         </DocumentPiP>
       )}

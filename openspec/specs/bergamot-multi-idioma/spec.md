@@ -1,6 +1,7 @@
 # bergamot-multi-idioma Specification
 
 ## Purpose
+
 Bergamot por CDN para 15 pares X→en, atrás de VITE_BERGAMOT_MODELOS_URL. Criada pela change `bergamot-multi-idioma-via-cdn` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-bergamot-multi-idioma-via-cdn/proposal.md` para o porquê.
 
 ## Requirements

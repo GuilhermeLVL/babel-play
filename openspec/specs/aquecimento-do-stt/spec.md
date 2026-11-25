@@ -1,6 +1,7 @@
 # aquecimento-do-stt Specification
 
 ## Purpose
+
 Aquecer o STT local só quando há intenção de capturar (foco/ponteiro 200 ms em Iniciar), atrás de flag. Criada pela change `aquecer-stt-na-intencao` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-aquecer-stt-na-intencao/proposal.md` para o porquê.
 
 ## Requirements

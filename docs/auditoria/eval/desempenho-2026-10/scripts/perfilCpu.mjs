@@ -23,17 +23,18 @@ const resumir = (prof) => {
   const { nodes, samples, timeDeltas } = prof;
   const porId = new Map(nodes.map((n) => [n.id, n]));
   const proprio = new Map();
-  for (let i = 0; i < samples.length; i++) proprio.set(samples[i], (proprio.get(samples[i]) ?? 0) + (timeDeltas[i] ?? 0));
+  for (let i = 0; i < samples.length; i++)
+    proprio.set(samples[i], (proprio.get(samples[i]) ?? 0) + (timeDeltas[i] ?? 0));
   const pai = new Map();
   for (const n of nodes) for (const c of n.children ?? []) pai.set(c, n.id);
   const chamador = (id) => {
     let x = pai.get(id);
     while (x != null) {
       const cf = porId.get(x).callFrame;
-      if (cf.url) return cf.url.split("/").pop() + ":" + cf.lineNumber + ":" + cf.columnNumber + " " + cf.functionName;
+      if (cf.url) return cf.url.split('/').pop() + ':' + cf.lineNumber + ':' + cf.columnNumber + ' ' + cf.functionName;
       x = pai.get(x);
     }
-    return "(raiz)";
+    return '(raiz)';
   };
   const nativos = {};
   const porFn = {};
@@ -48,17 +49,38 @@ const resumir = (prof) => {
     const k = `${arq}:${cf.lineNumber}:${cf.columnNumber} ${cf.functionName}`;
     (porFn[k] ??= { ms: 0, cf }).ms += us / 1000;
     if (!cf.url && us > 0) {
-      const kk = cf.functionName + " <- " + chamador(id);
+      const kk = cf.functionName + ' <- ' + chamador(id);
       (nativos[kk] ??= { ms: 0, de: null }).ms += us / 1000;
-      if (!nativos[kk].de) { let x = pai.get(id); while (x != null && !porId.get(x).callFrame.url) x = pai.get(x); nativos[kk].de = x != null ? porId.get(x).callFrame : null; }
+      if (!nativos[kk].de) {
+        let x = pai.get(id);
+        while (x != null && !porId.get(x).callFrame.url) x = pai.get(x);
+        nativos[kk].de = x != null ? porId.get(x).callFrame : null;
+      }
     }
     porArq[arq] = (porArq[arq] ?? 0) + us / 1000;
   }
   return {
     total_ms: r1(total / 1000),
-    nativos: Object.entries(nativos).sort((a, b) => b[1].ms - a[1].ms).slice(0, 14).map(([k, v]) => ({ fn: k, ms: r1(v.ms), trecho: v.de ? trecho(v.de.url, v.de.lineNumber, v.de.columnNumber) : "" })),
-    porArquivo: Object.entries(porArq).sort((a, b) => b[1] - a[1]).slice(0, 14).map(([k, v]) => `${k} ${r1(v)}ms`),
-    funcoes: Object.entries(porFn).sort((a, b) => b[1].ms - a[1].ms).slice(0, 22).map(([k, v]) => ({ fn: k, ms: r1(v.ms), trecho: v.cf.url ? trecho(v.cf.url, v.cf.lineNumber, v.cf.columnNumber) : '' })),
+    nativos: Object.entries(nativos)
+      .sort((a, b) => b[1].ms - a[1].ms)
+      .slice(0, 14)
+      .map(([k, v]) => ({
+        fn: k,
+        ms: r1(v.ms),
+        trecho: v.de ? trecho(v.de.url, v.de.lineNumber, v.de.columnNumber) : '',
+      })),
+    porArquivo: Object.entries(porArq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 14)
+      .map(([k, v]) => `${k} ${r1(v)}ms`),
+    funcoes: Object.entries(porFn)
+      .sort((a, b) => b[1].ms - a[1].ms)
+      .slice(0, 22)
+      .map(([k, v]) => ({
+        fn: k,
+        ms: r1(v.ms),
+        trecho: v.cf.url ? trecho(v.cf.url, v.cf.lineNumber, v.cf.columnNumber) : '',
+      })),
   };
 };
 const saida = {};
@@ -71,9 +93,11 @@ const perfilar = async (rot, fazer) => {
   console.log(`\n=== ${rot}: JS ${r.total_ms} ms (relogio com a CPU limitada) ===`);
   console.log('por arquivo:', r.porArquivo.join(' | '));
   console.log('  NATIVOS por quem chamou:');
-  for (const f of r.nativos.slice(0, 10)) console.log(`  ${String(f.ms).padStart(7)} ms  ${f.fn}
+  for (const f of r.nativos.slice(0, 10))
+    console.log(`  ${String(f.ms).padStart(7)} ms  ${f.fn}
             ${f.trecho.slice(0, 100)}`);
-  for (const f of r.funcoes.slice(0, 10)) console.log(`  ${String(f.ms).padStart(7)} ms  ${f.fn}\n            ${f.trecho}`);
+  for (const f of r.funcoes.slice(0, 10))
+    console.log(`  ${String(f.ms).padStart(7)} ms  ${f.fn}\n            ${f.trecho}`);
 };
 const toca = async (sel) => {
   const el = page.locator(sel).first();
@@ -97,7 +121,12 @@ try {
   });
   {
     const fechar = page.locator('.q-mais-fundo button:has-text("Fechar sem mudar nada")').first();
-    if (await fechar.waitFor({ state: 'visible', timeout: 3000 }).then(() => true, () => false)) {
+    if (
+      await fechar.waitFor({ state: 'visible', timeout: 3000 }).then(
+        () => true,
+        () => false,
+      )
+    ) {
       await page.waitForTimeout(1200);
       await fechar.click({ force: true }).catch(() => {});
       await page.waitForTimeout(1800);

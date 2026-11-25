@@ -43,21 +43,65 @@ const cortar = (w: string, sufixo: string, novo = ''): string | null => {
 };
 
 /** Consoante dobrada no fim (`stopp` → `stop`, `runn` → `run`). */
-const semDobra = (raiz: string): string | null =>
-  /([bcdfgklmnprstvz])\1$/.test(raiz) ? raiz.slice(0, -1) : null;
+const semDobra = (raiz: string): string | null => (/([bcdfgklmnprstvz])\1$/.test(raiz) ? raiz.slice(0, -1) : null);
 
 /* Os irregulares que mais aparecem em legenda. Poucos de propósito: a lista longa é o mapa
    forma→lema do pacote (item 3 da ordem), não código. */
 const IRREGULARES_EN: Record<string, string> = {
-  am: 'be', is: 'be', are: 'be', was: 'be', were: 'be', been: 'be', being: 'be',
-  has: 'have', had: 'have', does: 'do', did: 'do', done: 'do',
-  went: 'go', gone: 'go', goes: 'go', made: 'make', said: 'say', got: 'get', gotten: 'get',
-  took: 'take', taken: 'take', came: 'come', saw: 'see', seen: 'see', knew: 'know', known: 'know',
-  thought: 'think', told: 'tell', found: 'find', gave: 'give', given: 'give', felt: 'feel',
-  left: 'leave', kept: 'keep', brought: 'bring', bought: 'buy', ran: 'run', wrote: 'write',
-  written: 'write', spoke: 'speak', spoken: 'speak', ate: 'eat', eaten: 'eat',
-  men: 'man', women: 'woman', children: 'child', people: 'person', feet: 'foot',
-  teeth: 'tooth', mice: 'mouse', better: 'good', best: 'good', worse: 'bad', worst: 'bad',
+  am: 'be',
+  is: 'be',
+  are: 'be',
+  was: 'be',
+  were: 'be',
+  been: 'be',
+  being: 'be',
+  has: 'have',
+  had: 'have',
+  does: 'do',
+  did: 'do',
+  done: 'do',
+  went: 'go',
+  gone: 'go',
+  goes: 'go',
+  made: 'make',
+  said: 'say',
+  got: 'get',
+  gotten: 'get',
+  took: 'take',
+  taken: 'take',
+  came: 'come',
+  saw: 'see',
+  seen: 'see',
+  knew: 'know',
+  known: 'know',
+  thought: 'think',
+  told: 'tell',
+  found: 'find',
+  gave: 'give',
+  given: 'give',
+  felt: 'feel',
+  left: 'leave',
+  kept: 'keep',
+  brought: 'bring',
+  bought: 'buy',
+  ran: 'run',
+  wrote: 'write',
+  written: 'write',
+  spoke: 'speak',
+  spoken: 'speak',
+  ate: 'eat',
+  eaten: 'eat',
+  men: 'man',
+  women: 'woman',
+  children: 'child',
+  people: 'person',
+  feet: 'foot',
+  teeth: 'tooth',
+  mice: 'mouse',
+  better: 'good',
+  best: 'good',
+  worse: 'bad',
+  worst: 'bad',
 };
 
 const regrasEn: Regra = (w) => {
@@ -83,8 +127,13 @@ const regrasEn: Regra = (w) => {
 /** Plural → singular em português. `-ões/-ães/-ãos` → `-ão` é o caso que mais se toca. */
 const singularPt = (w: string): string[] => {
   const c: Array<string | null> = [
-    cortar(w, 'ões', 'ão'), cortar(w, 'ães', 'ão'), cortar(w, 'ãos', 'ão'),
-    cortar(w, 'ais', 'al'), cortar(w, 'éis', 'el'), cortar(w, 'óis', 'ol'), cortar(w, 'is', 'il'),
+    cortar(w, 'ões', 'ão'),
+    cortar(w, 'ães', 'ão'),
+    cortar(w, 'ãos', 'ão'),
+    cortar(w, 'ais', 'al'),
+    cortar(w, 'éis', 'el'),
+    cortar(w, 'óis', 'ol'),
+    cortar(w, 'is', 'il'),
     cortar(w, 'ns', 'm'),
     /(?:r|z|s)es$/.test(w) ? cortar(w, 'es') : null,
     cortar(w, 's'),
@@ -105,41 +154,50 @@ const regrasPt: Regra = (w) => {
 };
 
 const regrasEs: Regra = (w) => {
-  const s = [cortar(w, 'ces', 'z'), /(?:[^aeiou])es$/.test(w) ? cortar(w, 'es') : null, cortar(w, 's')]
-    .filter((x): x is string => !!x);
+  const s = [cortar(w, 'ces', 'z'), /(?:[^aeiou])es$/.test(w) ? cortar(w, 'es') : null, cortar(w, 's')].filter(
+    (x): x is string => !!x,
+  );
   return [...s, ...[w, ...s].map((x) => cortar(x, 'a', 'o')).filter((x): x is string => !!x)];
 };
 
 const regrasFr: Regra = (w) =>
-  [cortar(w, 'eaux', 'eau'), cortar(w, 'aux', 'al'), cortar(w, 'x'), cortar(w, 's'),
-    cortar(w, 'euse', 'eur'), cortar(w, 'ive', 'if'), cortar(w, 'es'), cortar(w, 'e')]
-    .filter((x): x is string => !!x);
+  [
+    cortar(w, 'eaux', 'eau'),
+    cortar(w, 'aux', 'al'),
+    cortar(w, 'x'),
+    cortar(w, 's'),
+    cortar(w, 'euse', 'eur'),
+    cortar(w, 'ive', 'if'),
+    cortar(w, 'es'),
+    cortar(w, 'e'),
+  ].filter((x): x is string => !!x);
 
 const regrasIt: Regra = (w) =>
-  [cortar(w, 'i', 'o'), cortar(w, 'i', 'e'), cortar(w, 'e', 'a'), cortar(w, 'a', 'o')]
-    .filter((x): x is string => !!x);
+  [cortar(w, 'i', 'o'), cortar(w, 'i', 'e'), cortar(w, 'e', 'a'), cortar(w, 'a', 'o')].filter((x): x is string => !!x);
 
 /** Alemão: o dicionário guarda substantivo com maiúscula; a legenda às vezes não. */
 const regrasDe: Regra = (w) => {
   const maiuscula = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
-  const plurais = [cortar(w, 'en'), cortar(w, 'n'), cortar(w, 'er'), cortar(w, 'e'), cortar(w, 's')]
-    .filter((x): x is string => !!x);
+  const plurais = [cortar(w, 'en'), cortar(w, 'n'), cortar(w, 'er'), cortar(w, 'e'), cortar(w, 's')].filter(
+    (x): x is string => !!x,
+  );
   return [maiuscula(w), ...plurais, ...plurais.map(maiuscula)];
 };
 
 const REGRAS: Record<string, Regra> = {
-  en: regrasEn, pt: regrasPt, es: regrasEs, fr: regrasFr, it: regrasIt, de: regrasDe,
+  en: regrasEn,
+  pt: regrasPt,
+  es: regrasEs,
+  fr: regrasFr,
+  it: regrasIt,
+  de: regrasDe,
 };
 
 /**
  * Candidatos a chave do dicionário, do mais fiel ao mais especulativo, sem repetição.
  * `formas` é o mapa forma(minúscula)→lema do pacote, quando o gerador o emitiu.
  */
-export function candidatosDeLema(
-  palavra: string,
-  lang: string,
-  formas?: Readonly<Record<string, string>>,
-): string[] {
+export function candidatosDeLema(palavra: string, lang: string, formas?: Readonly<Record<string, string>>): string[] {
   const forma = normalizarConsulta(palavra);
   if (!forma) return [];
   const min = forma.toLowerCase();

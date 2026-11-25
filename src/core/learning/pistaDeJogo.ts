@@ -77,9 +77,14 @@ function mesmaPalavra(token: string, alvo: string): boolean {
  * metade de uma expressão de duas palavras já resolve o exercício.
  */
 export function vazaResposta(pista: string, alvo: string): boolean {
-  const alvos = normalizar(alvo).split(/\s+/).filter((p) => p.length >= 2);
+  const alvos = normalizar(alvo)
+    .split(/\s+/)
+    .filter((p) => p.length >= 2);
   if (!alvos.length) return false;
-  const tokens = (pista ?? '').split(/[^\p{L}\p{N}'’-]+/u).map(normalizar).filter(Boolean);
+  const tokens = (pista ?? '')
+    .split(/[^\p{L}\p{N}'’-]+/u)
+    .map(normalizar)
+    .filter(Boolean);
   return tokens.some((t) => alvos.some((a) => mesmaPalavra(t, a)));
 }
 
@@ -89,7 +94,9 @@ export function vazaResposta(pista: string, alvo: string): boolean {
  */
 export function mascararResposta(pista: string, alvo: string, lacuna: string = LACUNA): string {
   const texto = pista ?? '';
-  const alvos = normalizar(alvo).split(/\s+/).filter((p) => p.length >= 2);
+  const alvos = normalizar(alvo)
+    .split(/\s+/)
+    .filter((p) => p.length >= 2);
   if (!texto || !alvos.length) return texto;
   return texto.replace(/[\p{L}\p{N}'’-]+/gu, (palavra) => {
     const n = normalizar(palavra);

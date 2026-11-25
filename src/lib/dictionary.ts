@@ -47,29 +47,104 @@ import { baseLang } from './languages';
 
 /** Nome do idioma EM INGLÊS (seções do en.wiktionary). */
 const NAME_EN: Record<string, string> = {
-  pt: 'Portuguese', en: 'English', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian',
-  nl: 'Dutch', ru: 'Russian', pl: 'Polish', uk: 'Ukrainian', tr: 'Turkish', sv: 'Swedish',
-  da: 'Danish', nb: 'Norwegian Bokmål', fi: 'Finnish', cs: 'Czech', el: 'Greek', ro: 'Romanian',
-  hu: 'Hungarian', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', hi: 'Hindi', ar: 'Arabic',
-  he: 'Hebrew', id: 'Indonesian', vi: 'Vietnamese', th: 'Thai', ca: 'Catalan', gl: 'Galician',
+  pt: 'Portuguese',
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  de: 'German',
+  it: 'Italian',
+  nl: 'Dutch',
+  ru: 'Russian',
+  pl: 'Polish',
+  uk: 'Ukrainian',
+  tr: 'Turkish',
+  sv: 'Swedish',
+  da: 'Danish',
+  nb: 'Norwegian Bokmål',
+  fi: 'Finnish',
+  cs: 'Czech',
+  el: 'Greek',
+  ro: 'Romanian',
+  hu: 'Hungarian',
+  ja: 'Japanese',
+  ko: 'Korean',
+  zh: 'Chinese',
+  hi: 'Hindi',
+  ar: 'Arabic',
+  he: 'Hebrew',
+  id: 'Indonesian',
+  vi: 'Vietnamese',
+  th: 'Thai',
+  ca: 'Catalan',
+  gl: 'Galician',
 };
 
 /** Nome do idioma EM PORTUGUÊS (seções do pt.wiktionary). */
 const NAME_PT: Record<string, string> = {
-  pt: 'Português', en: 'Inglês', es: 'Espanhol', fr: 'Francês', de: 'Alemão', it: 'Italiano',
-  nl: 'Neerlandês', ru: 'Russo', pl: 'Polonês', uk: 'Ucraniano', tr: 'Turco', sv: 'Sueco',
-  da: 'Dinamarquês', nb: 'Norueguês', fi: 'Finlandês', cs: 'Tcheco', el: 'Grego', ro: 'Romeno',
-  hu: 'Húngaro', ja: 'Japonês', ko: 'Coreano', zh: 'Chinês', hi: 'Híndi', ar: 'Árabe',
-  he: 'Hebraico', id: 'Indonésio', vi: 'Vietnamita', th: 'Tailandês', ca: 'Catalão', gl: 'Galego',
+  pt: 'Português',
+  en: 'Inglês',
+  es: 'Espanhol',
+  fr: 'Francês',
+  de: 'Alemão',
+  it: 'Italiano',
+  nl: 'Neerlandês',
+  ru: 'Russo',
+  pl: 'Polonês',
+  uk: 'Ucraniano',
+  tr: 'Turco',
+  sv: 'Sueco',
+  da: 'Dinamarquês',
+  nb: 'Norueguês',
+  fi: 'Finlandês',
+  cs: 'Tcheco',
+  el: 'Grego',
+  ro: 'Romeno',
+  hu: 'Húngaro',
+  ja: 'Japonês',
+  ko: 'Coreano',
+  zh: 'Chinês',
+  hi: 'Híndi',
+  ar: 'Árabe',
+  he: 'Hebraico',
+  id: 'Indonésio',
+  vi: 'Vietnamita',
+  th: 'Tailandês',
+  ca: 'Catalão',
+  gl: 'Galego',
 };
 
 /** Nome do idioma NELE MESMO (seção da própria língua no wiki dela). */
 const NAME_SELF: Record<string, string> = {
-  pt: 'Português', en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch', it: 'Italiano',
-  nl: 'Nederlands', ru: 'Русский', pl: 'Polski', uk: 'Українська', tr: 'Türkçe', sv: 'Svenska',
-  da: 'Dansk', nb: 'Norsk', fi: 'Suomi', cs: 'Čeština', el: 'Ελληνικά', ro: 'Română',
-  hu: 'Magyar', ja: '日本語', ko: '한국어', zh: '漢語', hi: 'हिन्दी', ar: 'العربية',
-  he: 'עברית', id: 'Bahasa Indonesia', vi: 'Tiếng Việt', th: 'ไทย', ca: 'Català', gl: 'Galego',
+  pt: 'Português',
+  en: 'English',
+  es: 'Español',
+  fr: 'Français',
+  de: 'Deutsch',
+  it: 'Italiano',
+  nl: 'Nederlands',
+  ru: 'Русский',
+  pl: 'Polski',
+  uk: 'Українська',
+  tr: 'Türkçe',
+  sv: 'Svenska',
+  da: 'Dansk',
+  nb: 'Norsk',
+  fi: 'Suomi',
+  cs: 'Čeština',
+  el: 'Ελληνικά',
+  ro: 'Română',
+  hu: 'Magyar',
+  ja: '日本語',
+  ko: '한국어',
+  zh: '漢語',
+  hi: 'हिन्दी',
+  ar: 'العربية',
+  he: 'עברית',
+  id: 'Bahasa Indonesia',
+  vi: 'Tiếng Việt',
+  th: 'ไทย',
+  ca: 'Català',
+  gl: 'Galego',
 };
 
 /** Como se chama, no wiki `wikiLang`, a seção do idioma `wordLang`. `undefined` = não sabemos. */
@@ -167,14 +242,17 @@ async function wikiApi(host: string, params: string): Promise<any> {
 
 /** O `line` de uma seção vem com HTML dentro (`<span><span>Português</span></span>`). */
 function headingText(line: string): string {
-  return line.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  return line
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** Índice da seção do idioma pedido. `null` = a página não tem verbete NESTE idioma. */
 async function sectionIndex(host: string, word: string, heading: string): Promise<string | null> {
   const json = await wikiApi(host, `action=parse&page=${encodeURIComponent(word)}&prop=sections`);
   const sections: Array<{ index: string; line: string }> = json?.parse?.sections ?? [];
-  const hit = sections.find(s => sameHeading(headingText(s.line || ''), heading));
+  const hit = sections.find((s) => sameHeading(headingText(s.line || ''), heading));
   return hit ? String(hit.index) : null;
 }
 
@@ -201,7 +279,7 @@ function extractIpa(section: HTMLElement): string | undefined {
  */
 export function extractSenses(html: string): DictionarySense[] {
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  doc.querySelectorAll('.mw-editsection, style, script').forEach(n => n.remove());
+  doc.querySelectorAll('.mw-editsection, style, script').forEach((n) => n.remove());
 
   const senses: DictionarySense[] = [];
   let pos = '';
@@ -212,14 +290,12 @@ export function extractSenses(html: string): DictionarySense[] {
       if (text) pos = text; // subtítulo corrente (Substantivo / Verb / Nom…)
       continue;
     }
-    for (const li of Array.from(el.children).filter(c => c.tagName === 'LI')) {
+    for (const li of Array.from(el.children).filter((c) => c.tagName === 'LI')) {
       const clone = li.cloneNode(true) as HTMLElement;
       // Exemplos e subacepções vivem em listas aninhadas: separá-los do texto da definição.
       const nested = Array.from(clone.querySelectorAll('ul, ol, dl'));
-      const examples = nested
-        .map(n => (n.textContent || '').replace(/\s+/g, ' ').trim())
-        .filter(t => t.length > 1);
-      nested.forEach(n => n.remove());
+      const examples = nested.map((n) => (n.textContent || '').replace(/\s+/g, ' ').trim()).filter((t) => t.length > 1);
+      nested.forEach((n) => n.remove());
 
       const definition = (clone.textContent || '').replace(/\s+/g, ' ').trim();
       if (definition) senses.push({ partOfSpeech: pos, definition, examples });
@@ -236,12 +312,7 @@ export interface WikiHit {
 }
 
 /** Busca a seção do idioma num wiki. `null` = aquele wiki não tem verbete deste idioma. */
-async function fetchSection(
-  host: string,
-  wikiLang: string,
-  word: string,
-  wordLang: string,
-): Promise<WikiHit | null> {
+async function fetchSection(host: string, wikiLang: string, word: string, wordLang: string): Promise<WikiHit | null> {
   const heading = sectionName(wikiLang, wordLang);
   if (!heading) return null; // sem mapa do nome da seção, não temos como localizar, e não chutamos
 
@@ -285,7 +356,7 @@ export function secaoDoVerbete(wikiLang: string, word: string, wordLang: string)
  */
 function wikiChain(wordLang: string): Array<{ host: string; lang: string }> {
   const langs = [uiLang(), wordLang, 'en'].filter((l, i, a) => l && a.indexOf(l) === i);
-  return langs.map(l => ({ host: wikiHost(l), lang: l }));
+  return langs.map((l) => ({ host: wikiHost(l), lang: l }));
 }
 
 async function lookupUncached(word: string, lang: string): Promise<DictionaryResult> {
@@ -377,12 +448,14 @@ export async function lookup(word: string, lang: string): Promise<DictionaryResu
   if (pending) return pending;
 
   const p = lookupUncached(term, l)
-    .then(result => {
+    .then((result) => {
       // Erros de rede NÃO entram no cache: seria condenar a palavra a falhar para sempre.
       if (result.status !== 'error') cache.set(key, result);
       return result;
     })
-    .finally(() => { inflight.delete(key); });
+    .finally(() => {
+      inflight.delete(key);
+    });
 
   inflight.set(key, p);
   return p;

@@ -6,7 +6,13 @@ import { describe, expect, it } from 'vitest'
 
 import { historicoDoInterprete } from '../src/lib/captura/historicoDoInterprete'
 
-const emAndamento = { id: 'mic-1', originalText: 'I want to buy rice,', translatedText: 'Eu quero comprar arroz,', isPartial: true, lado: 'outro' as const }
+const emAndamento = {
+  id: 'mic-1',
+  originalText: 'I want to buy rice,',
+  translatedText: 'Eu quero comprar arroz,',
+  isPartial: true,
+  lado: 'outro' as const,
+}
 
 describe('historicoDoInterprete: parcial traduzido do outro lado', () => {
   it('sem a opção, nada muda (o parcial do outro não aparece)', () => {
@@ -29,8 +35,12 @@ describe('historicoDoInterprete: parcial traduzido do outro lado', () => {
   })
 
   it('tradução ainda em "…" ou vazia não aparece', () => {
-    expect(historicoDoInterprete([{ ...emAndamento, translatedText: '…' }], 'meu', { parcialDoOutro: true }).parcialDoOutro).toBeUndefined()
-    expect(historicoDoInterprete([{ ...emAndamento, translatedText: '' }], 'meu', { parcialDoOutro: true }).parcialDoOutro).toBeUndefined()
+    expect(
+      historicoDoInterprete([{ ...emAndamento, translatedText: '…' }], 'meu', { parcialDoOutro: true }).parcialDoOutro,
+    ).toBeUndefined()
+    expect(
+      historicoDoInterprete([{ ...emAndamento, translatedText: '' }], 'meu', { parcialDoOutro: true }).parcialDoOutro,
+    ).toBeUndefined()
   })
 
   it('quando o final chega, o parcial some e a fala vira item normal', () => {

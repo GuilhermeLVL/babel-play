@@ -65,7 +65,8 @@ const montar = (extra: Partial<React.ComponentProps<typeof Palavras>> = {}) => {
   return p
 }
 const palavras = () => [...document.querySelectorAll('tbody tr')].map((tr) => tr.getAttribute('data-palavra'))
-const estado = (nome: RegExp) => within(screen.getByRole('radiogroup', { name: 'Estado do cartão' })).getByRole('radio', { name: nome })
+const estado = (nome: RegExp) =>
+  within(screen.getByRole('radiogroup', { name: 'Estado do cartão' })).getByRole('radio', { name: nome })
 
 beforeEach(() => localStorage.clear())
 afterEach(() => {
@@ -141,7 +142,9 @@ describe('a lista', () => {
     expect(palavras()).toEqual(['nap', 'put off', 'roadmap', 'ship', 'though'])
     fireEvent.click(ordenar.getByRole('button', { name: 'Mais erradas' }))
     expect(palavras()[0]).toBe('though')
-    fireEvent.click(within(screen.getByRole('group', { name: 'Fora da revisão' })).getByRole('button', { name: /Suspensas/ }))
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Fora da revisão' })).getByRole('button', { name: /Suspensas/ }),
+    )
     expect(palavras()).toEqual(['loading'])
     expect(document.querySelector('tr[data-palavra="loading"] .qv-estado')?.textContent).toBe('Suspensa')
     expect(screen.getByRole('button', { name: /Filtros/ }).querySelector('.q-tag')?.textContent).toBe('2')
@@ -151,7 +154,10 @@ describe('a lista', () => {
   })
 
   it('com uma sessão na ficha, a lista e as contagens são só dela', () => {
-    montar({ conteudo: { idioma: 'en', fonte: { tipo: 'sessao', id: 's1', nome: 'Reunião de produto' } }, rotuloDoConteudo: 'Reunião de produto' })
+    montar({
+      conteudo: { idioma: 'en', fonte: { tipo: 'sessao', id: 's1', nome: 'Reunião de produto' } },
+      rotuloDoConteudo: 'Reunião de produto',
+    })
     expect(palavras()).toEqual(['though', 'ship', 'roadmap'])
     expect(estado(/^Todas/).textContent).toBe('Todas 3')
     expect(document.querySelector('.qv-quantas')?.textContent).toBe('3 de 3 · Reunião de produto')
@@ -172,7 +178,12 @@ describe('a seleção em massa', () => {
     expect(document.querySelector('.ct-faixa-sel .q-tempo')?.textContent?.replace(/\s+/g, ' ')).toBe('2 selecionadas')
     expect(document.querySelectorAll('tr[data-marcada]')).toHaveLength(2)
     /* Em massa ficam as ações que o app cumpre: sem "Mover para Difíceis" nem "Etiquetar". */
-    expect(faixa.getAllByRole('button').map((b) => b.textContent?.trim())).toEqual(['Suspender', 'Praticar', 'Exportar', 'Cancelar'])
+    expect(faixa.getAllByRole('button').map((b) => b.textContent?.trim())).toEqual([
+      'Suspender',
+      'Praticar',
+      'Exportar',
+      'Cancelar',
+    ])
     fireEvent.click(faixa.getByRole('button', { name: /Praticar/ }))
     expect(aoPraticar).toHaveBeenCalledWith(['ship', 'nap'], '2 palavras selecionadas')
   })
@@ -184,12 +195,18 @@ describe('a seleção em massa', () => {
     expect(api.atualizar).toHaveBeenCalledWith('ship', { inDeck: false })
     const aviso = await waitFor(() => screen.getByRole('status'))
     expect(aviso.textContent).toContain('2 suspensas')
-    expect(aoMudar).toHaveBeenLastCalledWith([expect.objectContaining({ id: 'ship', inDeck: false }), expect.objectContaining({ id: 'nap', inDeck: false })])
+    expect(aoMudar).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: 'ship', inDeck: false }),
+      expect.objectContaining({ id: 'nap', inDeck: false }),
+    ])
     expect(screen.queryByRole('toolbar', { name: 'Ações para as selecionadas' })).toBeNull()
     fireEvent.click(within(aviso).getByRole('button', { name: /Desfazer/ }))
     await waitFor(() => expect(api.atualizar).toHaveBeenCalledWith('nap', { inDeck: true }))
     await waitFor(() => expect(screen.queryByRole('status')).toBeNull())
-    expect(aoMudar).toHaveBeenLastCalledWith([expect.objectContaining({ id: 'ship', inDeck: true }), expect.objectContaining({ id: 'nap', inDeck: true })])
+    expect(aoMudar).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: 'ship', inDeck: true }),
+      expect.objectContaining({ id: 'nap', inDeck: true }),
+    ])
   })
 
   it('"Exportar" entrega as selecionadas; "Cancelar" limpa a seleção', () => {

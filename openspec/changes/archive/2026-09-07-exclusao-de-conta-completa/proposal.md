@@ -12,6 +12,7 @@
 ## Capabilities
 
 ### New Capabilities
+
 - `exclusao-e-exportacao-completas`: a conta inteira, definida pelo schema, e o que sai e o que se apaga.
 
 ## Impact

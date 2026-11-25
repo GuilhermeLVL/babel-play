@@ -30,12 +30,23 @@ const esperar = () => new Promise((r) => setTimeout(r, 0))
 const conhecidas: ConhecidasDaFala = criarPalavrasConhecidas({
   idioma: 'en',
   nivel: null,
-  cartoes: [{ word: 'dog', fsrsState: 'Review', fsrsStability: 30 }, { word: 'kitchen', fsrsState: 'Review', fsrsStability: 30 }],
+  cartoes: [
+    { word: 'dog', fsrsState: 'Review', fsrsStability: 30 },
+    { word: 'kitchen', fsrsState: 'Review', fsrsStability: 30 },
+  ],
 })
 
 function montar(modo?: ModoDeTraducao) {
   let segs: SpeechSegment[] = [
-    { id: 'u1', speakerId: 'sys', source: 'system', timestamp: '0:00', originalText: 'x', translatedText: '…', words: [] },
+    {
+      id: 'u1',
+      speakerId: 'sys',
+      source: 'system',
+      timestamp: '0:00',
+      originalText: 'x',
+      translatedText: '…',
+      words: [],
+    },
   ]
   const translate = vi.fn(async (texto: string) => ({ text: `[mt] ${texto}`, engine: 'opus-mt-local' }))
   const pedidos = new Map<string, PedidoSobDemanda>()
@@ -46,7 +57,11 @@ function montar(modo?: ModoDeTraducao) {
     targetLangRef: ref('pt'),
     idiomaObservadoRef: ref('en'),
     perfilIdiomaRef: ref(new PerfilAdaptativoDeIdioma()),
-    speechSegmentsRef: { get current() { return segs } },
+    speechSegmentsRef: {
+      get current() {
+        return segs
+      },
+    },
     translationCacheRef: ref(new Map<string, string>()),
     mtFailNotifiedRef: ref(false),
     altTargetNotifiedRef: ref(false),
@@ -56,7 +71,9 @@ function montar(modo?: ModoDeTraducao) {
     },
     setFeedbackMsg: () => {},
     memoriaPersistente: null,
-    ...(modo ? { modoDeTraducaoRef: ref(modo), conhecidasRef: ref(conhecidas), pedidosSobDemandaRef: ref(pedidos) } : {}),
+    ...(modo
+      ? { modoDeTraducaoRef: ref(modo), conhecidasRef: ref(conhecidas), pedidosSobDemandaRef: ref(pedidos) }
+      : {}),
   })
   return { translateSegment, revelarTraducao, translate, seg: () => segs[0], pedidos }
 }

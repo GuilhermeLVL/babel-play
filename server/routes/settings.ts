@@ -74,15 +74,13 @@ settingsRouter.put('/', async (req, res) => {
     }
     res.json(await settingsRepo.update(req.userId, patch))
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, {
-          status: 400,
-          event: 'settings_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, {
+        status: 400,
+        event: 'settings_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })

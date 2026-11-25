@@ -45,10 +45,7 @@
     "borderTopStyle",
     "textTransform"
   ],
-  "seletores": [
-    ".px-vitrine",
-    ".px-tema"
-  ],
+  "seletores": [".px-vitrine", ".px-tema"],
   "gravar": {
     "app": [
       {

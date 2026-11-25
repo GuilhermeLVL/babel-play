@@ -6,17 +6,17 @@ A pergunta era "remover ou implementar?", tabela por tabela. **O dono respondeu 
 (07/09), com a mesma liberação da economia: a aplicação não tem usuários.** A tabela abaixo é a
 decisão, com o que foi medido no banco real no dia.
 
-| objeto | linhas | operações em `server/` | decisão |
-|---|---|---|---|
-| `analyses` | 0 | 0 | remover |
-| `profiles` | 0 | 0 | remover |
-| `anki_media` | 0 | 0 | remover |
-| `anki_note_media` | 0 | 0 | remover |
-| `vocab_cards.frequency` | 0 escritas em 2.818 | 0 | remover a coluna |
-| `server/lib/ankiMidia.ts` | — | 0 importadores (nem em teste) | remover |
-| `CachedAnalysis` | — | 0 usos | remover |
-| `VocabCard.frequency` (cliente) | — | 0 leituras, 1 escrita cravada | remover o campo |
-| `recalcularDificuldade` | — | 0 chamadores de PRODUÇÃO | **ligar**, não remover |
+| objeto                          | linhas              | operações em `server/`        | decisão                |
+| ------------------------------- | ------------------- | ----------------------------- | ---------------------- |
+| `analyses`                      | 0                   | 0                             | remover                |
+| `profiles`                      | 0                   | 0                             | remover                |
+| `anki_media`                    | 0                   | 0                             | remover                |
+| `anki_note_media`               | 0                   | 0                             | remover                |
+| `vocab_cards.frequency`         | 0 escritas em 2.818 | 0                             | remover a coluna       |
+| `server/lib/ankiMidia.ts`       | —                   | 0 importadores (nem em teste) | remover                |
+| `CachedAnalysis`                | —                   | 0 usos                        | remover                |
+| `VocabCard.frequency` (cliente) | —                   | 0 leituras, 1 escrita cravada | remover o campo        |
+| `recalcularDificuldade`         | —                   | 0 chamadores de PRODUÇÃO      | **ligar**, não remover |
 
 **Por que remover, e não deixar por precaução.** Uma tabela vazia não é neutra. Ela afirma que o
 produto guarda aquilo — `analyses` chegava a ter, em `contract.ts`, um comentário explicando que

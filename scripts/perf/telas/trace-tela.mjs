@@ -53,7 +53,11 @@ if (executadoDireto(import.meta.url)) {
   await p.goto(base + '/', { waitUntil: 'networkidle' })
   for (let i = 0; i < 20 && (await p.locator('dialog[open]').count()); i++) {
     const r = p.locator('dialog[open]').getByRole('button', { name: /Resgatar|continuar|Fechar|Entendi/i })
-    if (await r.count()) await r.first().click().catch(() => {})
+    if (await r.count())
+      await r
+        .first()
+        .click()
+        .catch(() => {})
     else await p.keyboard.press('Escape')
     await p.waitForTimeout(400)
   }
@@ -67,16 +71,27 @@ if (executadoDireto(import.meta.url)) {
     await p.waitForTimeout(400)
   }
   if (jogo) {
-    await p.getByRole('button', { name: `Jogar: ${jogo}`, exact: true }).first().click()
+    await p
+      .getByRole('button', { name: `Jogar: ${jogo}`, exact: true })
+      .first()
+      .click()
     await p.waitForTimeout(1500)
     const pular = p.getByRole('button', { name: 'Pular a explicação' })
-    if (await pular.count()) await pular.first().click().catch(() => {})
+    if (await pular.count())
+      await pular
+        .first()
+        .click()
+        .catch(() => {})
     await p.waitForTimeout(800)
   }
   await navegador.startTracing(p, { path: saida, screenshots: false })
   if (clicar) {
     await p.waitForTimeout(300)
-    await p.getByRole('button', { name: clicar }).or(p.getByRole('tab', { name: clicar })).first().click()
+    await p
+      .getByRole('button', { name: clicar })
+      .or(p.getByRole('tab', { name: clicar }))
+      .first()
+      .click()
   }
   await p.waitForTimeout(segundos * 1000)
   await navegador.stopTracing()

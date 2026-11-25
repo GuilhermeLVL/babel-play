@@ -4,11 +4,11 @@
  * Cobre os dois arrays SQL[] (histórico e recordes) além de list/listBySession/listByOrigem.
  * B tem placar MAIOR que A de propósito: se o recorde vazasse, A veria o 100 de B.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { MINIGAME_IDS } from '../../src/core/minigames/revelavel'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')
@@ -32,14 +32,32 @@ beforeAll(async () => {
   // passavam porque `add` gravava qualquer sessionId sem conferir. Depois do P2-8 o repo
   // confere o dono e uma sessão inexistente vira `null` — então o teste precisa de sessões
   // de verdade, o que também torna a asserção de tenancy honesta.
-  const { sessionsRepo } = await h.load('../../server/db/repositories/sessions') as any
+  const { sessionsRepo } = (await h.load('../../server/db/repositories/sessions')) as any
   sessA = (await sessionsRepo.create(A, { title: 'de A', kind: 'audio' })).id
   sessB = (await sessionsRepo.create(B, { title: 'de B', kind: 'audio' })).id
 
-  await repo.add(A, { itemRef: 'house', origem: 'baralho', roundId: 'rA', exerciseKind: JOGO, score: 60, correct: 1, sessionId: sessA })
-  await repo.add(B, { itemRef: 'house', origem: 'baralho', roundId: 'rB', exerciseKind: JOGO, score: 100, correct: 0, sessionId: sessB })
+  await repo.add(A, {
+    itemRef: 'house',
+    origem: 'baralho',
+    roundId: 'rA',
+    exerciseKind: JOGO,
+    score: 60,
+    correct: 1,
+    sessionId: sessA,
+  })
+  await repo.add(B, {
+    itemRef: 'house',
+    origem: 'baralho',
+    roundId: 'rB',
+    exerciseKind: JOGO,
+    score: 100,
+    correct: 0,
+    sessionId: sessB,
+  })
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('Marco 1 — isolamento exerciseResults', () => {
   it('list/listBySession/listByOrigem isolados', async () => {
@@ -55,7 +73,7 @@ describe('Marco 1 — isolamento exerciseResults', () => {
   it('histórico por item só conta o do próprio usuário', async () => {
     const hist = await repo.listarHistoricoPorItem(A, { origem: 'baralho' })
     const house = hist.find((x: any) => x.itemRef === 'house')
-    expect(house.vezes).toBe(1)          // só a linha de A (não 2)
+    expect(house.vezes).toBe(1) // só a linha de A (não 2)
     expect(house.ultimoAcerto).toBe(true) // A acertou; o erro de B não conta
   })
 

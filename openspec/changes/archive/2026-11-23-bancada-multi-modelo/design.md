@@ -15,12 +15,14 @@ referencia, contexto[], nota`), `corpus-pt-br.jsonl` (48 áudios CORAA) e 7 cen�
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Rankear candidatos por **qualidade em fala espontânea pt-BR**, com custo medido ao lado.
 - Produzir um resultado **auditável**: JSON bruto caso a caso, para que qualquer conclusão possa ser
   conferida sem repetir a bateria.
 - Manter fidelidade ao produto: mesmo prompt, mesma temperatura, mesmo contexto de 3 falas.
 
 **Non-Goals:**
+
 - **Não** trocar o motor de produção. Isso é outra mudança, que consome estes números.
 - **Não** medir latência como número de produção — camada gratuita tem limite de requisição, e
   latência ali não descreve o que o usuário veria.

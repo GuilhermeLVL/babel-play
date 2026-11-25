@@ -1,6 +1,7 @@
 # stt-openrouter Specification
 
 ## Purpose
+
 STT pelo endpoint JSON do OpenRouter com retenção zero e registro pronto de provedores. Criada pela change `openrouter-como-provedor-de-ia` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-openrouter-como-provedor-de-ia/proposal.md` para o porquê.
 
 ## Requirements

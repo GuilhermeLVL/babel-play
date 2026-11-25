@@ -11,11 +11,11 @@
  * quem pagou. Um gate que recusa o item comprado não é rigor, é um defeito com outra cara — e era
  * exatamente o que acontecia no cliente, onde a segunda régua (`desbloqueado`) não sabia de compra.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { CATALOGO_DA_LOJA, temPortaDeNivel } from '../../src/core/loja'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let settingsRouter: any
@@ -23,14 +23,22 @@ let settingsRouter: any
 const U = asUserId('posse-u1')
 
 /** Um tema que exige nível alto e pode ser comprado com seeds — o caso interessante. */
-const TEMA_CARO = CATALOGO_DA_LOJA.find((i) => i.tipo === 'tema' && temPortaDeNivel(i) && i.nivel >= 8 && i.precoSeeds !== undefined)!
+const TEMA_CARO = CATALOGO_DA_LOJA.find(
+  (i) => i.tipo === 'tema' && temPortaDeNivel(i) && i.nivel >= 8 && i.precoSeeds !== undefined,
+)!
 /** Um tema livre desde o começo: a régua não pode atrapalhar quem não deve nada. */
 const TEMA_LIVRE = CATALOGO_DA_LOJA.find((i) => i.tipo === 'tema' && i.nivel === 1 && !i.exclusivoDe)!
 
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 
@@ -46,7 +54,9 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ settingsRouter } = (await h.load('../../server/routes/settings')) as any)
 })
-afterAll(async () => { await h?.cleanup?.() })
+afterAll(async () => {
+  await h?.cleanup?.()
+})
 
 describe('PUT /api/settings — posse de cosméticos', () => {
   it('tema caro sem nível, sem compra: 403 dizendo o que falta', async () => {

@@ -13,9 +13,9 @@
  * O cliente NÃO mudou uma linha: `src/lib/ranking.ts` chama os mesmos `/api/rank/<jogo>` de antes.
  * Era o servidor do outro lado que não existia.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let rankRouter: any
@@ -29,12 +29,24 @@ function handler(metodo: 'get' | 'post'): (req: any, res: any) => Promise<void> 
 }
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
-const pedido = (jogo: string, corpo?: unknown, ip = '198.51.100.7') =>
-  ({ params: { jogo }, query: {}, body: corpo ?? {}, ip, path: `/${jogo}`, requestId: 'r-rank' })
+const pedido = (jogo: string, corpo?: unknown, ip = '198.51.100.7') => ({
+  params: { jogo },
+  query: {},
+  body: corpo ?? {},
+  ip,
+  path: `/${jogo}`,
+  requestId: 'r-rank',
+})
 
 async function enviar(jogo: string, corpo: unknown, ip?: string) {
   const res = mockRes()
@@ -52,7 +64,9 @@ beforeAll(async () => {
   ;({ rankRouter } = (await h.load('../../server/routes/rank')) as any)
   ;({ rankRepo, TETO_DE_PONTOS } = (await h.load('../../server/db/repositories/rank')) as any)
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('o placar responde', () => {
   it('um envio entra e volta na leitura', async () => {
@@ -70,8 +84,22 @@ describe('o placar responde', () => {
        indefinido e o teste, intermitente. Um teste que às vezes passa não prova ordenação. */
     const base = 1_700_000_000_000
     await rankRepo.registrar({ jogo: 'memory', apelido: 'Primeiro', pontos: 500, combo: 3, ipHash: 'a', agora: base })
-    await rankRepo.registrar({ jogo: 'memory', apelido: 'Segundo', pontos: 500, combo: 9, ipHash: 'b', agora: base + 1_000 })
-    await rankRepo.registrar({ jogo: 'memory', apelido: 'Melhor', pontos: 700, combo: 4, ipHash: 'c', agora: base + 2_000 })
+    await rankRepo.registrar({
+      jogo: 'memory',
+      apelido: 'Segundo',
+      pontos: 500,
+      combo: 9,
+      ipHash: 'b',
+      agora: base + 1_000,
+    })
+    await rankRepo.registrar({
+      jogo: 'memory',
+      apelido: 'Melhor',
+      pontos: 700,
+      combo: 4,
+      ipHash: 'c',
+      agora: base + 2_000,
+    })
     const res = await ler('memory')
     expect(res.body.linhas.map((l: any) => l.apelido)).toEqual(['Melhor', 'Primeiro', 'Segundo'])
   })
@@ -156,7 +184,14 @@ describe('as guardas de um placar público', () => {
 describe('o repositório', () => {
   it('o topo respeita o limite pedido', async () => {
     for (let i = 0; i < 5; i++) {
-      await rankRepo.registrar({ jogo: 'ditado', apelido: `Jogador${i}`, pontos: 100 + i, combo: 1, ipHash: `h${i}`, agora: Date.now() + i })
+      await rankRepo.registrar({
+        jogo: 'ditado',
+        apelido: `Jogador${i}`,
+        pontos: 100 + i,
+        combo: 1,
+        ipHash: `h${i}`,
+        agora: Date.now() + i,
+      })
     }
     expect(await rankRepo.topo('ditado', 3)).toHaveLength(3)
     expect((await rankRepo.topo('ditado', 3))[0].apelido).toBe('Jogador4')

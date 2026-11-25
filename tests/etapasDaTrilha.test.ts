@@ -9,13 +9,19 @@
  * A segunda é a honestidade do rótulo: nenhuma etapa derivada pode ganhar um nome temático, porque
  * o dado de origem é uma lista alfabética e não há tema nenhum lá dentro.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import trilhaEn from '../public/trilha/en.json'
 import {
-CORTE_DE_FEITA, type DadoTrilhaComEtapas,
-etapaAtual,   etapasDoNivel, niveisComEtapas,
-posicaoNaTrilha, progressoDasEtapas,   TAMANHO_PADRAO, } from '../src/core/learning/etapas'
+  CORTE_DE_FEITA,
+  type DadoTrilhaComEtapas,
+  etapaAtual,
+  etapasDoNivel,
+  niveisComEtapas,
+  posicaoNaTrilha,
+  progressoDasEtapas,
+  TAMANHO_PADRAO,
+} from '../src/core/learning/etapas'
 import { chaveDaPalavra } from '../src/core/learning/trilha'
 
 const EN = trilhaEn as unknown as DadoTrilhaComEtapas
@@ -26,7 +32,7 @@ function dadoDe(palavras: string[]): DadoTrilhaComEtapas {
     lang: 'xx',
     fonte: 'teste',
     versao: '1',
-    niveis: { A1: palavras.map(p => [p, `t-${p}`] as [string, string]) },
+    niveis: { A1: palavras.map((p) => [p, `t-${p}`] as [string, string]) },
   }
 }
 
@@ -38,16 +44,16 @@ describe('fatiamento determinístico', () => {
   })
 
   it('preserva a ordem do dado — a etapa 1 começa onde a lista começa', () => {
-    const lista = (EN.niveis.A2 ?? []).map(p => p[0])
+    const lista = (EN.niveis.A2 ?? []).map((p) => p[0])
     const [primeira] = etapasDoNivel(EN, 'A2')
     expect(primeira.palavras[0]).toBe(lista[0])
     expect(primeira.palavras).toEqual(lista.slice(0, TAMANHO_PADRAO))
   })
 
   it('nenhuma palavra fica de fora e nenhuma aparece em duas etapas', () => {
-    const lista = (EN.niveis.A2 ?? []).map(p => p[0])
+    const lista = (EN.niveis.A2 ?? []).map((p) => p[0])
     const etapas = etapasDoNivel(EN, 'A2')
-    const todas = etapas.flatMap(e => e.palavras)
+    const todas = etapas.flatMap((e) => e.palavras)
 
     expect(todas).toHaveLength(lista.length)
     expect(new Set(todas).size).toBe(new Set(lista).size)
@@ -68,7 +74,7 @@ describe('fatiamento determinístico', () => {
     expect(etapas[0].id).toBe('en:A2:01')
     expect(etapas[9].id).toBe('en:A2:10')
     // Zero à esquerda para a ordenação alfabética coincidir com a numérica.
-    expect([...etapas.map(e => e.id)].sort()).toEqual(etapas.map(e => e.id))
+    expect([...etapas.map((e) => e.id)].sort()).toEqual(etapas.map((e) => e.id))
   })
 })
 
@@ -102,7 +108,7 @@ describe('progresso', () => {
 
   it('sem nada no caderno, a primeira é a atual e o resto é futura', () => {
     const p = progressoDasEtapas(etapas, new Set())
-    expect(p.map(x => x.estado)).toEqual(['atual', 'futura'])
+    expect(p.map((x) => x.estado)).toEqual(['atual', 'futura'])
     expect(etapaAtual(p)?.ordem).toBe(1)
   })
 
@@ -121,13 +127,13 @@ describe('progresso', () => {
 
   it('só UMA etapa é a atual, mesmo com várias em aberto', () => {
     const p = progressoDasEtapas(etapas, new Set())
-    expect(p.filter(x => x.estado === 'atual')).toHaveLength(1)
+    expect(p.filter((x) => x.estado === 'atual')).toHaveLength(1)
   })
 
   it('com o nível inteiro fechado, não há etapa atual', () => {
     const todas = new Set(Array.from({ length: 20 }, (_, i) => chaveDaPalavra(`w${i}`)))
     const p = progressoDasEtapas(etapas, todas)
-    expect(p.every(x => x.estado === 'feita')).toBe(true)
+    expect(p.every((x) => x.estado === 'feita')).toBe(true)
     expect(etapaAtual(p)).toBeNull()
   })
 

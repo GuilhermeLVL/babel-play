@@ -9,7 +9,7 @@
  *
  * Não é caso raro: todo baralho de idioma tem artigo ou pronome de uma letra.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { foraDoBulkAdd, LIMITES_DO_BULK_ADD } from '../src/core/learning/quality'
 
@@ -55,15 +55,49 @@ describe('a fronteira de formato do bulk-add', () => {
   it('o baralho que falhou de verdade passa a entregar 38 de 39', () => {
     // As 39 notas lidas do arquivo de teste; só `a` está fora do FORMATO.
     const notas = [
-      'bread', 'house', 'water', 'green', 'story', 'plant', 'child', 'river', 'light', 'night',
-      'table', 'smile', 'brave', 'cloud', 'dream', 'garden', 'winter', 'summer', 'forest',
-      'silver', 'door', 'fish', 'bird', 'tree', 'book', 'shelter', 'kitchen', 'morning',
-      'freedom', 'teacher', 'friendship', 'understand', 'ice cream', 'be', 'a', 'the',
-      'duplicate', 'duplicate', 'run',
+      'bread',
+      'house',
+      'water',
+      'green',
+      'story',
+      'plant',
+      'child',
+      'river',
+      'light',
+      'night',
+      'table',
+      'smile',
+      'brave',
+      'cloud',
+      'dream',
+      'garden',
+      'winter',
+      'summer',
+      'forest',
+      'silver',
+      'door',
+      'fish',
+      'bird',
+      'tree',
+      'book',
+      'shelter',
+      'kitchen',
+      'morning',
+      'freedom',
+      'teacher',
+      'friendship',
+      'understand',
+      'ice cream',
+      'be',
+      'a',
+      'the',
+      'duplicate',
+      'duplicate',
+      'run',
     ]
-    const vao = notas.filter(w => foraDoBulkAdd(w) === null)
+    const vao = notas.filter((w) => foraDoBulkAdd(w) === null)
     expect(notas.length).toBe(39)
     expect(vao.length).toBe(38)
-    expect(notas.filter(w => foraDoBulkAdd(w) !== null)).toEqual(['a'])
+    expect(notas.filter((w) => foraDoBulkAdd(w) !== null)).toEqual(['a'])
   })
 })

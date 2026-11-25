@@ -95,10 +95,5 @@
     ],
     "depois": 900
   },
-  "seletores": [
-    ".pj-vaga.pj-fixa",
-    ".pj-vaga:not(.cheia)",
-    ".pj-cho",
-    "[data-pj='rotulo']"
-  ]
+  "seletores": [".pj-vaga.pj-fixa", ".pj-vaga:not(.cheia)", ".pj-cho", "[data-pj='rotulo']"]
 }

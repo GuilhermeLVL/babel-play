@@ -25,7 +25,9 @@ export function lerRecorteDaPratica(bruto: unknown): RecorteDaPratica | undefine
   return {
     origem: origens.includes(r.origem as (typeof origens)[number]) ? (r.origem as RecorteDaPratica['origem']) : 'hoje',
     rotulo: r.rotulo.trim(),
-    ids: Array.isArray(r.ids) ? r.ids.filter((x): x is string => typeof x === 'string' && !!x).slice(0, 500) : undefined,
+    ids: Array.isArray(r.ids)
+      ? r.ids.filter((x): x is string => typeof x === 'string' && !!x).slice(0, 500)
+      : undefined,
     sessionId: typeof r.sessionId === 'string' && r.sessionId ? r.sessionId : undefined,
   };
 }

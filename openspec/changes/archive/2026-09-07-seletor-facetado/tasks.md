@@ -10,8 +10,7 @@
       motivo de bloqueio declarativo em `estadoDosJogos.ts` (degradado/indisponível com motivo)
 - [x] 1.4 S8 teto de `word` na projeção Anki — `foraDoBulkAdd` (a mesma régua do caminho manual)
       roda em `projetarDoAnki` e grava `motivoDescarte` (`vocab.ts:~831-842`)
-- [x] 1.5 S11 idioma do baralho com detecção de escrita — `escritaDominante`/`contagemDeEscritas`
-      + `decidirIdiomaOrigem` com regra kana/hangul-presença e piso `max(2, total*0.02)`
+- [x] 1.5 S11 idioma do baralho com detecção de escrita — `escritaDominante`/`contagemDeEscritas` + `decidirIdiomaOrigem` com regra kana/hangul-presença e piso `max(2, total*0.02)`
       (`server/import/anki.ts`, `server/routes/import.ts`)
 - [x] 1.6 S10 entidades (numéricas + nomeadas) e furigana escopada `Han[Kana]→Han` decodificadas
       em `limparCampo` (`server/import/anki.ts:~104+`)

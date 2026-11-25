@@ -11,10 +11,10 @@
  * porque os testes dela ficam verdes e dão a impressão contrária. Este arquivo testa a ROTA, não
  * a função: é a rota que a auditoria encontrou vazia.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let exercisesRouter: any
@@ -27,8 +27,14 @@ function handler(caminho: string, metodo = 'post'): (req: any, res: any) => Prom
 }
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 
@@ -37,7 +43,9 @@ beforeAll(async () => {
   ;({ exercisesRouter } = (await h.load('../../server/routes/exercises')) as any)
   ;({ vocabRepo } = (await h.load('../../server/db/repositories/vocab')) as any)
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('POST /api/exercises/rodada dispara o recálculo', () => {
   it('os cartões jogados saem com difficulty_score; os não jogados continuam intocados', async () => {
@@ -59,16 +67,24 @@ describe('POST /api/exercises/rodada dispara o recálculo', () => {
     for (const c of cards) expect(c.difficultyScore ?? null).toBeNull()
 
     const res = mockRes()
-    await handler('/rodada')({
-      userId: u, path: '/rodada', requestId: 'r-dif',
-      body: {
-        roundId: 'dif-1', exerciseKind: 'termo', origem: 'baralho', score: 40,
-        itens: [
-          { cardId: jogado.id, itemRef: 'threshold', correct: 0, attempts: 3, kind: 'drill' },
-          { cardId: tambemJogado.id, itemRef: 'water', correct: 1, attempts: 1, kind: 'drill' },
-        ],
+    await handler('/rodada')(
+      {
+        userId: u,
+        path: '/rodada',
+        requestId: 'r-dif',
+        body: {
+          roundId: 'dif-1',
+          exerciseKind: 'termo',
+          origem: 'baralho',
+          score: 40,
+          itens: [
+            { cardId: jogado.id, itemRef: 'threshold', correct: 0, attempts: 3, kind: 'drill' },
+            { cardId: tambemJogado.id, itemRef: 'water', correct: 1, attempts: 1, kind: 'drill' },
+          ],
+        },
       },
-    }, res)
+      res,
+    )
     expect(res.statusCode).toBe(200)
     expect(res.body).toMatchObject({ gravados: 2 })
 
@@ -95,16 +111,24 @@ describe('POST /api/exercises/rodada dispara o recálculo', () => {
     const dificil = cards.find((c: any) => c.word === 'ubiquitous')
     const facil = cards.find((c: any) => c.word === 'house')
     const res = mockRes()
-    await handler('/rodada')({
-      userId: u, path: '/rodada', requestId: 'r-dif2',
-      body: {
-        roundId: 'dif-2', exerciseKind: 'termo', origem: 'baralho', score: 10,
-        itens: [
-          { cardId: dificil.id, itemRef: 'ubiquitous', correct: 0, attempts: 4, kind: 'drill' },
-          { cardId: facil.id, itemRef: 'house', correct: 1, attempts: 1, kind: 'drill' },
-        ],
+    await handler('/rodada')(
+      {
+        userId: u,
+        path: '/rodada',
+        requestId: 'r-dif2',
+        body: {
+          roundId: 'dif-2',
+          exerciseKind: 'termo',
+          origem: 'baralho',
+          score: 10,
+          itens: [
+            { cardId: dificil.id, itemRef: 'ubiquitous', correct: 0, attempts: 4, kind: 'drill' },
+            { cardId: facil.id, itemRef: 'house', correct: 1, attempts: 1, kind: 'drill' },
+          ],
+        },
       },
-    }, res)
+      res,
+    )
     await new Promise((r) => setTimeout(r, 200))
 
     const depois = await vocabRepo.list(u)
@@ -120,13 +144,21 @@ describe('POST /api/exercises/rodada dispara o recálculo', () => {
        e mandam `itemRef` sem `cardId`. A rodada tem de gravar do mesmo jeito. */
     const u = asUserId('u-dificuldade-3')
     const res = mockRes()
-    await handler('/rodada')({
-      userId: u, path: '/rodada', requestId: 'r-dif3',
-      body: {
-        roundId: 'dif-3', exerciseKind: 'karaoke', origem: 'sessao:x', score: 80,
-        itens: [{ itemRef: 'uma fala inteira', correct: 1, kind: 'drill' }],
+    await handler('/rodada')(
+      {
+        userId: u,
+        path: '/rodada',
+        requestId: 'r-dif3',
+        body: {
+          roundId: 'dif-3',
+          exerciseKind: 'karaoke',
+          origem: 'sessao:x',
+          score: 80,
+          itens: [{ itemRef: 'uma fala inteira', correct: 1, kind: 'drill' }],
+        },
       },
-    }, res)
+      res,
+    )
     expect(res.statusCode).toBe(200)
     expect(res.body).toMatchObject({ gravados: 1 })
   })

@@ -77,6 +77,8 @@ const SELFHOST: Entitlements = Object.freeze({
 const EDICAO_ESTATICA: Entitlements = Object.freeze({
   plan: 'anonimo',
   ...ENTITLEMENTS_FECHADOS,
+  /* Tudo roda no aparelho, sem nuvem nem conta: a legenda da conversa virtual segue livre (18+ é confirmado na folha). */
+  conversaVirtual: true,
   armazenamento: { usados: 0, teto: 0 },
 });
 

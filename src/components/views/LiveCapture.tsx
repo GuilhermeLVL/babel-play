@@ -3343,6 +3343,8 @@ export default function LiveCapture({
   /* O MODO AUTOMÁTICO DO INTÉRPRETE NESTA CONTA (decisão do dono, 30/09: só no Premium). Quem o tem
      começa nele; quem não tem vê o botão com cadeado — menos no site sem servidor (não há plano a
      assinar) e no perfil protegido (só o que é funcional, nada de oferta). */
+  /* A CONVERSA VIRTUAL NESTA CONTA (`conversaVirtual`; legenda livre para quem tem conta, convidado fora). */
+  const virtualNoPlano = !!getEntitlements().conversaVirtual;
   const automaticoDoInterprete: AutomaticoNoPlano = getEntitlements().interpreteAutomatico
     ? 'disponivel'
     : edicaoEstatica() || perfilProtegido()
@@ -4265,7 +4267,7 @@ export default function LiveCapture({
               vozDoSite={nuvemDoQuestAtiva()}
               aoConhecerOPremium={conhecerOPremium}
               aoComecar={entrarNoInterprete}
-              {...(chaveLigada('virtual') && systemEnabled && !capturaEnxuta
+              {...(chaveLigada('virtual') && virtualNoPlano && systemEnabled && !capturaEnxuta
                 ? { aoComecarVirtual: entrarNaConversaVirtual }
                 : {})}
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
@@ -4659,7 +4661,7 @@ export default function LiveCapture({
             aoConhecerOPremium={conhecerOPremium}
             aoEscolherOutroAvatar={onChangeView ? () => abrirMeuAvatar(onChangeView) : undefined}
             janelaFlutuante={janelaDoInterprete}
-            comVirtual={chaveLigada('virtual') && systemEnabled && !capturaEnxuta}
+            comVirtual={chaveLigada('virtual') && virtualNoPlano && systemEnabled && !capturaEnxuta}
             assistente={doAssistente}
             aoOuvirSugestao={ouvirNaLegenda}
             {...(praticaDoInterprete ? { pratica: praticaDoInterprete } : {})}

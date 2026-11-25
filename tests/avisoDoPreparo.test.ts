@@ -72,7 +72,10 @@ describe('avisoComAVozPrimeiro (CONV-06)', () => {
     expect(avisoComAVozPrimeiro({ ...instalando, nativos: undefined }, VOZ)).toBeNull()
   })
 
-  it('o erro do preparo continua vencendo', () => {
-    expect(avisoComAVozPrimeiro({ ...instalando, error: 'falhou o modelo' }, VOZ)).toBe('falhou o modelo')
+  it('o erro do preparo continua vencendo, mas passa pelo mapa de mensagens (nunca "Failed to fetch" cru)', () => {
+    const a = avisoComAVozPrimeiro({ ...instalando, error: 'Failed to fetch' }, VOZ)
+    expect(a).toBeTruthy()
+    expect(a).not.toMatch(/Failed to fetch/)
+    expect(a).toBe(avisoDoPreparo({ ...instalando, error: 'Failed to fetch' }))
   })
 })

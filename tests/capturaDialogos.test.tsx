@@ -135,8 +135,9 @@ describe('Rápido ou Privado (a pergunta do microfone)', () => {
     // O nosso modelo vira a reserva, com o tamanho dito: nada de download escondido.
     expect(privado.textContent).toMatch(/cerca de 80 MB/)
     expect(screen.getByRole('button', { name: /Rápido/ }).textContent).not.toMatch(/Recomendado/)
-    // Recomendar não é marcar: consentimento continua sendo ato.
-    expect(screen.queryAllByRole('button', { pressed: true })).toHaveLength(0)
+    // A recomendada (Privado: o áudio não sai do aparelho) vem marcada; o Rápido, que envia o áudio, nunca vem.
+    expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: /Rápido/ }).getAttribute('aria-pressed')).toBe('false')
   })
 
   it('sem o pacote do navegador, nada de "Recomendado" nem de promessa do navegador', () => {
@@ -159,12 +160,12 @@ describe('Rápido ou Privado (a pergunta do microfone)', () => {
     expect(screen.getByRole('dialog').textContent).not.toMatch(/MB/)
   })
 
-  it('nenhuma opção vem marcada: "Continuar" só depois de escolher, e devolve a escolha', () => {
+  it('o "Privado" vem marcado (o áudio não sai do aparelho): "Continuar" já vale e a pessoa pode trocar', () => {
     const p = montar()
     const continuar = screen.getByRole('button', { name: 'Continuar' }) as HTMLButtonElement
-    expect(continuar.disabled).toBe(true)
-    expect(screen.queryAllByRole('button', { pressed: true })).toHaveLength(0)
-    fireEvent.click(screen.getByRole('button', { name: /Privado/ }))
+    expect(continuar.disabled).toBe(false)
+    expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: /Privado/ }).getAttribute('aria-pressed')).toBe('true')
     fireEvent.click(continuar)
     expect(p.aoEscolher).toHaveBeenCalledWith('privado')
     fireEvent.click(screen.getByRole('button', { name: /Rápido/ }))

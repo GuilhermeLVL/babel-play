@@ -369,7 +369,12 @@ describe('ModoInterprete: histórico e exportação', () => {
     exportacao.baixarTexto.mockClear()
     montar()
     fireEvent.click(screen.getByTestId('tela-conversa'))
-    fireEvent.click(screen.getByTestId('exportar-conversa'))
+    const botao = screen.getByTestId('exportar-conversa') as HTMLButtonElement
+    // Sem nada dito, o botão fica desligado e diz o motivo (antes parecia ativo e não fazia nada).
+    expect(botao.disabled).toBe(true)
+    expect(botao.title).toBe('Nada para exportar ainda')
+    expect(screen.getByText('Nada para exportar ainda', { selector: '#exportar-conversa-motivo' })).toBeTruthy()
+    fireEvent.click(botao)
     expect(exportacao.baixarTexto).not.toHaveBeenCalled()
   })
 })

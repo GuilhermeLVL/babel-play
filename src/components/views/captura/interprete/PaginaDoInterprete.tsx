@@ -311,7 +311,13 @@ export default function PaginaDoInterprete({
                 },
               }
             : {})}
-          lista={{ aberta: lista, bolhas: [], aoAlternar: () => setLista((v) => !v), aoExportar: () => undefined }}
+          lista={{
+            aberta: lista,
+            bolhas: [],
+            aoAlternar: () => setLista((v) => !v),
+            aoExportar: () => undefined,
+            podeExportar: false,
+          }}
           {...(pratica && pratica.possivel !== 'sem_idioma'
             ? { modos: [modoDaPratica(pratica, alternarPratica)] }
             : {})}

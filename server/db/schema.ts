@@ -1536,3 +1536,22 @@ export const palavrasMarcadas = pgTable(
   /* A PK serve às duas leituras: a lista da pessoa (prefixo `user_id`) e a de um idioma (`user_id`, `lang`). */
   (t) => [primaryKey({ columns: [t.userId, t.lang, t.chave] })],
 )
+
+/**
+ * AS OPÇÕES DA REVISÃO NA CONTA (openspec `cartoes`, tarefas 2.1 e 2.2; migração PG 0035, número PROVISÓRIO): uma
+ * linha por pessoa, com os dois limites diários (novas e revisões), a ordem, o tipo de cartão, a voz ao mostrar, a
+ * meta de retenção e os botões de nota. Valem em todos os aparelhos. Sem linha = as opções padrão
+ * (`src/core/learning/opcoesDaRevisao.ts`). Os valores são validados pela rota; sem CHECK, como as outras colunas de
+ * estado. O contador do dia NÃO mora aqui: vem de `agregados_diarios`. DADO DO TITULAR: exportação e exclusão.
+ */
+export const opcoesDaRevisao = pgTable('opcoes_da_revisao', {
+  userId: text('user_id').primaryKey(),
+  novas: bigint('novas', { mode: 'number' }).notNull(),
+  revisoes: bigint('revisoes', { mode: 'number' }).notNull(),
+  ordem: text('ordem').notNull(),
+  tipo: text('tipo').notNull(),
+  ouvir: boolean('ouvir').notNull(),
+  retencao: bigint('retencao', { mode: 'number' }).notNull(),
+  botoes: bigint('botoes', { mode: 'number' }).notNull(),
+  atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
+})

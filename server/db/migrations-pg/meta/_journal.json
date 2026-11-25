@@ -246,6 +246,34 @@
       "when": 1795366711728,
       "tag": "0034_flag_frase_por_frase",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795616218194,
+      "tag": "0035_opcoes_da_revisao",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795616218195,
+      "tag": "0036_flag_anki_mapeador",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795616218196,
+      "tag": "0037_flag_sombra_local",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795616218197,
+      "tag": "0038_flag_latencia_publicada",
+      "breakpoints": true
     }
   ]
 }

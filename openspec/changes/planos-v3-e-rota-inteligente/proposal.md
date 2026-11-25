@@ -104,3 +104,11 @@ tocam `politicaDeRota.ts` e `pipelineDeFala.ts`; `polimento-movimento` (#11) toc
 3. Abrir a venda do Plus (0.3 e 11.6): (a) um só pedido de parecer jurídico (preço, anual e anúncios, ECA Digital) e abrir só o mensal
    antes dele; (b) esperar o parecer para tudo; (c) abrir mensal e anual juntos. **Recomendo (a)**: o anual segue desligado
    (`ANUAL_ENABLED`) até o parecer, como já está no código.
+
+## Fechamento de 25/11/2026 (decisões assumidas)
+
+Decisão assumida: recomendação (a) das três decisões acima, 25/11. (1) Arquivar já: ADR 0016 escrito, abertas as changes
+`rota-inteligente-valendo` e `anuncios-no-gratis-fechamento` (só spec), tarefas abertas movidas (marca `[>]` em `tasks.md`).
+(2) Nuvem ao vivo e plano Ao Vivo abandonados; `ao-vivo-streaming-de-terceiro` descartada (ver o aviso no topo dela). A pergunta da
+`interprete-ao-vivo` (decisão 24) segue com o dono. (3) Mensal do Plus antes do parecer; o anual segue desligado (`ANUAL_ENABLED`).
+Fica para o dono: [D] conferência no Asaas, parecer jurídico, abrir a venda. Arquivamento: tarefa 12.1.

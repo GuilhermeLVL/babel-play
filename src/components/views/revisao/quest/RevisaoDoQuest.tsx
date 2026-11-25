@@ -244,6 +244,7 @@ export function FimDaRodadaNoQuest({
   aoPraticar,
   aoAbrirPalavra,
   aoVoltar,
+  semRede,
   children,
 }: {
   /** "Você fechou o dia" ou "Você fechou a sessão". */
@@ -273,6 +274,11 @@ export function FimDaRodadaNoQuest({
   aoPraticar?: () => void;
   aoAbrirPalavra?: (id: string) => void;
   aoVoltar: () => void;
+  /**
+   * Notas que o servidor não gravou (cartões 2.5): o fim da rodada AVISA, porque sair da tela as perde (nada fica
+   * guardado depois, retenção zero). Ausente = todas gravadas.
+   */
+  semRede?: { pendentes: number; aoTentar: () => void };
   children?: ReactNode;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
@@ -281,12 +287,7 @@ export function FimDaRodadaNoQuest({
   }, []);
   const ICONE = { comecaram: Sprout, subiram: TrendingUp, escaparam: Repeat } as const;
   return (
-    <div
-      className="q-palco q-revisao ct-rev ct-fim cx-fim"
-      data-testid="revisao-no-quest"
-      data-estado="fim"
-      ref={raiz}
-    >
+    <div className="q-palco q-revisao ct-rev ct-fim cx-fim" data-testid="revisao-no-quest" data-estado="fim" ref={raiz}>
       <header className="q-cab cx-topo">
         <button type="button" className="q-ctl q-voltar" aria-label={t('Voltar aos Cartões')} onClick={aoVoltar}>
           <ArrowLeft aria-hidden />
@@ -306,6 +307,25 @@ export function FimDaRodadaNoQuest({
           <Undo2 aria-hidden />
         </button>
       </header>
+      {semRede && (
+        <div className="cx-aviso ct-sem-rede" role="alert" data-testid="nota-nao-gravada">
+          <span className="cx-aviso-corpo">
+            <WifiOff aria-hidden />
+            <span>
+              <b>{t('Nota não gravada.')}</b>{' '}
+              {tp(
+                semRede.pendentes,
+                '{n} nota não chegou ao servidor. Se você sair agora, ela se perde.',
+                '{n} notas não chegaram ao servidor. Se você sair agora, elas se perdem.',
+              )}
+            </span>
+          </span>
+          <button type="button" className="cx-aviso-acao" onClick={semRede.aoTentar}>
+            <RefreshCw aria-hidden />
+            <span>{t('Tentar de novo')}</span>
+          </button>
+        </div>
+      )}
       <div className="q-cartao fundo qr-fecho">
         <span className="q-ic">
           <PartyPopper aria-hidden />
@@ -853,7 +873,12 @@ export function RodadaDoQuest({
                 <ChevronRight aria-hidden />
               </i>
             </button>
-            <button type="button" className="cx-aviso-x" aria-label={t('Dispensar o aviso')} onClick={aviso.aoDispensar}>
+            <button
+              type="button"
+              className="cx-aviso-x"
+              aria-label={t('Dispensar o aviso')}
+              onClick={aviso.aoDispensar}
+            >
               <X aria-hidden />
             </button>
           </div>
@@ -867,7 +892,12 @@ export function RodadaDoQuest({
                 <span className="cx-longo">{t(': elas esperam nesta tela até a internet voltar')}</span>.
               </span>
             </span>
-            <button type="button" className="cx-aviso-acao" aria-label={t('Tentar enviar agora')} onClick={aviso.aoTentar}>
+            <button
+              type="button"
+              className="cx-aviso-acao"
+              aria-label={t('Tentar enviar agora')}
+              onClick={aviso.aoTentar}
+            >
               <RefreshCw aria-hidden />
               <span>
                 {t('Tentar')}
@@ -1289,9 +1319,7 @@ export function OpcoesDaRevisaoNoQuest({
           <div>
             <b>{t('Botões de resposta')}</b>
             <small>
-              {valores.botoes === 2
-                ? t('Esqueci e Lembrei: gravam Errei e Bom.')
-                : t('Errei, Difícil, Bom e Fácil.')}
+              {valores.botoes === 2 ? t('Esqueci e Lembrei: gravam Errei e Bom.') : t('Errei, Difícil, Bom e Fácil.')}
             </small>
           </div>
           <Escolha<'2' | '4'>

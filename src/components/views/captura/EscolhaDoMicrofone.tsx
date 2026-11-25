@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../../lib/captura/motorDoMicrofone';
 import { t } from '../../../lib/i18n';
 import { Dialogo, fecharDialogoDe, IconeEmBloco } from '../../ui';
+import SeloDeLatencia from './SeloDeLatencia';
 
 /**
  * "RÁPIDO" OU "PRIVADO" — a pergunta do microfone na PRIMEIRA vez em que o navegador não reconhece a
@@ -90,7 +91,9 @@ export default function EscolhaDoMicrofone({
               {t(
                 'Usa o reconhecimento de voz do navegador. O áudio da sua voz vai para os servidores do Google (Chrome, Android), da Microsoft (Edge) ou da Apple (Safari).',
               )}
-              {bipa && <> {t('No Android, o celular apita a cada frase: o sistema religa o reconhecimento sem parar.')}</>}
+              {bipa && (
+                <> {t('No Android, o celular apita a cada frase: o sistema religa o reconhecimento sem parar.')}</>
+              )}
             </p>
           </span>
         </button>
@@ -121,7 +124,9 @@ export default function EscolhaDoMicrofone({
             </h3>
             {pacoteDoNavegador ? (
               <p>
-                {t('Usa o reconhecimento do próprio navegador, sem enviar o áudio. O pacote de idioma baixa agora, uma vez só.')}{' '}
+                {t(
+                  'Usa o reconhecimento do próprio navegador, sem enviar o áudio. O pacote de idioma baixa agora, uma vez só.',
+                )}{' '}
                 {mb
                   ? t('Se ele não instalar, usa o nosso modelo, de cerca de {mb} MB.', { mb })
                   : t('Se ele não instalar, usa o nosso modelo de transcrição.')}
@@ -147,6 +152,7 @@ export default function EscolhaDoMicrofone({
               : t('Nada a baixar para começar.')}
           </p>
         )}
+        {inicio && <SeloDeLatencia />}
       </div>
       <div className="dlg-pe">
         <button type="button" className="btn btn-outline" onClick={(e) => fecharDialogoDe(e.currentTarget)}>

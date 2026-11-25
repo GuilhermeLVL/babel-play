@@ -641,6 +641,23 @@ export const palavrasVistasQuerySchema = z.object({ lang: idiomaDaPalavra }).str
  */
 export const palavraQuerySchema = z.object({ lang: idiomaDaPalavra, chave: z.string().trim().min(1).max(100) }).strip()
 
+/**
+ * `PUT /api/vocab/opcoes-da-revisao`: as opções da revisão na conta (cartões, 2.2), PARCIAL: só o que mudou.
+ * Fora da faixa é 400 (os limites são os do diálogo, `LIMITES_DAS_OPCOES` do núcleo). Ao menos um campo.
+ */
+export const opcoesDaRevisaoSchema = z
+  .object({
+    novas: z.number().int().min(0).max(200).optional(),
+    revisoes: z.number().int().min(10).max(999).optional(),
+    ordem: z.enum(['vencidas', 'misturar']).optional(),
+    tipo: z.enum(['lembrar', 'digitar', 'escolha']).optional(),
+    ouvir: z.boolean().optional(),
+    retencao: z.number().int().min(80).max(97).optional(),
+    botoes: z.union([z.literal(2), z.literal(4)]).optional(),
+  })
+  .strip()
+  .refine((o) => Object.keys(o).length > 0, { message: 'nenhuma opção enviada' })
+
 /** `GET /api/vocab/marcadas?lang=xx`: as palavras marcadas ("Já sei"/"Ignorar"); sem `lang`, todos os idiomas. */
 export const palavrasMarcadasQuerySchema = z.object({ lang: idiomaDaPalavra.optional() }).strip()
 

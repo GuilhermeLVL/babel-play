@@ -392,6 +392,30 @@ export const FLAG_FORCA_NA_LEGENDA = 'forca_na_legenda';
 export const FLAG_FRASE_POR_FRASE = 'frase_por_frase';
 
 /**
+ * O MAPEADOR DE CAMPOS DO ANKI (openspec `motor-anki-mapeador`, versão enxuta; migrações PG 0036 e SQLite 0075):
+ * a leitura do `.apkg` (que continua no navegador) diz a confiança de cada palpite de campo; com confiança baixa em palavra ou
+ * tradução, a pessoa confere e troca os campos ANTES do primeiro lote. O mapeamento confirmado fica só no aparelho
+ * (`localStorage`), sem dado novo no servidor. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono. Desligada = a
+ * importação de hoje (nome primeiro, posição depois, sem parada).
+ */
+export const FLAG_ANKI_MAPEADOR = 'anki_mapeador';
+
+/**
+ * SOMBRA LOCAL (openspec `sombra-sem-web-speech`): com a flag, a prática de pronúncia transcreve a frase NO APARELHO
+ * (PCM 16 kHz + VAD + Moonshine/Whisper) onde o Web Speech não existe ou o perfil protegido não pode usá-lo. Só inglês
+ * no começo. O áudio nunca sai do aparelho. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono.
+ */
+export const FLAG_SOMBRA_LOCAL = 'sombra_local';
+
+/**
+ * A LATÊNCIA PUBLICADA POR APARELHO (openspec `latencia-publicada-por-aparelho`; migrações PG 0038 e SQLite 0077):
+ * o app lê o arquivo estático `latencia.json` (agregado semanal por classe de aparelho e idioma) e mostra o selo "metade das
+ * legendas aparece em até X s"; o site gera `/desempenho` e o admin mostra o painel. Nasce DESLIGADA e sem regra de plano; só
+ * tem efeito com `rum_latencia` ligada. Ligar é ato do dono, depois do parecer de privacidade e de uma semana de dados.
+ */
+export const FLAG_LATENCIA_PUBLICADA = 'latencia_publicada';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

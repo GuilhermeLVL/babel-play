@@ -37,6 +37,7 @@ import * as conteudo from './rotas/conteudo';
 import * as economia from './rotas/economia';
 import * as exercicios from './rotas/exercicios';
 import * as metricas from './rotas/metricas';
+import * as opcoesDaRevisao from './rotas/opcoesDaRevisao';
 import * as palavrasMarcadas from './rotas/palavrasMarcadas';
 import * as sessoes from './rotas/sessoes';
 import * as settings from './rotas/settings';
@@ -71,6 +72,8 @@ const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
   /* Antes de `/api/vocab/:id`: `DELETE /api/vocab/marcadas` não é "apagar o cartão de id `marcadas`". */
   { metodo: 'PUT', padrao: /^\/api\/vocab\/marcadas\/lote$/, handler: palavrasMarcadas.marcarLoteLocal },
   { metodo: 'POST', padrao: /^\/api\/vocab\/marcadas\/lote\/desfazer$/, handler: palavrasMarcadas.desfazerLoteLocal },
+  { metodo: 'GET', padrao: /^\/api\/vocab\/opcoes-da-revisao$/, handler: opcoesDaRevisao.lerOpcoesLocais },
+  { metodo: 'PUT', padrao: /^\/api\/vocab\/opcoes-da-revisao$/, handler: opcoesDaRevisao.gravarOpcoesLocais },
   { metodo: 'GET', padrao: /^\/api\/vocab\/marcadas$/, handler: palavrasMarcadas.listarMarcadas },
   { metodo: 'PUT', padrao: /^\/api\/vocab\/marcadas$/, handler: palavrasMarcadas.marcarPalavraLocal },
   { metodo: 'DELETE', padrao: /^\/api\/vocab\/marcadas$/, handler: palavrasMarcadas.desmarcarPalavraLocal },

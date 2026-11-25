@@ -1,0 +1,114 @@
+/* O Mapeador de campos do Anki (flag `anki_mapeador`). Só tokens do tema: vale no claro, no escuro e no headset. */
+.mapeador {
+  display: grid;
+  gap: 16px;
+}
+.mapeador h2 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+.mapeador-tipo h3 {
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+.mapeador-tipo h3 small {
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+.mapeador-campos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.mapeador-campos li {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.8fr) minmax(0, 1.6fr) minmax(130px, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.mapeador-campos li.duvida {
+  border-color: color-mix(in srgb, var(--warn) 50%, var(--border-subtle));
+}
+.mapeador-nome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.mapeador-selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--warn-ink);
+}
+.mapeador-selo svg,
+.mapeador-previa svg {
+  width: 13px;
+  height: 13px;
+}
+.mapeador-amostra {
+  color: var(--ink-muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mapeador-campos select {
+  min-height: 40px;
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0 8px;
+  font: inherit;
+}
+.mapeador-previa ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.mapeador-previa li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+.mapeador-previa li small {
+  flex-basis: 100%;
+  color: var(--ink-muted);
+}
+.mapeador-previa p,
+.mapeador-nota {
+  color: var(--ink-muted);
+  font-size: 13px;
+  margin: 6px 0 0;
+}
+.mapeador-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.mapeador-perfis {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+@media (max-width: 560px) {
+  .mapeador-campos li {
+    grid-template-columns: 1fr;
+  }
+}

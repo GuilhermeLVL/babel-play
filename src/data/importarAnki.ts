@@ -9,8 +9,9 @@
  * `importarBaralhoAnki` resolve, a importação JÁ aconteceu. O que a tela
  * decide depois é quantas dessas notas viram cartão agora (`ativarNotasDoBaralho`, `apiAnki.ts`).
  */
-import { type NotaAnki, TETOS_DA_NOTA } from '../core/anki';
+import { type EstruturaLida, type LeituraAnki, type NotaAnki, type PapelNaImportacao, TETOS_DA_NOTA } from '../core/anki';
 import { lerBaralhoNoNavegador } from '../lib/anki/lerBaralho';
+import { lerPerfis, salvarPerfil } from '../lib/anki/perfisDeMapeamento';
 import { abrirImportAnki, enviarNotasDoImport, fecharImportAnki, LimiteDeLotes, notaParaOFio } from './apiAnki';
 
 /** O saldo do import, como o fechamento o devolve — o import já aconteceu quando isto chega. */
@@ -41,6 +42,27 @@ export interface ImportAnkiResposta {
   avisoIdioma?: string;
   /** A primeira leva não virou cartão jogável; o import em si NÃO foi desfeito. */
   erroDeAtivacao?: string;
+  /** Só com o Mapeador ligado: tipos de nota lidos pelo perfil que a pessoa salvou antes, neste aparelho. */
+  reconhecidos?: Array<{ hash: string; notetype: string }>;
+  /** Só com o Mapeador ligado: a pessoa conferiu os campos antes do primeiro lote. */
+  conferidoAgora?: boolean;
+}
+
+/**
+ * O MAPEADOR (flag `anki_mapeador`): `aoConferir` recebe os tipos de nota em que o palpite tem confiança baixa e devolve
+ * os papéis que a pessoa escolheu (hash da estrutura -> papéis), ou `null` se ela desistiu. É chamado ANTES de qualquer
+ * lote: o servidor não recebe nada de uma importação cancelada aqui.
+ */
+export interface OpcoesDoMapeador {
+  aoConferir: (estruturas: EstruturaLida[]) => Promise<Record<string, PapelNaImportacao[]> | null>;
+}
+
+/** A pessoa fechou o Mapeador sem confirmar: nada foi enviado nem gravado. */
+export class ImportacaoCancelada extends Error {
+  constructor() {
+    super('Importação cancelada antes de enviar. Nada foi gravado.');
+    this.name = 'ImportacaoCancelada';
+  }
 }
 
 /** Notas por lote (o teto do servidor) e bytes por lote (abaixo dos 5 MB do corpo, com folga). */
@@ -93,8 +115,45 @@ async function enviarLote(importId: string, notas: NotaAnki[]) {
   }
 }
 
+/** O arquivo já lido no navegador, esperando a confirmação: NADA foi ao servidor (cartões 7.2). */
+export interface BaralhoLido {
+  arquivo: File;
+  leitura: LeituraAnki;
+  /** Veio pelo Mapeador (flag `anki_mapeador`): o resumo ganha `reconhecidos` e `conferidoAgora`. */
+  comMapeador?: boolean;
+  conferidoAgora?: boolean;
+}
+
 /**
- * LÊ no navegador e GRAVA o acervo no servidor, em lotes sequenciais — não é "ler e depois confirmar".
+ * SÓ LÊ o arquivo, no navegador, e devolve o que achou para o relatório vir ANTES de trazer. Nenhuma requisição ao
+ * servidor: quem decide enviar é `enviarBaralhoLido`, depois da confirmação da pessoa.
+ */
+export async function lerBaralhoParaImportar(
+  arquivo: File,
+  aoProgredir?: (p: ProgressoDaImportacao) => void,
+  mapeador?: OpcoesDoMapeador,
+): Promise<BaralhoLido> {
+  const progresso = (p: { notas?: number; total?: number }) =>
+    aoProgredir?.({ etapa: 'lendo', feitas: p.notas ?? 0, total: p.total ?? 0 });
+  if (!mapeador) return { arquivo, leitura: await lerBaralhoNoNavegador(arquivo, progresso) };
+  let conferidoAgora = false;
+  const perfis = lerPerfis();
+  let leitura = await lerBaralhoNoNavegador(arquivo, progresso, { perfis });
+  const pendentes = (leitura.estruturas ?? []).filter((e) => e.precisaDeConferencia);
+  if (pendentes.length) {
+    const escolhas = await mapeador.aoConferir(pendentes);
+    if (!escolhas) throw new ImportacaoCancelada();
+    // Reler com o mapeamento escolhido: notas que o palpite descartou (o 4000EW perdeu 3.871 de 3.871) voltam a existir.
+    leitura = await lerBaralhoNoNavegador(arquivo, progresso, { perfis, manuais: escolhas });
+    for (const [hash, papeis] of Object.entries(escolhas)) salvarPerfil(hash, papeis);
+    conferidoAgora = true;
+  }
+  return { arquivo, leitura, comMapeador: true, conferidoAgora };
+}
+
+/**
+ * LÊ no navegador e GRAVA o acervo no servidor, em lotes sequenciais — não é "ler e depois confirmar" (para
+ * confirmar entre uma coisa e outra, use `lerBaralhoParaImportar` e depois `enviarBaralhoLido`).
  *
  * O IDIOMA VIAJA JUNTO, e sem ele o baralho entra e não chega a jogo nenhum: o cartão nasce com
  * `srcLang` vazio, a triagem o marca `idioma-incerto` e ele cai na pilha "de outro idioma" assim
@@ -109,10 +168,23 @@ export async function importarBaralhoAnki(
   idioma: string,
   idiomaNativo: string,
   aoProgredir?: (p: ProgressoDaImportacao) => void,
+  mapeador?: OpcoesDoMapeador,
 ): Promise<ImportAnkiResposta> {
-  const leitura = await lerBaralhoNoNavegador(arquivo, (p) =>
-    aoProgredir?.({ etapa: 'lendo', feitas: p.notas ?? 0, total: p.total ?? 0 }),
+  return enviarBaralhoLido(
+    await lerBaralhoParaImportar(arquivo, aoProgredir, mapeador),
+    idioma,
+    idiomaNativo,
+    aoProgredir,
   );
+}
+
+/** Manda ao servidor um baralho já lido (abrir, notas em lotes, fechar). É aqui que a primeira requisição sai. */
+export async function enviarBaralhoLido(
+  { arquivo, leitura, comMapeador, conferidoAgora }: BaralhoLido,
+  idioma: string,
+  idiomaNativo: string,
+  aoProgredir?: (p: ProgressoDaImportacao) => void,
+): Promise<ImportAnkiResposta> {
   const { notas } = leitura;
 
   const aberto = await abrirImportAnki({
@@ -158,6 +230,14 @@ export async function importarBaralhoAnki(
       verso: n.verso.slice(0, 80),
       exemplo: n.exemplo ? n.exemplo.slice(0, 80) : null,
     })),
+    ...(comMapeador
+      ? {
+          reconhecidos: (leitura.estruturas ?? [])
+            .filter((e) => e.palpites.palavra?.origem === 'perfil')
+            .map((e) => ({ hash: e.hash, notetype: e.notetype })),
+          conferidoAgora,
+        }
+      : {}),
     ...(aberto.avisoIdioma ? { avisoIdioma: aberto.avisoIdioma } : {}),
     ...(fim.erroDeAtivacao ? { erroDeAtivacao: fim.erroDeAtivacao } : {}),
   };

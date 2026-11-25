@@ -63,6 +63,7 @@
     "GET /api/vocab/etiquetas",
     "GET /api/vocab/inicio-da-contagem",
     "GET /api/vocab/marcadas",
+    "GET /api/vocab/opcoes-da-revisao",
     "GET /api/vocab/pagina",
     "GET /api/vocab/palavra",
     "GET /api/vocab/para-jogo",
@@ -141,6 +142,7 @@
     "PUT /api/vocab/:id/etiquetas",
     "PUT /api/vocab/:id/nota",
     "PUT /api/vocab/marcadas",
-    "PUT /api/vocab/marcadas/lote"
+    "PUT /api/vocab/marcadas/lote",
+    "PUT /api/vocab/opcoes-da-revisao"
   ]
 }

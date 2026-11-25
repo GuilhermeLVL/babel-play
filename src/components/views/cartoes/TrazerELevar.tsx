@@ -6,6 +6,7 @@ import {
   ChevronRight,
   CircleCheck,
   CircleX,
+  ClipboardPaste,
   Download,
   Layers,
   Minus,
@@ -18,12 +19,20 @@ import {
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 
 import { ativarNotasDoBaralho, purgarBaralho } from '../../../data/apiAnki';
-import { type ImportAnkiResposta, importarBaralhoAnki, type ProgressoDaImportacao } from '../../../data/importarAnki';
+import {
+  type BaralhoLido,
+  enviarBaralhoLido,
+  type ImportAnkiResposta,
+  lerBaralhoParaImportar,
+  type ProgressoDaImportacao,
+} from '../../../data/importarAnki';
+import { esquecerPerfil } from '../../../lib/anki/perfisDeMapeamento';
 import { numero, t, tp } from '../../../lib/i18n';
 import { polido, reduz } from '../../../lib/polimento/base';
 import { confete } from '../../../lib/polimento/planos';
 import { sentir } from '../../../lib/polimento/sentidos';
 import { toast } from '../../Toast';
+import { AvisoDePerfilReconhecido, useConferenciaDoMapeador } from '../anki/MapeadorDeCampos';
 import { fecharAFolhaDe, FolhaDeCartoes, LinhasDeMenu } from './pecas';
 
 /**
@@ -75,8 +84,8 @@ export interface BaralhoTrazido {
 }
 
 /**
- * O ANKI EM DOIS PASSOS, num diálogo: lê o arquivo ao abrir; passo 1, o que veio e o que não veio, e
- * quantas notas ativar; passo 2, o relatório.
+ * O ANKI NUM DIÁLOGO: lê o arquivo ao abrir, SÓ NO NAVEGADOR, e mostra o que achou ANTES de trazer (nada foi ao
+ * servidor); ao confirmar, envia; passo 1, o que veio e o que não veio, e quantas notas ativar; passo 2, o relatório.
  */
 export function FluxoDoAnki({
   arquivo,
@@ -103,6 +112,9 @@ export function FluxoDoAnki({
   const dialogo = useRef<HTMLDialogElement>(null);
   const depois = useRef<(() => void) | null>(null);
   const [lido, setLido] = useState<ImportAnkiResposta | null>(null);
+  /** O arquivo lido no navegador, esperando a confirmação: o servidor ainda não recebeu nada. */
+  const [previa, setPrevia] = useState<BaralhoLido | null>(null);
+  const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [ativar, setAtivar] = useState(ATIVAR_DE_INICIO);
   const [ocupado, setOcupado] = useState(false);
@@ -111,6 +123,10 @@ export function FluxoDoAnki({
   const [ativadas, setAtivadas] = useState<number | null>(null);
   const [escolhido, setEscolhido] = useState(false);
   const nome = arquivo.name;
+  const { opcoes: mapeador, painel: painelDoMapeador } = useConferenciaDoMapeador();
+  /* O Mapeador é lido no PRIMEIRO pedido do arquivo: a flag liga ou desliga o fluxo na hora de abrir a folha. */
+  const mapeadorRef = useRef(mapeador);
+  mapeadorRef.current = mapeador;
 
   /* Lê ao abrir, UMA VEZ POR ARQUIVO. O efeito roda em dobro no modo estrito (desenvolvimento), e o servidor
      só aceita um envio grande por pessoa de cada vez: o segundo pedido, que era o que a tela esperava,
@@ -118,31 +134,43 @@ export function FluxoDoAnki({
      guardado por arquivo, e as duas passadas do efeito esperam o mesmo. */
   const avisar = useRef(aoMudou);
   avisar.current = aoMudou;
-  const leitura = useRef<{ de: string; pedido: ReturnType<typeof importarBaralhoAnki> } | null>(null);
+  const leitura = useRef<{ de: string; pedido: Promise<BaralhoLido> } | null>(null);
   useEffect(() => {
     let vivo = true;
-    const de = `${arquivo.name}|${arquivo.size}|${arquivo.lastModified}|${idioma}|${idiomaNativo}`;
+    const de = `${arquivo.name}|${arquivo.size}|${arquivo.lastModified}`;
     if (leitura.current?.de !== de)
-      leitura.current = {
-        de,
-        pedido: importarBaralhoAnki(arquivo, idioma, idiomaNativo, setProgresso),
-      };
+      leitura.current = { de, pedido: lerBaralhoParaImportar(arquivo, setProgresso, mapeadorRef.current) };
     const pedido = leitura.current.pedido;
     void (async () => {
       try {
         const r = await pedido;
-        if (!vivo) return;
-        setLido(r);
-        setAtivar(Math.min(ATIVAR_DE_INICIO, Math.max(0, r.resumo.notas - r.resumo.descartadas)));
-        avisar.current?.();
+        if (vivo) setPrevia(r);
       } catch (e) {
-        if (vivo) setErro((e as Error).message || t('Não deu para trazer este arquivo do Anki.'));
+        if (vivo) setErro((e as Error).message || t('Não deu para ler este arquivo do Anki.'));
       }
     })();
     return () => {
       vivo = false;
     };
-  }, [arquivo, idioma, idiomaNativo]);
+  }, [arquivo]);
+
+  /* O ENVIO É DA PESSOA: só sai uma requisição ao servidor depois de "Trazer". */
+  const trazer = async () => {
+    if (!previa || enviando) return;
+    setEnviando(true);
+    setErro(null);
+    setProgresso(null);
+    try {
+      const r = await enviarBaralhoLido(previa, idioma, idiomaNativo, setProgresso);
+      setLido(r);
+      setAtivar(Math.min(ATIVAR_DE_INICIO, Math.max(0, r.resumo.notas - r.resumo.descartadas)));
+      avisar.current?.();
+    } catch (e) {
+      setErro((e as Error).message || t('Não deu para trazer este arquivo do Anki.'));
+    } finally {
+      setEnviando(false);
+    }
+  };
 
   const nomeDoBaralho = lido?.baralhos?.[0] || nome.replace(/\.[^.]+$/, '');
   /** O que dá para ativar: tudo o que entrou, menos o que a régua de qualidade recusou. */
@@ -241,8 +269,80 @@ export function FluxoDoAnki({
     f?.();
   };
 
+  if (!lido && previa && !enviando && !erro) {
+    const l = previa.leitura;
+    const n = l.notas.length;
+    const amostra = l.notas.slice(0, 3);
+    return (
+      <FolhaDeCartoes
+        Icone={Upload}
+        titulo={t('Trazer do Anki')}
+        sub={t('Conferir antes de trazer · {nome} · nada foi enviado ainda', { nome })}
+        classe="ct-anki ct-anki-0"
+        refDialogo={dialogo}
+        aoFechar={fechar}
+        pe={
+          <>
+            <button type="button" className="q-ctl" onClick={(e) => fecharAFolhaDe(e.currentTarget)}>
+              {t('Cancelar')}
+            </button>
+            {n > 0 && (
+              <button type="button" className="q-ctl pri" onClick={() => void trazer()}>
+                <Check aria-hidden /> {tp(n, 'Trazer {n} nota', 'Trazer {n} notas', { n: numero(n) })}
+              </button>
+            )}
+          </>
+        }
+      >
+        <div data-testid="anki-previa" style={{ display: 'contents' }}>
+          <p className="qv-nota">
+            {n > 0
+              ? tp(
+                  n,
+                  'Li {n} nota neste aparelho. Nada foi ao servidor: elas só entram quando você confirmar.',
+                  'Li {n} notas neste aparelho. Nada foi ao servidor: elas só entram quando você confirmar.',
+                  { n: numero(n) },
+                )
+              : t('Não achei nenhuma nota neste arquivo. Nada foi enviado.')}
+          </p>
+          {l.campos.length > 0 && (
+            <p className="qv-nota">{t('Campos do arquivo: {campos}.', { campos: l.campos.join(', ') })}</p>
+          )}
+          {amostra.length > 0 && (
+            <ul className="ct-itens">
+              {amostra.map((a, i) => (
+                <Item key={`${a.guid}-${i}`} veio titulo={a.frente.slice(0, 80)} detalhe={a.verso.slice(0, 80)} />
+              ))}
+            </ul>
+          )}
+          {l.temMidia && (
+            <div className="q-aviso" role="note">
+              <span className="qv-aviso-texto">
+                <TriangleAlert aria-hidden />
+                <span>{t('O áudio e as imagens do arquivo não vêm: o cartão usa a voz do aparelho.')}</span>
+              </span>
+            </div>
+          )}
+          {l.truncado && (
+            <div className="q-aviso" role="note">
+              <span className="qv-aviso-texto">
+                <TriangleAlert aria-hidden />
+                <span>
+                  {t(
+                    'Este arquivo tem {total} notas, mais do que dá para ler de uma vez; só as primeiras {lidas} entram. Traga o mesmo arquivo de novo para o resto.',
+                    { total: numero(l.totalNoArquivo ?? n), lidas: numero(n) },
+                  )}
+                </span>
+              </span>
+            </div>
+          )}
+        </div>
+      </FolhaDeCartoes>
+    );
+  }
+
   if (!lido) {
-    /* A leitura (ou o erro dela). */
+    /* A leitura, o envio (ou o erro deles). */
     return (
       <FolhaDeCartoes
         Icone={Upload}
@@ -259,6 +359,8 @@ export function FluxoDoAnki({
       >
         {erro ? (
           avisoDeErro
+        ) : painelDoMapeador ? (
+          painelDoMapeador
         ) : (
           <div className="q-vazio" role="status" data-testid="anki-lendo">
             <span className="q-ic">
@@ -272,7 +374,9 @@ export function FluxoDoAnki({
                   })
                 : progresso?.etapa === 'concluindo'
                   ? t('Concluindo…')
-                  : t('Lendo {nome}…', { nome })}
+                  : previa
+                    ? t('Enviando {nome}…', { nome })
+                    : t('Lendo {nome}…', { nome })}
             </h2>
             <p>{t('Baralho grande leva alguns segundos.')}</p>
           </div>
@@ -465,6 +569,7 @@ export function FluxoDoAnki({
             </ul>
           </div>
         </div>
+        {lido.reconhecidos && <AvisoDePerfilReconhecido reconhecidos={lido.reconhecidos} aoEsquecer={esquecerPerfil} />}
         {(lido.campos.length > 0 || primeiro) && (
           <div className="q-secao">
             <header>
@@ -569,6 +674,7 @@ export function FluxoDoAnki({
 export default function TrazerELevar({
   total,
   aoPalavraNova,
+  aoColar,
   aoExportar,
   aoFechar,
   entrada,
@@ -576,6 +682,8 @@ export default function TrazerELevar({
   /** Cartões no caderno; `null` enquanto não se sabe. Sem cartão não há o que exportar. */
   total: number | null;
   aoPalavraNova: () => void;
+  /** "Colar uma lista": abre a folha onde o texto é colado (`ColarUmaLista`). */
+  aoColar: () => void;
   aoExportar: () => void;
   aoFechar: () => void;
   /** O campo de arquivo, que fica com a tela (o "Trazer do Anki" de Hoje usa o mesmo): ao escolher, ela abre o `FluxoDoAnki`. */
@@ -620,6 +728,13 @@ export default function TrazerELevar({
             acao: () => entrada.current?.click(),
           },
           {
+            chave: 'colar',
+            Icone: ClipboardPaste,
+            titulo: t('Colar uma lista'),
+            detalhe: t('Uma palavra e a tradução por linha, separadas por vírgula ou tabulação.'),
+            acao: ir(aoColar),
+          },
+          {
             chave: 'exportar',
             Icone: Download,
             titulo: t('Exportar'),
@@ -633,6 +748,80 @@ export default function TrazerELevar({
           },
         ]}
       />
+    </FolhaDeCartoes>
+  );
+}
+
+/** O texto colado vira um arquivo `.txt` em memória, que segue o MESMO caminho de um arquivo escolhido (lê, confere, traz). */
+export function arquivoDeListaColada(texto: string): File {
+  return new File([texto], 'lista-colada.txt', { type: 'text/plain' });
+}
+
+/**
+ * "COLAR UMA LISTA" (cartões 7.3): uma palavra e a tradução por linha (vírgula ou tabulação; a terceira coluna é a
+ * frase). Nada sai do aparelho aqui: "Continuar" entrega o texto ao mesmo fluxo do arquivo, que lê, mostra o
+ * que achou e só envia depois da confirmação.
+ */
+export function ColarUmaLista({
+  aoContinuar,
+  aoFechar,
+}: {
+  aoContinuar: (arquivo: File) => void;
+  aoFechar: () => void;
+}) {
+  const dialogo = useRef<HTMLDialogElement>(null);
+  const depois = useRef<(() => void) | null>(null);
+  const [texto, setTexto] = useState('');
+  const linhas = texto.split(/\r?\n/).filter((l) => l.trim()).length;
+  return (
+    <FolhaDeCartoes
+      Icone={ClipboardPaste}
+      titulo={t('Colar uma lista')}
+      sub={t('Uma palavra e a tradução por linha. Nada sai do aparelho antes de você confirmar.')}
+      classe="ct-menu ct-colar"
+      refDialogo={dialogo}
+      aoFechar={() => {
+        aoFechar();
+        const f = depois.current;
+        depois.current = null;
+        f?.();
+      }}
+      pe={
+        <>
+          <button type="button" className="q-ctl" onClick={(e) => fecharAFolhaDe(e.currentTarget)}>
+            {t('Cancelar')}
+          </button>
+          <button
+            type="button"
+            className="q-ctl pri"
+            disabled={linhas === 0}
+            onClick={() => {
+              depois.current = () => aoContinuar(arquivoDeListaColada(texto));
+              dialogo.current?.close();
+            }}
+          >
+            <Check aria-hidden /> {t('Continuar')}
+          </button>
+        </>
+      }
+    >
+      <label className="q-campo">
+        <span className="q-rotulo">{t('A lista')}</span>
+        <textarea
+          rows={8}
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder={'house, casa\nwater, água'}
+          spellCheck={false}
+          autoFocus
+          data-testid="lista-colada"
+        />
+      </label>
+      <p className="qv-nota">
+        {linhas > 0
+          ? tp(linhas, '{n} linha para conferir.', '{n} linhas para conferir.', { n: numero(linhas) })
+          : t('Cole ou escreva a lista aqui.')}
+      </p>
     </FolhaDeCartoes>
   );
 }

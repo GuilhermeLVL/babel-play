@@ -12,12 +12,33 @@
 import { Decompress } from 'fzstd';
 import type { BindParams, Database, SqlValue } from 'sql.js';
 
-import { type LeituraAnki, montarNota, type NotaAnki, TETO_DE_NOTAS } from '../../core/anki';
+import {
+  type EstruturaLida,
+  hashDaEstrutura,
+  inferirMapeamento,
+  type LeituraAnki,
+  limparCampo,
+  montarNota,
+  type NotaAnki,
+  type PapelNaImportacao,
+  TETO_DE_NOTAS,
+} from '../../core/anki';
 import { ExpansaoAcimaDoTeto, extrairDoZip, juntarPedacos } from '../zip/zipComTeto';
 import type { AbrirSqlite } from './sqlite';
 
 /** 300 MB: folgado para um baralho real e ainda cabe na memória de uma aba de celular. */
 export const TETO_DE_EXPANSAO = 300 * 1024 * 1024;
+
+/**
+ * O MAPEADOR LIGADO (flag `anki_mapeador`): a leitura decide, por tipo de nota, qual campo é o quê, com confiança, e
+ * devolve `estruturas` para a tela conferir. Sem isto, a leitura é a de sempre (nome, depois posição).
+ * `perfis` e `manuais` são papéis por campo, chaveados pelo hash da estrutura: o perfil é o que a pessoa confirmou numa
+ * importação anterior (neste aparelho); o manual é o que ela escolheu agora e vence tudo.
+ */
+export interface MapeamentoDaLeitura {
+  perfis?: Record<string, PapelNaImportacao[]>;
+  manuais?: Record<string, PapelNaImportacao[]>;
+}
 
 export interface ProgressoDaLeitura {
   etapa: 'abrindo' | 'descomprimindo' | 'lendo';
@@ -30,6 +51,11 @@ const COLECOES = ['collection.anki21b', 'collection.anki21', 'collection.anki2']
 
 /** Separador de campos (e, no esquema novo, dos níveis do nome de baralho). */
 const SEP = '\x1f';
+
+/** Quantas notas de cada tipo o Mapeador olha para desempatar pelo conteúdo, e quantas mostra na tela. */
+const AMOSTRA_DO_MAPEADOR = 20;
+const AMOSTRA_DA_TELA = 3;
+const TAMANHO_DO_CAMPO_NA_AMOSTRA = 80;
 
 /** A cada quantas notas a leitura avisa o progresso. */
 const PASSO_DO_PROGRESSO = 1000;
@@ -45,7 +71,12 @@ type Linha = Record<string, SqlValue>;
  */
 export async function lerApkg(
   arquivo: Blob,
-  deps: { abrirSqlite: AbrirSqlite; aoProgredir?: (p: ProgressoDaLeitura) => void; teto?: number },
+  deps: {
+    abrirSqlite: AbrirSqlite;
+    aoProgredir?: (p: ProgressoDaLeitura) => void;
+    teto?: number;
+    mapeamento?: MapeamentoDaLeitura;
+  },
 ): Promise<LeituraAnki> {
   const teto = deps.teto ?? TETO_DE_EXPANSAO;
   const avisar = deps.aoProgredir ?? (() => {});
@@ -64,7 +95,7 @@ export async function lerApkg(
 
   const db = await abrirColecao(zip.entradas, formato, teto, deps.abrirSqlite, avisar);
   try {
-    return lerColecao(db, formato, temMidia, avisar);
+    return lerColecao(db, formato, temMidia, avisar, deps.mapeamento);
   } finally {
     db.close();
   }
@@ -147,6 +178,7 @@ function lerColecao(
   formato: string,
   temMidia: boolean,
   avisar: (p: ProgressoDaLeitura) => void,
+  mapeamento?: MapeamentoDaLeitura,
 ): LeituraAnki {
   // ── Nomes dos campos, por modelo de nota: tabela `fields` (novo) ou JSON de `col.models` (antigo) ──
   const camposPorModelo = new Map<string, string[]>();
@@ -212,6 +244,40 @@ function lerColecao(
     stmt = db.prepare("SELECT id, '' AS guid, mid, flds, tags FROM notes LIMIT ?", [TETO_DE_NOTAS]);
   }
 
+  /* MAPEADOR: por tipo de nota, uma AMOSTRA bruta (para o conteúdo desempatar) e o palpite com confiança. Só quando a
+     leitura foi pedida com mapeamento; fora disso `montarNota` segue o caminho de sempre. */
+  const porModelo = new Map<string, EstruturaLida & { papeis: PapelNaImportacao[] }>();
+  const doModelo = (midBruto: SqlValue) => {
+    const mid = String(midBruto);
+    const existente = porModelo.get(mid);
+    if (existente) return existente;
+    const nomes = camposPorModelo.get(mid) ?? [];
+    const hash = hashDaEstrutura(nomes);
+    const amostraBruta = consultarSePuder(
+      db,
+      `SELECT flds FROM notes WHERE mid = ${Number(midBruto) || 0} LIMIT ${AMOSTRA_DO_MAPEADOR}`,
+    ).map((l) => String(l.flds ?? '').split(SEP));
+    const inferido = inferirMapeamento(nomes, {
+      amostra: amostraBruta,
+      perfil: mapeamento?.perfis?.[hash],
+      manual: mapeamento?.manuais?.[hash],
+    });
+    const estrutura = {
+      hash,
+      notetype: nomePorModelo.get(mid) ?? '',
+      campos: nomes,
+      notas: 0,
+      papeis: inferido.papeis,
+      palpites: inferido.palpites,
+      precisaDeConferencia: inferido.precisaDeConferencia,
+      amostra: amostraBruta
+        .slice(0, AMOSTRA_DA_TELA)
+        .map((linha) => linha.map((campo) => limparCampo(campo).slice(0, TAMANHO_DO_CAMPO_NA_AMOSTRA))),
+    };
+    porModelo.set(mid, estrutura);
+    return estrutura;
+  };
+
   const notas: NotaAnki[] = [];
   let descartadas = 0;
   let lidas = 0;
@@ -226,6 +292,9 @@ function lerColecao(
       const baralhoId = baralhoIdPorNota.get(String(linha.id));
       const baralho = baralhoId ? nomePorBaralho.get(baralhoId) : undefined;
 
+      const estrutura = mapeamento ? doModelo(linha.mid) : undefined;
+      if (estrutura) estrutura.notas++;
+
       const nota = montarNota({
         guid: String(linha.guid ?? ''),
         flds: String(linha.flds ?? ''),
@@ -233,6 +302,7 @@ function lerColecao(
         nomesDosCampos: nomes,
         notetype: nomePorModelo.get(String(linha.mid)),
         baralho,
+        mapeamento: estrutura?.papeis,
       });
       if (++lidas % PASSO_DO_PROGRESSO === 0) avisar({ etapa: 'lendo', notas: lidas, total });
       if (!nota) {
@@ -255,5 +325,17 @@ function lerColecao(
     baralhos: baralhosVistos.size ? [...baralhosVistos].sort() : undefined,
     truncado,
     totalNoArquivo,
+    ...(mapeamento ? { estruturas: juntarPorHash([...porModelo.values()]) } : {}),
   };
+}
+
+/** Dois tipos de nota com a mesma estrutura (mesmos campos, na mesma ordem) são UM para o mapeamento. */
+function juntarPorHash(lista: EstruturaLida[]): EstruturaLida[] {
+  const porHash = new Map<string, EstruturaLida>();
+  for (const e of lista) {
+    const atual = porHash.get(e.hash);
+    if (atual) atual.notas += e.notas;
+    else porHash.set(e.hash, { ...e });
+  }
+  return [...porHash.values()].sort((a, b) => b.notas - a.notas);
 }

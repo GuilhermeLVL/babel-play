@@ -526,6 +526,27 @@
       "when": 1794800000013,
       "tag": "0074_flag_frase_por_frase",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "6",
+      "when": 1794800000014,
+      "tag": "0075_flag_anki_mapeador",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "6",
+      "when": 1794800000015,
+      "tag": "0076_flag_sombra_local",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "6",
+      "when": 1794800000016,
+      "tag": "0077_flag_latencia_publicada",
+      "breakpoints": true
     }
   ]
 }

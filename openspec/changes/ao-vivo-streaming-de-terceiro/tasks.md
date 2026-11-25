@@ -1,3 +1,6 @@
+> **DESCARTADA em 25/11/2026** (decisão assumida: recomendação, 25/11). A tarefa 2.4 foi decidida: opção (c), arquivar. As demais
+> ficam como registro, sem execução; nada aqui roda sem o dono reabrir a change.
+
 ## 1. Papel: o que decide antes de qualquer dinheiro (a mais arriscada primeiro: o DPA)
 
 - [ ] 1.1 **[D]** Consulta jurídica sobre voz de menor em terceiro (LGPD art. 14, ECA Digital, transferência internacional art. 33):
@@ -18,7 +21,7 @@
       reproduzível e a margem líquida em R$ e US$; marcar quem fecha e quem não fecha.
 - [ ] 2.3 Regra de menores escrita como requisito testável (recusa na borda, sem áudio no proxy, queda para trechos ou aparelho).
       Verificar: os cenários de `specs/ao-vivo-streaming/spec.md` revisados contra o parecer da 1.1.
-- [ ] 2.4 **[D]** Decidir o lugar do produto: (a) plano Ao Vivo legado volta, (b) complemento do Pro, (c) arquivar. Verificar:
+- [x] 2.4 (decisão assumida: (c) arquivar, 25/11) **[D]** Decidir o lugar do produto: (a) plano Ao Vivo legado volta, (b) complemento do Pro, (c) arquivar. Verificar:
       decisão com data em `docs/pendencias-do-dono.md` e `planos-v3` §10 atualizada (10.1 por referência, ou §10 abandonada).
 
 ## 3. Spike curto (só com a finalista, só com custo declarado)

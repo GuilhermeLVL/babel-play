@@ -370,6 +370,14 @@ export const FLAG_PARCIAIS_PARAKEET = 'parciais_parakeet';
 export const FLAG_TRADUCAO_INCREMENTAL = 'traducao_incremental';
 
 /**
+ * A PRÉ-TRADUÇÃO DE LEGENDAS IMPORTADAS (openspec `pre-traducao-de-legendas`; migrações PG 0032 e SQLite 0072): traduz a legenda
+ * inteira em lote, NO APARELHO (Bergamot/opus-mt), em lotes canceláveis, com progresso honesto e a legenda segura aplicada.
+ * Só motor local, nunca nuvem. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono. Desligada = a importação só
+ * produz o texto, como antes.
+ */
+export const FLAG_PRE_TRADUCAO_DE_LEGENDAS = 'pre_traducao_de_legendas';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

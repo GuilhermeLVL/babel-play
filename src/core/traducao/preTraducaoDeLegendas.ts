@@ -57,7 +57,7 @@ export interface EntradaDaPreTraducao {
   /** Traduz UMA fala. Deve lançar `MotorAindaCarregando` se o motor não está pronto. */
   traduzir: (texto: string) => Promise<string>;
   politica?: PoliticaDaLegenda;
-  signal?: AbortSignal;
+  signal?: { readonly aborted: boolean };
   aoProgredir?: (p: ProgressoDaPreTraducao) => void;
   /** Devolve a vez ao navegador entre lotes. Padrão: `setTimeout(0)`. */
   ceder?: () => Promise<void>;
@@ -90,7 +90,7 @@ export function dividirEmLotes(
   return lotes;
 }
 
-const cederPadrao = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+const cederPadrao = (): Promise<void> => new Promise<void>((r) => setTimeout(() => r(), 0));
 
 /** Chave de repetição: a legenda repete "Okay." com caixa e espaços diferentes. */
 const chaveDaFala = (t: string): string => t.trim().replace(/\s+/g, ' ').toLowerCase();

@@ -17,9 +17,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 const resposta = (status: number, corpo: unknown) =>
   new Response(JSON.stringify(corpo), { status, headers: { 'content-type': 'application/json' } })
 
-const SESSAO = { id: 's1', title: 't', kind: 'live', createdAt: 1, durationMs: 1, wordCount: 1, sourceLang: 'en', targetLang: 'pt', status: 'done', meta: null }
+const SESSAO = {
+  id: 's1',
+  title: 't',
+  kind: 'live',
+  createdAt: 1,
+  durationMs: 1,
+  wordCount: 1,
+  sourceLang: 'en',
+  targetLang: 'pt',
+  status: 'done',
+  meta: null,
+}
 
-const falas = (n: number) => Array.from({ length: n }, (_, i) => ({ idx: i, source: 'system', sourceText: `fala ${i}` }))
+const falas = (n: number) =>
+  Array.from({ length: n }, (_, i) => ({ idx: i, source: 'system', sourceText: `fala ${i}` }))
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -31,22 +43,46 @@ describe('createSession propaga a recusa do servidor', () => {
   it('507 TETO_ANONIMO: a mensagem, o código e o status chegam em ErroDeSessao', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => resposta(507, { error: 'Sem conta dá para guardar 5 gravações neste navegador.', codigo: 'TETO_ANONIMO', recurso: 'sessoes', teto: 5, usado: 5 })),
+      vi.fn(async () =>
+        resposta(507, {
+          error: 'Sem conta dá para guardar 5 gravações neste navegador.',
+          codigo: 'TETO_ANONIMO',
+          recurso: 'sessoes',
+          teto: 5,
+          usado: 5,
+        }),
+      ),
     )
     const { createSession, ErroDeSessao } = await import('../src/data/rotas/sessoes')
     const erro = await createSession({ title: 'x' }).catch((e: unknown) => e)
     expect(erro).toBeInstanceOf(ErroDeSessao)
-    expect(erro).toMatchObject({ status: 507, codigo: 'TETO_ANONIMO', message: 'Sem conta dá para guardar 5 gravações neste navegador.' })
+    expect(erro).toMatchObject({
+      status: 507,
+      codigo: 'TETO_ANONIMO',
+      message: 'Sem conta dá para guardar 5 gravações neste navegador.',
+    })
   })
 
   it('400 do zod: o texto do servidor, não a frase genérica', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => resposta(400, { error: 'corpo inválido', code: 'validacao' })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => resposta(400, { error: 'corpo inválido', code: 'validacao' })),
+    )
     const { createSession } = await import('../src/data/rotas/sessoes')
-    await expect(createSession({ title: 'x' })).rejects.toMatchObject({ status: 400, codigo: 'validacao', message: 'corpo inválido' })
+    await expect(createSession({ title: 'x' })).rejects.toMatchObject({
+      status: 400,
+      codigo: 'validacao',
+      message: 'corpo inválido',
+    })
   })
 
   it('sem resposta (rede caiu): ErroDeSessao com status 0, nunca um throw cru', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch')
+      }),
+    )
     const { createSession, ErroDeSessao } = await import('../src/data/rotas/sessoes')
     const erro = await createSession({ title: 'x' }).catch((e: unknown) => e)
     expect(erro).toBeInstanceOf(ErroDeSessao)
@@ -67,7 +103,9 @@ describe('criarSessaoEmLotes', () => {
     )
     const { criarSessaoEmLotes, LOTE_DE_FALAS } = await import('../src/data/rotas/sessoes')
     const progresso: number[] = []
-    const r = await criarSessaoEmLotes({ title: 't', origemLocalId: 'captura-0001', utterances: falas(1200) }, (f) => progresso.push(f))
+    const r = await criarSessaoEmLotes({ title: 't', origemLocalId: 'captura-0001', utterances: falas(1200) }, (f) =>
+      progresso.push(f),
+    )
     expect(r.id).toBe('s1')
     expect(chamadas).toEqual([
       { url: '/api/sessions', n: 500 },
@@ -124,7 +162,10 @@ describe('substituirFalasEmLotes (retomada)', () => {
     await substituirFalasEmLotes('s1', falas(600))
     expect(chamadas).toEqual(['PUT /api/sessions/s1/utterances', 'POST /api/sessions/s1/utterances'])
 
-    vi.stubGlobal('fetch', vi.fn(async () => resposta(404, { error: 'sessão não encontrada' })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => resposta(404, { error: 'sessão não encontrada' })),
+    )
     await expect(substituirFalasEmLotes('s1', falas(3))).rejects.toMatchObject({ status: 404 })
   })
 })

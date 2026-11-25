@@ -10,10 +10,12 @@ conhecidos pelo lado (`meu` e `outro`), porque o app já sabe de que lado vem ca
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Escolher e prever a voz por idioma, com prévia e sem surpresa.
 - Aproximar o gênero/tom do falante na leitura da tradução, de forma estável durante a sessão.
 
 **Non-Goals:**
+
 - Clonar a voz (bloqueado de propósito). Reconhecer identidade. Diarizar mais de dois falantes (Fase 4, conversa virtual).
 - Garantir acerto: o gênero estimado é uma dica, e o usuário manda.
 

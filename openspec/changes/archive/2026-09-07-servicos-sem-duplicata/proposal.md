@@ -23,6 +23,7 @@ O servidor tem varias implementacoes da mesma responsabilidade, com politicas di
 ## Capabilities
 
 ### New Capabilities
+
 - `uma-implementacao-por-servico`: cada responsabilidade do servidor tem um modulo, uma politica e um schema.
 
 ## Impact

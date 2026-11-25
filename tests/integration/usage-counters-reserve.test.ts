@@ -8,10 +8,10 @@
  * `reserve()` decide e grava numa ÚNICA instrução, então o teto vale mesmo com N
  * requisições simultâneas.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let repo: any
@@ -20,7 +20,9 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ usageCountersRepo: repo } = await h.load('../../server/db/repositories/usageCounters'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('usageCountersRepo.reserve', () => {
   it('sem linha e teto ≥ 1 → reserva e cria a linha em 1', async () => {
@@ -66,7 +68,7 @@ describe('usageCountersRepo.reserve', () => {
   it('janela e usuário isolam a reserva', async () => {
     const u = asUserId('r-iso')
     await repo.reserve(u, 'managed_calls', '2026-08', 1)
-    expect(await repo.reserve(u, 'managed_calls', '2026-09', 1)).toBe(true)  // outra janela
+    expect(await repo.reserve(u, 'managed_calls', '2026-09', 1)).toBe(true) // outra janela
     expect(await repo.reserve(asUserId('r-iso2'), 'managed_calls', '2026-08', 1)).toBe(true)
   })
 })

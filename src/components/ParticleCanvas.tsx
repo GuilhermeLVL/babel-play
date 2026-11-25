@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 
 import type { ThemeType } from '../lib/appearance';
-import { BURST_SPECS, type BurstKind, type BurstSpec,onBurst, resolveParticleStyle } from '../lib/effects';
+import { BURST_SPECS, type BurstKind, type BurstSpec, onBurst, resolveParticleStyle } from '../lib/effects';
 import { corDoCromaEquipado } from '../lib/galeria/cromas';
 import { criarLacoDeParticulas, type MensagemDoLaco, type PedidoDeRajada } from '../lib/motorDeParticulas';
 
@@ -79,7 +79,8 @@ function abrirCanal(canvas: HTMLCanvasElement): Canal | null {
       cancelarQuadro: (id) => cancelAnimationFrame(id),
       criarCanvas: (lado) => {
         const c = document.createElement('canvas');
-        c.width = lado; c.height = lado;
+        c.width = lado;
+        c.height = lado;
         return c;
       },
     });
@@ -147,7 +148,12 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      enviarRef.current?.({ tipo: 'tamanho', largura: rect.width, altura: rect.height, dpr: Math.min(window.devicePixelRatio || 1, 2) });
+      enviarRef.current?.({
+        tipo: 'tamanho',
+        largura: rect.width,
+        altura: rect.height,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
+      });
     };
     resize();
     // O que chegou antes do canal (ambiente, rajadas) segue na ordem, depois do tamanho.

@@ -2,11 +2,11 @@
  * P2 da re-auditoria v2: authz de `sessionId`, semântica honesta do DELETE, teto do
  * `imageUrl` e idempotência de seeds que ignora `deletedAt`.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { isSafeImageUrl, patchMetaSchema } from '../../server/validation'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let vocab: any
@@ -21,26 +21,56 @@ beforeAll(async () => {
   ;({ seedSpendsRepo: seeds } = await h.load('../../server/db/repositories/seedSpends'))
   ;({ credentialsRepo: creds } = await h.load('../../server/db/repositories/credentials'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('P2-N1 — vocab.bulkAdd confere o dono do sessionId', () => {
   it('sessão do próprio usuário é preservada', async () => {
     const u = asUserId('az-dono')
     const s = await sessions.create(u, { title: 'minha', kind: 'audio' })
-    const r = await vocab.bulkAdd(u, [{ word: 'leverage', back: 'alavancar', sentence: 'gives us leverage', srcLang: 'en', tgtLang: 'pt', sessionId: s.id }])
+    const r = await vocab.bulkAdd(u, [
+      {
+        word: 'leverage',
+        back: 'alavancar',
+        sentence: 'gives us leverage',
+        srcLang: 'en',
+        tgtLang: 'pt',
+        sessionId: s.id,
+      },
+    ])
     expect(r.cards[0].sessionId).toBe(s.id)
   })
 
   it('sessão de OUTRO usuário vira null (nada de FK pendurada cross-tenant)', async () => {
-    const a = asUserId('az-a'), b = asUserId('az-b')
+    const a = asUserId('az-a'),
+      b = asUserId('az-b')
     const sa = await sessions.create(a, { title: 'de A', kind: 'audio' })
-    const r = await vocab.bulkAdd(b, [{ word: 'synergy', back: 'sinergia', sentence: 'team synergy here', srcLang: 'en', tgtLang: 'pt', sessionId: sa.id }])
+    const r = await vocab.bulkAdd(b, [
+      {
+        word: 'synergy',
+        back: 'sinergia',
+        sentence: 'team synergy here',
+        srcLang: 'en',
+        tgtLang: 'pt',
+        sessionId: sa.id,
+      },
+    ])
     expect(r.cards[0].sessionId).toBeNull()
   })
 
   it('sessão inexistente também vira null', async () => {
     const u = asUserId('az-fantasma')
-    const r = await vocab.bulkAdd(u, [{ word: 'volatility', back: 'volatilidade', sentence: 'market volatility now', srcLang: 'en', tgtLang: 'pt', sessionId: 'nao-existe' }])
+    const r = await vocab.bulkAdd(u, [
+      {
+        word: 'volatility',
+        back: 'volatilidade',
+        sentence: 'market volatility now',
+        srcLang: 'en',
+        tgtLang: 'pt',
+        sessionId: 'nao-existe',
+      },
+    ])
     expect(r.cards[0].sessionId).toBeNull()
   })
 })
@@ -53,23 +83,33 @@ describe('P2-N4 — DELETE informa quando nada foi afetado', () => {
   })
 
   it('remover sessão de OUTRO dono devolve false (a rota vira 404)', async () => {
-    const a = asUserId('az-del-a'), b = asUserId('az-del-b')
+    const a = asUserId('az-del-a'),
+      b = asUserId('az-del-b')
     const sa = await sessions.create(a, { title: 'de A', kind: 'audio' })
     expect(await sessions.remove(b, sa.id)).toBe(false)
     expect(await sessions.get(a, sa.id)).toBeDefined() // intacta
   })
 
   it('vale para cartão de vocabulário', async () => {
-    const a = asUserId('az-vc-a'), b = asUserId('az-vc-b')
-    const r = await vocab.bulkAdd(a, [{ word: 'heuristics', back: 'heurística', sentence: 'useful heuristics apply', srcLang: 'en', tgtLang: 'pt' }])
+    const a = asUserId('az-vc-a'),
+      b = asUserId('az-vc-b')
+    const r = await vocab.bulkAdd(a, [
+      { word: 'heuristics', back: 'heurística', sentence: 'useful heuristics apply', srcLang: 'en', tgtLang: 'pt' },
+    ])
     const id = r.cards[0].id
     expect(await vocab.remove(b, id)).toBe(false)
     expect(await vocab.remove(a, id)).toBe(true)
   })
 
   it('vale para credencial', async () => {
-    const a = asUserId('az-cr-a'), b = asUserId('az-cr-b')
-    const c = await creds.create(a, { label: 'de A', kind: 'openai', baseUrl: 'https://example.com/v1', secret: 'sk-a' })
+    const a = asUserId('az-cr-a'),
+      b = asUserId('az-cr-b')
+    const c = await creds.create(a, {
+      label: 'de A',
+      kind: 'openai',
+      baseUrl: 'https://example.com/v1',
+      secret: 'sk-a',
+    })
     expect(await creds.remove(b, c.id)).toBe(false)
     expect(await creds.remove(a, c.id)).toBe(true)
   })
@@ -104,12 +144,14 @@ describe('P2-N2 — seeds soft-deletados não são cobrados de graça', () => {
 
   it('gasto SOFT-DELETADO não devolve jaExistia (senão sai de graça)', async () => {
     const u = asUserId('az-seed-del')
-    const { db } = await h.load('../../server/db/db') as any
-    const { seedSpends } = await h.load('../../server/db/schema') as any
+    const { db } = (await h.load('../../server/db/db')) as any
+    const { seedSpends } = (await h.load('../../server/db/schema')) as any
     const { and, eq } = await import('drizzle-orm')
 
     await seeds.debitar(u, { spendId: 'compra-apagada-1', amount: 7, reason: 'pular-rodada' })
-    await db.update(seedSpends).set({ deletedAt: Date.now() })
+    await db
+      .update(seedSpends)
+      .set({ deletedAt: Date.now() })
       .where(and(eq(seedSpends.userId, u), eq(seedSpends.spendId, 'compra-apagada-1')))
 
     expect(await seeds.totalGasto(u)).toBe(0) // sumiu do saldo

@@ -112,5 +112,4 @@ export function resumirTrace(eventos) {
 }
 
 /** `true` quando o módulo foi executado direto (`node arquivo.mjs`), e não importado. */
-export const executadoDireto = (url) =>
-  !!process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(url)
+export const executadoDireto = (url) => !!process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(url)

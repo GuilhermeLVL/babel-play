@@ -1,6 +1,7 @@
 # importar-legendas Specification
 
 ## Purpose
+
 Importar legendas .srt/.vtt/.ass no navegador sem IA. Criada pela change `importar-legendas` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-importar-legendas/proposal.md` para o porquê.
 
 ## Requirements

@@ -9,12 +9,12 @@ tinham sido removidos por elas.
 
 Números medidos em 08/09, antes e depois de configurar as ferramentas:
 
-| ferramenta | sem configuração | com configuração | real |
-|---|---|---|---|
-| knip — arquivos sem uso | 44 | 10 | 10 |
-| knip — exports sem uso | 144 | 48 | 43 |
-| knip — tipos sem uso | 97 | 24 | 11 |
-| depcheck — deps sem uso | 8 | — | 2 |
+| ferramenta              | sem configuração | com configuração | real |
+| ----------------------- | ---------------- | ---------------- | ---- |
+| knip — arquivos sem uso | 44               | 10               | 10   |
+| knip — exports sem uso  | 144              | 48               | 43   |
+| knip — tipos sem uso    | 97               | 24               | 11   |
+| depcheck — deps sem uso | 8                | —                | 2    |
 
 **A diferença entre as colunas é o ponto.** Sem `knip.json`, a ferramenta não sabia que os testes,
 os scripts e os três workers são pontos de entrada, e chamava de morto tudo que só eles usam. Rodar
@@ -58,10 +58,10 @@ caminho documentado para operar aquelas duas coisas. Há teste de integração p
 
 ## 3. Os dois ciclos de importação, e por que eles não eram inofensivos
 
-| ciclo | como foi quebrado |
-|---|---|
+| ciclo                          | como foi quebrado                                                                                                                                                    |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `loja.ts` ↔ `desbloqueios.ts` | `nivelNecessario` foi para `loja.ts`, onde está o catálogo que ela lê; a liberação de desenvolvimento foi para `lib/liberacaoDev.ts`, um módulo que não importa nada |
-| `filtro.ts` → `source.ts` | `FonteId` e `FonteDeItens` foram para `minigames/types.ts`, o contrato que os dois lados já conhecem |
+| `filtro.ts` → `source.ts`      | `FonteId` e `FonteDeItens` foram para `minigames/types.ts`, o contrato que os dois lados já conhecem                                                                 |
 
 O segundo era só de TIPO, e some no build — mas o grafo continua cíclico para qualquer ferramenta
 que o leia, e um ciclo que "não incomoda hoje" é o que passa a incomodar quando alguém acrescenta um
@@ -108,10 +108,10 @@ O que a decisão humana encontrou não era formatação:
 Zero avisos não pode significar "adicionei tudo às dependências". Nos três casos, incluir a
 dependência que falta PIORARIA o comportamento, e cada supressão diz isso na linha de cima:
 
-| lugar | o que aconteceria se incluísse |
-|---|---|
-| `App.tsx` (popstate) | remover e registrar o ouvinte a cada render |
-| `Play.tsx` (partida rápida) | o `useCallback` devolveria referência nova sempre, desligando a memorização |
+| lugar                        | o que aconteceria se incluísse                                                                      |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| `App.tsx` (popstate)         | remover e registrar o ouvinte a cada render                                                         |
+| `Play.tsx` (partida rápida)  | o `useCallback` devolveria referência nova sempre, desligando a memorização                         |
 | `LiveCapture.tsx` (retomada) | o efeito dispararia por causa da própria escrita, recarregando a transcrição a cada troca de idioma |
 
 E uma supressão MORTA foi removida de `BlitzGame.tsx`: o próprio lint a reportava como inútil.

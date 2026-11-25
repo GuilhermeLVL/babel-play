@@ -82,7 +82,10 @@ const PROVEDORES = {
 }
 
 const PROVEDOR = opt('provedor', 'openrouter')
-const MODELOS = opt('modelos', 'openai/gpt-oss-120b').split(',').map((m) => m.trim()).filter(Boolean)
+const MODELOS = opt('modelos', 'openai/gpt-oss-120b')
+  .split(',')
+  .map((m) => m.trim())
+  .filter(Boolean)
 const ESFORCO = opt('esforco', '')
 const SEM_CONTEXTO = args.includes('--sem-contexto')
 const REPETICOES = Number(opt('repeticoes', '1')) || 1
@@ -113,7 +116,9 @@ function chaveDe(provedor) {
         const m = texto.match(new RegExp(`^${nome}=(.+)$`, 'm'))
         if (m) return m[1].trim()
       }
-    } catch { /* arquivo ausente é normal */ }
+    } catch {
+      /* arquivo ausente é normal */
+    }
   }
   throw new Error(`chave não encontrada para ${provedor} (procurei ${envs.join(', ')} no ambiente e no .env)`)
 }
@@ -163,7 +168,10 @@ const PROMPTS = {
   ],
   /** Template documentado em huggingface.co/tencent/Hunyuan-MT-7B (XX→XX, sem system prompt). */
   hunyuanMt: (caso) => [
-    { role: 'user', content: `Translate the following segment into Portuguese, without additional explanation.\n\n${caso.origem}` },
+    {
+      role: 'user',
+      content: `Translate the following segment into Portuguese, without additional explanation.\n\n${caso.origem}`,
+    },
   ],
 }
 
@@ -216,7 +224,7 @@ async function traduzir(base, chave, modelo, caso) {
     throw new Error(
       raciocinio > 0
         ? `resposta vazia — gastou ${raciocinio} tokens raciocinando dentro do teto de ${corpo.max_tokens}`
-        : `resposta vazia (finish_reason: ${d.choices?.[0]?.finish_reason ?? '?'})`
+        : `resposta vazia (finish_reason: ${d.choices?.[0]?.finish_reason ?? '?'})`,
     )
   }
   return {
@@ -286,11 +294,16 @@ async function main() {
   const { base } = PROVEDORES[PROVEDOR] ?? {}
   if (!base) throw new Error(`provedor desconhecido: ${PROVEDOR} (conheço ${Object.keys(PROVEDORES).join(', ')})`)
   const chave = chaveDe(PROVEDOR)
-  let casos = readFileSync(GOLD, 'utf8').split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l))
+  let casos = readFileSync(GOLD, 'utf8')
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((l) => JSON.parse(l))
   if (LIMITE > 0) casos = casos.slice(0, LIMITE)
   const { precos, consultadoEm } = await tabelaDePrecos(PROVEDOR, chave)
 
-  console.log(`provedor ${PROVEDOR} · corpus ${CORPUS} · ${MODELOS.length} modelo(s) · ${casos.length} casos · ${REPETICOES}x`)
+  console.log(
+    `provedor ${PROVEDOR} · corpus ${CORPUS} · ${MODELOS.length} modelo(s) · ${casos.length} casos · ${REPETICOES}x`,
+  )
   console.log(`(. ok  x falha — resposta vazia CONTA como falha)\n`)
 
   const execucoes = []
@@ -314,7 +327,9 @@ BATERIA INTERROMPIDA: ${e.message}.`)
       }
       const nota = r.geral ? `${(r.geral.chrf * 100).toFixed(1)}%` : '—'
       const custo = custoPorMilFalas(r, precos)
-      console.log(`  chrF++ ${nota.padStart(6)}  ${custo === null ? 'custo ?' : `US$ ${custo.toFixed(3)}/mil`}${r.valido ? '' : `  INVÁLIDO (${r.falhas.length} falhas)`}`)
+      console.log(
+        `  chrF++ ${nota.padStart(6)}  ${custo === null ? 'custo ?' : `US$ ${custo.toFixed(3)}/mil`}${r.valido ? '' : `  INVÁLIDO (${r.falhas.length} falhas)`}`,
+      )
       execucoes.push({ ...r, volta, custoPorMilFalas: custo })
     }
   }
@@ -349,7 +364,9 @@ ${'modelo'.padEnd(40)} ${'chrF++'.padStart(7)} ${'ampl.'.padStart(6)} ${'US$/mil
   for (const r of resumo) {
     const amp = r.amplitude === null ? '  —  ' : `±${r.amplitude.toFixed(1)}`
     const custo = r.custo === null ? '?' : r.custo.toFixed(3)
-    console.log(`${r.modelo.padEnd(40)} ${r.media.toFixed(1).padStart(6)}% ${amp.padStart(6)} ${custo.padStart(9)}  ${r.formatoDePrompt}`)
+    console.log(
+      `${r.modelo.padEnd(40)} ${r.media.toFixed(1).padStart(6)}% ${amp.padStart(6)} ${custo.padStart(9)}  ${r.formatoDePrompt}`,
+    )
   }
 
   /* REPRODUTIBILIDADE ANTES DE PÓDIO. Se o mesmo modelo varia entre execuções tanto quanto varia de
@@ -363,7 +380,7 @@ ${'modelo'.padEnd(40)} ${'chrF++'.padStart(7)} ${'ampl.'.padStart(6)} ${'US$/mil
   EMPATE TÉCNICO: 1º e 2º diferem ${diferenca.toFixed(1)} ponto(s), e o MESMO modelo varia até ${maiorAmplitude.toFixed(1)}.
   Este gold set (${casos.length} casos) não separa estes modelos. Amplie o corpus antes de decidir.`
         : `
-  A diferença entre 1º e 2º (${diferenca.toFixed(1)}) supera a variação interna (${maiorAmplitude.toFixed(1)}): o ranking se sustenta.`
+  A diferença entre 1º e 2º (${diferenca.toFixed(1)}) supera a variação interna (${maiorAmplitude.toFixed(1)}): o ranking se sustenta.`,
     )
   } else if (REPETICOES === 1) {
     console.log(`
@@ -374,7 +391,9 @@ ${'modelo'.padEnd(40)} ${'chrF++'.padStart(7)} ${'ampl.'.padStart(6)} ${'US$/mil
   if (invalidos.length) {
     console.log(`\nfora do ranking:`)
     for (const e of invalidos) {
-      console.log(`  ${e.modelo.padEnd(40)} ${e.falhas.length}/${casos.length} falhas — ${e.falhas[0]?.erro ?? 'sem saída'}`)
+      console.log(
+        `  ${e.modelo.padEnd(40)} ${e.falhas.length}/${casos.length} falhas — ${e.falhas[0]?.erro ?? 'sem saída'}`,
+      )
     }
   }
 
@@ -390,15 +409,31 @@ ${'modelo'.padEnd(40)} ${'chrF++'.padStart(7)} ${'ampl.'.padStart(6)} ${'US$/mil
     return
   }
   mkdirSync(path.dirname(SAIDA), { recursive: true })
-  writeFileSync(SAIDA, JSON.stringify({
-    geradoEm: new Date().toISOString(),
-    provedor: PROVEDOR, corpus: CORPUS, totalDeCasos: casos.length, interrompida,
-    raciocinio: RACIOCINIO || 'padrão do modelo',
-    esforco: ESFORCO || 'padrão', semContexto: SEM_CONTEXTO, repeticoes: REPETICOES,
-    precos: { consultadoEm, usados: Object.fromEntries(MODELOS.map((m) => [m, precos[m] ?? null])) },
-    execucoes, resumo,
-  }, null, 2))
+  writeFileSync(
+    SAIDA,
+    JSON.stringify(
+      {
+        geradoEm: new Date().toISOString(),
+        provedor: PROVEDOR,
+        corpus: CORPUS,
+        totalDeCasos: casos.length,
+        interrompida,
+        raciocinio: RACIOCINIO || 'padrão do modelo',
+        esforco: ESFORCO || 'padrão',
+        semContexto: SEM_CONTEXTO,
+        repeticoes: REPETICOES,
+        precos: { consultadoEm, usados: Object.fromEntries(MODELOS.map((m) => [m, precos[m] ?? null])) },
+        execucoes,
+        resumo,
+      },
+      null,
+      2,
+    ),
+  )
   console.log(`\nbruto: ${SAIDA}`)
 }
 
-main().catch((e) => { console.error('FALHOU:', e.message); process.exit(1) })
+main().catch((e) => {
+  console.error('FALHOU:', e.message)
+  process.exit(1)
+})

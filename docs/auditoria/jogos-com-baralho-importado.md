@@ -1,8 +1,8 @@
 # Auditoria — os minijogos com material importado do Anki
 
-Pedido do dono (02/09): *"o exercício do jogo da memória e o exercício de termo são dois exercícios
+Pedido do dono (02/09): _"o exercício do jogo da memória e o exercício de termo são dois exercícios
 que eu pude testar e percebi que a lógica deles está quebrada… aparece uma frase gigante, mas aí o
-usuário só tem que escrever uma palavra"*.
+usuário só tem que escrever uma palavra"_.
 
 Investigado sobre o acervo REAL (`data/babel.db`, baralho `4000 Essential English Words::1.Book`,
 2.225 cartões ativos), não sobre hipótese. Foram encontrados **três defeitos encadeados**; os dois
@@ -14,20 +14,20 @@ primeiros estão corrigidos e verificados, o terceiro está descrito com a decis
 
 O baralho não é um par bilíngue. É um dicionário de aprendiz:
 
-| campo | conteúdo real | o que o app supunha |
-|---|---|---|
-| frente (`word`) | `abandon` | palavra — **correto** |
-| verso (`back`) | `To abandon something is to leave it forever or for a long time.` | tradução curta para o idioma do usuário — **falso** |
-| idioma | gravado `src_lang='en'`, `tgt_lang='pt'` | o verso está em **inglês**, não em português |
+| campo           | conteúdo real                                                     | o que o app supunha                                 |
+| --------------- | ----------------------------------------------------------------- | --------------------------------------------------- |
+| frente (`word`) | `abandon`                                                         | palavra — **correto**                               |
+| verso (`back`)  | `To abandon something is to leave it forever or for a long time.` | tradução curta para o idioma do usuário — **falso** |
+| idioma          | gravado `src_lang='en'`, `tgt_lang='pt'`                          | o verso está em **inglês**, não em português        |
 
 Medições sobre os 2.225 cartões:
 
-| medida | valor |
-|---|---|
-| verso com mais de 42 caracteres | 1.846 (83%) |
-| comprimento médio do verso | 57 caracteres |
+| medida                              | valor                     |
+| ----------------------------------- | ------------------------- |
+| verso com mais de 42 caracteres     | 1.846 (83%)               |
+| comprimento médio do verso          | 57 caracteres             |
 | **verso que contém a palavra-alvo** | **2.224 de 2.225 (100%)** |
-| verso que começa pela palavra-alvo | 356 (16%) |
+| verso que começa pela palavra-alvo  | 356 (16%)                 |
 
 Este formato — frente = palavra, verso = definição no mesmo idioma — é o mais comum entre os
 baralhos populares de vocabulário. Não é material ruim; é material que o produto não sabia ler.
@@ -36,7 +36,7 @@ baralhos populares de vocabulário. Não é material ruim; é material que o pro
 
 ## Defeito 1 — a pista entregava a resposta (CORRIGIDO)
 
-**Sintoma**: no Termo, a dica de `abandon` era *"To abandon something is to leave it forever"* — a
+**Sintoma**: no Termo, a dica de `abandon` era _"To abandon something is to leave it forever"_ — a
 resposta impressa acima do teclado. Na Memória, as duas cartas do par traziam a mesma palavra
 escrita, então o par casava sozinho.
 
@@ -55,6 +55,7 @@ depois: To ——— something is to leave it forever.       →  digite: abando
 ```
 
 Regras que importam:
+
 - **Igualdade exata sempre mascara**, qualquer que seja o tamanho da palavra.
 - **Flexão exige radical de 3+ letras** (`abandoning`, `abandoned`, `abilities`), senão `be`
   apagaria `bear`, `best`, `bed`. A assimetria foi encontrada por um teste do material real.
@@ -65,14 +66,14 @@ Regras que importam:
 
 **Verificação**: `tests/pista-de-jogo.test.ts` (20 casos, com amostras literais do banco) e
 varredura do acervo inteiro — **100% vazavam, 0% vazam, nenhum cartão perdido**. Confirmado
-jogando no navegador: a dica do Termo saiu como *"To ——— is to ask for something you want very
-badly"*; as cartas da Memória como *"——— is the study of the Earth…"*.
+jogando no navegador: a dica do Termo saiu como _"To ——— is to ask for something you want very
+badly"_; as cartas da Memória como _"——— is the study of the Earth…"_.
 
 Commit `6b44ed6`.
 
 ## Defeito 2 — tudo nascia vencido (CORRIGIDO)
 
-**Sintoma**: a tela anunciava *"2.225 palavras pedindo revisão"* logo depois de importar, e a
+**Sintoma**: a tela anunciava _"2.225 palavras pedindo revisão"_ logo depois de importar, e a
 faceta "Nunca vistas" mostrava **zero**.
 
 **Raiz**: `projetarDoAnki` (`server/db/repositories/vocab.ts`) gravava `dueAt = now`. Como
@@ -110,7 +111,7 @@ idioma, ao contrário de listas de palavras funcionais. Esse sinal já é calcul
 
 **Encaminhamento proposto** (não implementado — muda o que a tela promete, e isso é decisão de
 produto): marcar o deck como `tipoDeVerso: 'definicao'` na importação, parar de gravar um
-`tgt_lang` que não corresponde ao conteúdo, e a tela dizer *"ensina por definição em inglês"* em
+`tgt_lang` que não corresponde ao conteúdo, e a tela dizer _"ensina por definição em inglês"_ em
 vez de prometer tradução. Nenhum jogo precisa mudar depois do defeito 1 estar corrigido.
 
 ---
@@ -125,8 +126,8 @@ separa "prontos para jogar" de "precisam de outro material", com o motivo e o bo
 
 ## Pendências registradas
 
-| item | estado |
-|---|---|
-| Rotulagem do idioma do verso (defeito 3) | aguarda decisão de produto |
+| item                                                    | estado                                                |
+| ------------------------------------------------------- | ----------------------------------------------------- |
+| Rotulagem do idioma do verso (defeito 3)                | aguarda decisão de produto                            |
 | `bulkAdd` também grava `dueAt = now` (fluxo de captura) | não tocado — outro fluxo, exige medição própria antes |
-| Frases do baralho alimentarem os jogos de frase (F10) | na fila do motor Anki |
+| Frases do baralho alimentarem os jogos de frase (F10)   | na fila do motor Anki                                 |

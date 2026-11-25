@@ -7,7 +7,7 @@ deixou de existir e o `openai/gpt-oss-120b` entrou como substituto medido contra
 E há dinheiro na mesa. A consulta ao catálogo do OpenRouter mostra o **mesmo modelo** a US$
 0,037/0,170 por milhão de tokens, contra US$ 0,15/0,60 na Groq — 4× mais barato só por trocar de
 roteador. Há modelos gratuitos, modelos a um terço do preço, e a família **Tencent Hy-MT2**,
-*dedicada a tradução*, a partir de 1,8B de parâmetros.
+_dedicada a tradução_, a partir de 1,8B de parâmetros.
 
 Nenhuma dessas escolhas pode ser feita por preço de tabela: o que decide é qualidade em **fala
 espontânea pt-BR**, que é o produto. Falta a bancada que produza esse número.
@@ -32,10 +32,12 @@ espontânea pt-BR**, que é o produto. Falta a bancada que produza esse número.
 ## Capabilities
 
 ### New Capabilities
+
 - `avaliacao-multi-modelo`: comparar modelos de tradução de vários provedores no mesmo gold set,
   com métrica dupla (chrF++ e juiz) e custo medido, produzindo um ranking auditável.
 
 ### Modified Capabilities
+
 <!-- Nenhuma: openspec/specs/ está vazio (repositório recém-inicializado) e esta mudança não altera
      requisito de comportamento de produto. -->
 

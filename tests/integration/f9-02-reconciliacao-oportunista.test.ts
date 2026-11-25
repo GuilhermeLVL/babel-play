@@ -9,10 +9,10 @@ import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterAll, afterEach,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let router: any
@@ -28,7 +28,10 @@ beforeAll(async () => {
   ;({ sessionsRepo: sessions } = await h.load('../../server/db/repositories/sessions'))
   quota = await h.load('../../server/lib/storageQuota')
 })
-afterAll(async () => { delete process.env.AUDIO_DIR; await h.cleanup() })
+afterAll(async () => {
+  delete process.env.AUDIO_DIR
+  await h.cleanup()
+})
 afterEach(() => {
   delete process.env.AUTH_REQUIRED
   delete process.env.STORAGE_RECONCILE_HOURS
@@ -37,8 +40,14 @@ afterEach(() => {
 
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   r.setHeader = () => r
   return r
 }

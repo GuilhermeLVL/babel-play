@@ -12,11 +12,15 @@
  * e o texto foi para a tela como se fosse a resposta. O sistema não tinha como saber, porque
  * ninguém perguntava.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { explicarRejeicao, MINIMO_DE_CARACTERES,precisaConferir, validarTraducao } from '../src/lib/validaTraducao'
+import { explicarRejeicao, MINIMO_DE_CARACTERES, precisaConferir, validarTraducao } from '../src/lib/validaTraducao'
 
-const longo = (s: string) => s.padEnd(MINIMO_DE_CARACTERES + 6, ' ').trim().padEnd(MINIMO_DE_CARACTERES + 6, 'x')
+const longo = (s: string) =>
+  s
+    .padEnd(MINIMO_DE_CARACTERES + 6, ' ')
+    .trim()
+    .padEnd(MINIMO_DE_CARACTERES + 6, 'x')
 const confiante = (lang: string) => ({ lang, confidence: 0.95 })
 
 describe('o caso do tcheco', () => {

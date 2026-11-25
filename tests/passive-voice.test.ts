@@ -5,7 +5,7 @@
  * "be + particípio" pega e o que ele erra de propósito (ver cabeçalho de passive-voice.ts). Os
  * casos de falso-positivo/negativo abaixo são a especificação viva desses limites.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { detectarVozPassiva, temReguaDeVozPassiva } from '../src/core/learning/passive-voice'
 

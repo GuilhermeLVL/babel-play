@@ -1,7 +1,14 @@
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { FRASES_INTEIRAS,PARAFRASES } from '../src/lib/traducao/expressoes'
-import { chaveNormalizada,limparVicios, normalizarContracoes, parafrasearExpressoes, prepararFala, traducaoDeFraseInteira } from '../src/lib/traducao/prepararFala'
+import { FRASES_INTEIRAS, PARAFRASES } from '../src/lib/traducao/expressoes'
+import {
+  chaveNormalizada,
+  limparVicios,
+  normalizarContracoes,
+  parafrasearExpressoes,
+  prepararFala,
+  traducaoDeFraseInteira,
+} from '../src/lib/traducao/prepararFala'
 
 describe('prepararFala — a fala do mic em português vira português claro antes de traduzir', () => {
   it('remove hesitações isoladas e a gagueira, sem tocar em palavra de conteúdo', () => {
@@ -32,7 +39,10 @@ describe('prepararFala — a fala do mic em português vira português claro ant
   })
 
   it('pipeline: só age em português; outros idiomas saem intactos', () => {
-    expect(prepararFala('Hey, um, you know, whatever.', 'en', 'pt')).toEqual({ texto: 'Hey, um, you know, whatever.', mudou: false })
+    expect(prepararFala('Hey, um, you know, whatever.', 'en', 'pt')).toEqual({
+      texto: 'Hey, um, you know, whatever.',
+      mudou: false,
+    })
     const r = prepararFala('Né, a gente tava de boa, pois é.', 'pt-BR', 'en')
     expect(r.texto).toBe('Nós estava tranquilo, é verdade.')
     expect(r.mudou).toBe(true)
@@ -56,7 +66,10 @@ describe('prepararFala — a fala do mic em português vira português claro ant
   it('glossário: sem duplicatas e sem entrada vazia', () => {
     const chaves = PARAFRASES.map(([k]) => k)
     expect(new Set(chaves).size).toBe(chaves.length)
-    for (const [k, v] of PARAFRASES) { expect(k.trim()).toBeTruthy(); expect(v.trim()).toBeTruthy() }
+    for (const [k, v] of PARAFRASES) {
+      expect(k.trim()).toBeTruthy()
+      expect(v.trim()).toBeTruthy()
+    }
     const en = FRASES_INTEIRAS.en.map(([k]) => k)
     expect(new Set(en).size).toBe(en.length)
   })

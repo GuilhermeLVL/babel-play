@@ -4,8 +4,8 @@
  * "Habilitar 2FA"; com fator verificado mostra "Ativo" + "Desativar". Supabase e serviço de auth
  * mockados (não toca a rede).
  */
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
-import { afterEach,describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const m = vi.hoisted(() => ({
   listTotpFactors: vi.fn(async () => [] as any[]),
@@ -15,27 +15,30 @@ const m = vi.hoisted(() => ({
   updatePassword: vi.fn(),
   signOut: vi.fn(),
   SENHA_MINIMA: 8,
-}));
-vi.mock('../src/lib/supabase', () => ({ supabase: {}, authRequired: true, getAccessToken: async () => null }));
-vi.mock('../src/lib/auth', () => m);
+}))
+vi.mock('../src/lib/supabase', () => ({ supabase: {}, authRequired: true, getAccessToken: async () => null }))
+vi.mock('../src/lib/auth', () => m)
 
-import SecurityPanel from '../src/components/auth/SecurityPanel';
+import SecurityPanel from '../src/components/auth/SecurityPanel'
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+})
 
 describe('SaaS Fatia 5 — SecurityPanel (2FA)', () => {
   it('sem fator → oferece "Habilitar 2FA"', async () => {
-    m.listTotpFactors.mockResolvedValue([]);
-    render(<SecurityPanel />);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Habilitar 2FA' })).toBeTruthy());
+    m.listTotpFactors.mockResolvedValue([])
+    render(<SecurityPanel />)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Habilitar 2FA' })).toBeTruthy())
     // e tem a seção de trocar senha
-    expect(screen.getByLabelText('Nova senha')).toBeTruthy();
-  });
+    expect(screen.getByLabelText('Nova senha')).toBeTruthy()
+  })
 
   it('com fator verificado → mostra "Ativo" e "Desativar"', async () => {
-    m.listTotpFactors.mockResolvedValue([{ id: 'f1', verified: true }]);
-    render(<SecurityPanel />);
-    await waitFor(() => expect(screen.getByText('Ativo')).toBeTruthy());
-    expect(screen.getByRole('button', { name: 'Desativar' })).toBeTruthy();
-  });
-});
+    m.listTotpFactors.mockResolvedValue([{ id: 'f1', verified: true }])
+    render(<SecurityPanel />)
+    await waitFor(() => expect(screen.getByText('Ativo')).toBeTruthy())
+    expect(screen.getByRole('button', { name: 'Desativar' })).toBeTruthy()
+  })
+})

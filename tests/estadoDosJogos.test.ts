@@ -9,10 +9,10 @@
  * Estes testes existem para que a correção não seja desfeita por acidente na próxima vez que
  * alguém mexer no gate das cartas.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { type EntradaDoEstado,estadoDeCadaJogo, estadoDoJogo } from '../src/core/minigames/estadoDosJogos'
-import { type MinigameId,MINIGAMES } from '../src/core/minigames/types'
+import { type EntradaDoEstado, estadoDeCadaJogo, estadoDoJogo } from '../src/core/minigames/estadoDosJogos'
+import { type MinigameId, MINIGAMES } from '../src/core/minigames/types'
 import type { VocabCard } from '../src/types'
 
 function carta(word: string, translation: string): VocabCard {

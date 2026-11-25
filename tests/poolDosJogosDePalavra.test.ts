@@ -11,7 +11,7 @@
  * a troca: se a contagem barata divergir de `buildItems` em qualquer baralho, o conserto está
  * errado — a carta passaria a anunciar um acervo que a rodada não tem.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { poolDosJogosDePalavra } from '../src/core/minigames/estadoDosJogos'
 import { buildItems } from '../src/core/minigames/itemSource'
@@ -24,11 +24,18 @@ const JOGOS: MinigameId[] = ['memory', 'wordsearch', 'blitz']
 
 function carta(p: Partial<VocabCard> & { id: string; word: string }): VocabCard {
   return {
-    phonetics: '', translation: '', explanation: '',
-    srcLang: 'en', tgtLang: 'pt', 
-    leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
-    fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5,
-    fsrsPredictedRetention: 0, fsrsDueAt: new Date(0).toISOString(),
+    phonetics: '',
+    translation: '',
+    explanation: '',
+    srcLang: 'en',
+    tgtLang: 'pt',
+    leitnerBox: 1,
+    leitnerDueAt: new Date(0).toISOString(),
+    fsrsState: 'New',
+    fsrsStability: 0,
+    fsrsDifficulty: 5,
+    fsrsPredictedRetention: 0,
+    fsrsDueAt: new Date(0).toISOString(),
     inDeck: true,
     ...p,
   } as VocabCard
@@ -46,14 +53,16 @@ function baralho(n: number, semente: number): VocabCard[] {
   const fora: VocabCard[] = []
   for (let i = 0; i < n; i++) {
     const k = (i + semente) % 7
-    fora.push(carta({
-      id: `c${i}`,
-      word: `word${sufixo(i)}`.replace(/\d/g, ''),
-      // k=0: sem tradução e sem frase (sai de todos). k=1: só frase (vira lacuna).
-      translation: k === 0 || k === 1 ? '' : k === 2 ? 'repetida' : `casa${sufixo(i)}`,
-      sentence: k === 1 || k === 3 ? `The word ${sufixo(i)} was quiet in the morning.` : '',
-      inDeck: k !== 6,
-    }))
+    fora.push(
+      carta({
+        id: `c${i}`,
+        word: `word${sufixo(i)}`.replace(/\d/g, ''),
+        // k=0: sem tradução e sem frase (sai de todos). k=1: só frase (vira lacuna).
+        translation: k === 0 || k === 1 ? '' : k === 2 ? 'repetida' : `casa${sufixo(i)}`,
+        sentence: k === 1 || k === 3 ? `The word ${sufixo(i)} was quiet in the morning.` : '',
+        inDeck: k !== 6,
+      }),
+    )
   }
   return fora
 }

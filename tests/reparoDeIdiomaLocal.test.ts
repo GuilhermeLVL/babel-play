@@ -8,7 +8,10 @@ import 'fake-indexeddb/auto'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({
-  supabase: null, authRequired: true, carregarSupabase: async () => null, getAccessToken: async () => null,
+  supabase: null,
+  authRequired: true,
+  carregarSupabase: async () => null,
+  getAccessToken: async () => null,
 }))
 
 import { chaveDedup } from '../src/core/texto/palavra'
@@ -22,21 +25,81 @@ async function semear() {
   const db = await abrirStore()
   const agora = Date.now()
   await db.put('sessoes', {
-    id: 's1', title: 'Captura', kind: 'live', createdAt: agora, updatedAt: agora, durationMs: 1000, wordCount: 16,
-    sourceLang: 'pt-BR', targetLang: 'en-US', status: 'done', meta: null,
+    id: 's1',
+    title: 'Captura',
+    kind: 'live',
+    createdAt: agora,
+    updatedAt: agora,
+    durationMs: 1000,
+    wordCount: 16,
+    sourceLang: 'pt-BR',
+    targetLang: 'en-US',
+    status: 'done',
+    meta: null,
   })
   await db.put('falas', {
-    id: 'f1', sessionId: 's1', idx: 0, speakerName: null, source: 'system', sourceLang: 'en', sourceText: FALA,
-    targetLang: 'pt-BR', translatedText: '', tStartMs: 0, tEndMs: 1000, engine: 'whisper-local', confidence: null,
+    id: 'f1',
+    sessionId: 's1',
+    idx: 0,
+    speakerName: null,
+    source: 'system',
+    sourceLang: 'en',
+    sourceText: FALA,
+    targetLang: 'pt-BR',
+    translatedText: '',
+    tStartMs: 0,
+    tEndMs: 1000,
+    engine: 'whisper-local',
+    confidence: null,
   })
   const base = {
-    back: null, clozePrompt: null, clozeAnswer: null, box: 1, dueAt: agora, stability: null, difficulty: null,
-    reps: null, lapses: null, lastReview: null, inDeck: 1, cefrLevel: null, cefrConfidence: null, createdAt: agora, occurrences: 1,
+    back: null,
+    clozePrompt: null,
+    clozeAnswer: null,
+    box: 1,
+    dueAt: agora,
+    stability: null,
+    difficulty: null,
+    reps: null,
+    lapses: null,
+    lastReview: null,
+    inDeck: 1,
+    cefrLevel: null,
+    cefrConfidence: null,
+    createdAt: agora,
+    occurrences: 1,
   }
-  await db.put('cartoes', { ...base, id: 'c1', word: 'reunião', normKey: chaveDedup('reunião', 'en-US'), sentence: FALA, srcLang: 'en-US', tgtLang: 'pt-BR', sessionId: 's1' })
-  await db.put('cartoes', { ...base, id: 'c2', word: 'trabalho', normKey: chaveDedup('trabalho', 'en-US'), sentence: FALA, srcLang: 'en-US', tgtLang: 'pt-BR', sessionId: 's1' })
+  await db.put('cartoes', {
+    ...base,
+    id: 'c1',
+    word: 'reunião',
+    normKey: chaveDedup('reunião', 'en-US'),
+    sentence: FALA,
+    srcLang: 'en-US',
+    tgtLang: 'pt-BR',
+    sessionId: 's1',
+  })
+  await db.put('cartoes', {
+    ...base,
+    id: 'c2',
+    word: 'trabalho',
+    normKey: chaveDedup('trabalho', 'en-US'),
+    sentence: FALA,
+    srcLang: 'en-US',
+    tgtLang: 'pt-BR',
+    sessionId: 's1',
+  })
   // A mesma palavra já fichada DEPOIS da correção, em português: o antigo não pode colidir com ela.
-  await db.put('cartoes', { ...base, id: 'c3', word: 'trabalho', normKey: chaveDedup('trabalho', 'pt-BR'), sentence: FALA, srcLang: 'pt-BR', tgtLang: 'en-US', sessionId: 's1' })
+  await db.put('cartoes', {
+    ...base,
+    id: 'c3',
+    word: 'trabalho',
+    normKey: chaveDedup('trabalho', 'pt-BR'),
+    sentence: FALA,
+    srcLang: 'pt-BR',
+    tgtLang: 'en-US',
+    sessionId: 's1',
+  })
 }
 
 describe('reparo local do idioma', () => {

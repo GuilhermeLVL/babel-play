@@ -16,7 +16,12 @@
  * baixa o nosso modelo (ou o pacote do próprio navegador, quando ele o instala). "Agora não" cancela
  * o início — nunca escolhe pela pessoa. Puro: a tela passa os números.
  */
-import { type EntradaDoMotorDoMic, type EscolhaDoMic, escolherMotorDoMic, precisaPerguntarMotorDoMic } from './motorDoMicrofone';
+import {
+  type EntradaDoMotorDoMic,
+  type EscolhaDoMic,
+  escolherMotorDoMic,
+  precisaPerguntarMotorDoMic,
+} from './motorDoMicrofone';
 
 /** Quem vai ouvir a sua voz, previsto antes do clique. `pacote`: o reconhecimento do navegador, a instalar. */
 export type MotorPrevistoDoMic = 'navegador' | 'pacote' | 'whisper';

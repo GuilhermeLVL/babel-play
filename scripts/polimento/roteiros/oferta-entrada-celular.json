@@ -40,9 +40,7 @@
   "proto": {
     "passos": []
   },
-  "seletores": [
-    ".q-trilho"
-  ],
+  "seletores": [".q-trilho"],
   "gravar": {
     "app": [
       {

@@ -23,15 +23,15 @@ ruído de I/O. Todos os números abaixo são a saída real do script, colada sem
 
 ## Resultado por caso
 
-| Caso | Mediana | p95 | itens (total) | Plano (`EXPLAIN QUERY PLAN`) |
-|---|---:|---:|---:|---|
-| (a) filtro vazio-padrão (`fontes:['baralho']`, sem recorte) | 4.242,15 ms | 4.490,15 ms | 600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_dificuldade (user_id=?)` → `CORRELATED SCALAR SUBQUERY 1` → **`SCAN o`** |
-| (b) 1 baralho (`baralhos:['deck-0']`) | 4.462,79 ms | 4.643,85 ms | 600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_dificuldade (user_id=?)` → `CORRELATED SCALAR SUBQUERY 1` → **`SCAN o`** |
-| (c) 3 baralhos + 1 idioma | 397,45 ms | 487,42 ms | 600 | `SEARCH vocab_cards USING INDEX idx_vocab_src_lang_base (src_lang_base=?)` → `CORRELATED SCALAR SUBQUERY 1` → **`SCAN o`** |
-| (d) união trilha+baralho + `pedindoRevisao` | 7.747,99 ms | 8.385,05 ms | 600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_due (user_id=? AND due_at>? AND due_at<?)` → 2×(`CORRELATED SCALAR SUBQUERY` → **`SCAN o`**) |
-| (e) idiomas `['ja','es']` + níveis | 4.742,83 ms | 5.152,07 ms | 600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_cefr (user_id=? AND cefr_level=?)` → `CORRELATED SCALAR SUBQUERY 1` → **`SCAN o`** |
-| (f) mídia `comTraducao` | 3.691,81 ms | 4.641,78 ms | 600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_dificuldade (user_id=?)` → `CORRELATED SCALAR SUBQUERY 1` → **`SCAN o`** |
-| (g) PIOR CASO: 3 fontes + 4 baralhos + 3 idiomas + níveis + `pedindoRevisao` + mídia | 37.032,80 ms | 37.355,52 ms | 600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_due (...)` → 3×(`CORRELATED SCALAR SUBQUERY` → **`SCAN o`**) |
+| Caso                                                                                 |      Mediana |          p95 | itens (total) | Plano (`EXPLAIN QUERY PLAN`)                                                                                                                |
+| ------------------------------------------------------------------------------------ | -----------: | -----------: | ------------: | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| (a) filtro vazio-padrão (`fontes:['baralho']`, sem recorte)                          |  4.242,15 ms |  4.490,15 ms |           600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_dificuldade (user_id=?)` → `CORRELATED SCALAR SUBQUERY 1` → **`SCAN o`**                     |
+| (b) 1 baralho (`baralhos:['deck-0']`)                                                |  4.462,79 ms |  4.643,85 ms |           600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_dificuldade (user_id=?)` → `CORRELATED SCALAR SUBQUERY 1` → **`SCAN o`**                     |
+| (c) 3 baralhos + 1 idioma                                                            |    397,45 ms |    487,42 ms |           600 | `SEARCH vocab_cards USING INDEX idx_vocab_src_lang_base (src_lang_base=?)` → `CORRELATED SCALAR SUBQUERY 1` → **`SCAN o`**                  |
+| (d) união trilha+baralho + `pedindoRevisao`                                          |  7.747,99 ms |  8.385,05 ms |           600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_due (user_id=? AND due_at>? AND due_at<?)` → 2×(`CORRELATED SCALAR SUBQUERY` → **`SCAN o`**) |
+| (e) idiomas `['ja','es']` + níveis                                                   |  4.742,83 ms |  5.152,07 ms |           600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_cefr (user_id=? AND cefr_level=?)` → `CORRELATED SCALAR SUBQUERY 1` → **`SCAN o`**           |
+| (f) mídia `comTraducao`                                                              |  3.691,81 ms |  4.641,78 ms |           600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_dificuldade (user_id=?)` → `CORRELATED SCALAR SUBQUERY 1` → **`SCAN o`**                     |
+| (g) PIOR CASO: 3 fontes + 4 baralhos + 3 idiomas + níveis + `pedindoRevisao` + mídia | 37.032,80 ms | 37.355,52 ms |           600 | `SEARCH vocab_cards USING INDEX idx_vocab_user_due (...)` → 3×(`CORRELATED SCALAR SUBQUERY` → **`SCAN o`**)                                 |
 
 ("`o`" é o alias de `vocab_occurrences` nas subconsultas `EXISTS`/`NOT EXISTS` de `selecionarParaJogo`.)
 
@@ -76,9 +76,9 @@ Faltar um índice cujo prefixo seja `card_id` em `vocab_occurrences` é a lacuna
 diretamente:
 
 ```ts
-index('idx_occ_card').on(t.cardId)
+index('idx_occ_card').on(t.cardId);
 // ou, se quiser cobrir a checagem de origin_kind sem lookup extra:
-index('idx_occ_card_origem').on(t.cardId, t.originKind, t.originRef)
+index('idx_occ_card_origem').on(t.cardId, t.originKind, t.originRef);
 ```
 
 Com esse índice, a subconsulta correlacionada vira `SEARCH o USING INDEX idx_occ_card
@@ -100,15 +100,15 @@ Duas mudanças, ambas medidas de novo com o MESMO script:
    `0020_sonda_de_ocorrencias.sql` (aditiva; down = `DROP INDEX idx_occ_probe`). As quatro
    igualdades da sonda num índice covering: o probe vira um lookup por candidato.
 
-| Caso | Antes (mediana) | Depois (mediana) | Plano depois |
-|---|---:|---:|---|
-| (a) vazio-padrão | 4.242 ms | **19,3 ms** | `SEARCH o USING COVERING INDEX idx_occ_probe` |
-| (b) 1 baralho | 4.463 ms | **21,3 ms** | idem |
-| (c) 3 baralhos + idioma | 397 ms | **24,3 ms** | idem |
-| (d) união + pedindoRevisao | 4.556 ms | **22,1 ms** | idem (2 sondas) |
-| (e) 2 idiomas + níveis | 2.825 ms | **26,8 ms** | idem |
-| (f) mídia comTraducao | 2.806 ms | **23,3 ms** | idem |
-| (g) pior caso (3 fontes + tudo) | 46.051 ms | **49,8 ms** | idem (3 sondas) |
+| Caso                            | Antes (mediana) | Depois (mediana) | Plano depois                                  |
+| ------------------------------- | --------------: | ---------------: | --------------------------------------------- |
+| (a) vazio-padrão                |        4.242 ms |      **19,3 ms** | `SEARCH o USING COVERING INDEX idx_occ_probe` |
+| (b) 1 baralho                   |        4.463 ms |      **21,3 ms** | idem                                          |
+| (c) 3 baralhos + idioma         |          397 ms |      **24,3 ms** | idem                                          |
+| (d) união + pedindoRevisao      |        4.556 ms |      **22,1 ms** | idem (2 sondas)                               |
+| (e) 2 idiomas + níveis          |        2.825 ms |      **26,8 ms** | idem                                          |
+| (f) mídia comTraducao           |        2.806 ms |      **23,3 ms** | idem                                          |
+| (g) pior caso (3 fontes + tudo) |       46.051 ms |      **49,8 ms** | idem (3 sondas)                               |
 
 **Veredito final: APROVADO.** Nenhum `SCAN` em nenhum dos 7 casos; todo probe correlacionado usa
 `idx_occ_probe` como covering index. O pior caso combinável ficou em ~50 ms sobre 20.000 cartões

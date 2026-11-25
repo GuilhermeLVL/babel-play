@@ -1,6 +1,7 @@
 # teste-por-uso Specification
 
 ## Purpose
+
 Teto de uso (3 h, tokens, voz) para o teste de 14 dias do Premium. Criada pela change `teste-por-uso` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-teste-por-uso/proposal.md` para o porquê.
 
 ## Requirements

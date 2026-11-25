@@ -10,25 +10,47 @@
  * sobre a fórmula (`xpDeEventos` é a única definição, usada pelos dois lados) e foi conferida
  * também contra o banco real — 60.474 dos dois lados.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import type { AppMetrics } from '../src/core/learning/contract'
 import {
-  levelFloor, NIVEL_MAXIMO,
-nivelDoXp, PESOS_SEEDS,   PESOS_XP, posicaoNoNivel, seedsGanhasDeEventos,
-xpDeEventos, } from '../src/core/learning/xp'
+  levelFloor,
+  NIVEL_MAXIMO,
+  nivelDoXp,
+  PESOS_SEEDS,
+  PESOS_XP,
+  posicaoNoNivel,
+  seedsGanhasDeEventos,
+  xpDeEventos,
+} from '../src/core/learning/xp'
 import { deriveProgress } from '../src/lib/progress'
 
 /** Métricas mínimas, com os campos que a fórmula usa. */
 function metricas(p: Partial<AppMetrics> = {}): AppMetrics {
   return {
-    sessions: 0, wordsCaptured: 0, reviews: 0, correctReviews: 0,
-    drillItems: 0, drillCorrect: 0, seedsGastas: 0, streakDays: 0,
-    dueToday: 0, newCards: 0, deckSize: 0, uniqueWords: 0,
-    speakingMs: 0, wpm: 0, wpmConfidence: 0, accuracy: 0,
-    avgStability: 0, avgRetention: 0, levelConfidence: 0,
-    levelDistribution: [], vocabByWeek: [],
-    escopo: 'global', base: { considerados: 0, total: 0 },
+    sessions: 0,
+    wordsCaptured: 0,
+    reviews: 0,
+    correctReviews: 0,
+    drillItems: 0,
+    drillCorrect: 0,
+    seedsGastas: 0,
+    streakDays: 0,
+    dueToday: 0,
+    newCards: 0,
+    deckSize: 0,
+    uniqueWords: 0,
+    speakingMs: 0,
+    wpm: 0,
+    wpmConfidence: 0,
+    accuracy: 0,
+    avgStability: 0,
+    avgRetention: 0,
+    levelConfidence: 0,
+    levelDistribution: [],
+    vocabByWeek: [],
+    escopo: 'global',
+    base: { considerados: 0, total: 0 },
     ...p,
   } as AppMetrics
 }
@@ -37,11 +59,23 @@ describe('a fórmula é uma só', () => {
   it('deriveProgress usa exatamente xpDeEventos', () => {
     /* `sessoes` do evento é `sessoesComPalavraSalva` (revisão de 27/09): só sessão com palavra
        salva rende XP; `sessions` é estatística. */
-    const m = metricas({ sessions: 5, sessoesComPalavraSalva: 3, wordsCaptured: 40, reviews: 12, correctReviews: 9, drillItems: 20, drillCorrect: 15 })
+    const m = metricas({
+      sessions: 5,
+      sessoesComPalavraSalva: 3,
+      wordsCaptured: 40,
+      reviews: 12,
+      correctReviews: 9,
+      drillItems: 20,
+      drillCorrect: 15,
+    })
 
     const esperado = xpDeEventos({
-      sessoes: 3, palavrasCapturadas: 40, revisoes: 12, revisoesCertas: 9,
-      itensDeJogo: 20, itensDeJogoCertos: 15,
+      sessoes: 3,
+      palavrasCapturadas: 40,
+      revisoes: 12,
+      revisoesCertas: 9,
+      itensDeJogo: 20,
+      itensDeJogoCertos: 15,
     })
 
     expect(deriveProgress(m).xp).toBe(esperado)
@@ -50,8 +84,9 @@ describe('a fórmula é uma só', () => {
   it('cada peso entra uma vez, e só uma', () => {
     expect(xpDeEventos({ sessoes: 1, palavrasCapturadas: 0, revisoes: 0, revisoesCertas: 0 })).toBe(PESOS_XP.sessao)
     // Uma revisão CERTA vale a revisão mais o bônus — nunca só o bônus.
-    expect(xpDeEventos({ sessoes: 0, palavrasCapturadas: 0, revisoes: 1, revisoesCertas: 1 }))
-      .toBe(PESOS_XP.revisao + PESOS_XP.revisaoCerta)
+    expect(xpDeEventos({ sessoes: 0, palavrasCapturadas: 0, revisoes: 1, revisoesCertas: 1 })).toBe(
+      PESOS_XP.revisao + PESOS_XP.revisaoCerta,
+    )
   })
 
   it('um item de jogo vale MENOS que uma revisão — a revisão move a memória', () => {
@@ -80,7 +115,9 @@ describe('seeds — o ganho nunca encolhe', () => {
     /* Nem XP, desde a revisão de 27/09: a sessão importada sem nenhuma palavra salva não é esforço
        (`sessaoRendeXp`). Com uma palavra salva dela, a sessão volta a render o seu XP. */
     expect(p.xp).toBe(0)
-    expect(deriveProgress(metricas({ wordsCaptured: 325, sessions: 1, sessoesComPalavraSalva: 1 })).xp).toBe(PESOS_XP.sessao)
+    expect(deriveProgress(metricas({ wordsCaptured: 325, sessions: 1, sessoesComPalavraSalva: 1 })).xp).toBe(
+      PESOS_XP.sessao,
+    )
   })
 
   it('o saldo nunca fica negativo, mesmo com gasto acima do ganho', () => {

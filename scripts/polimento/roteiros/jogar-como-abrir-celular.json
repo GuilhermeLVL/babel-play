@@ -57,9 +57,7 @@
       }
     ]
   },
-  "seletores": [
-    "dialog[open]"
-  ],
+  "seletores": ["dialog[open]"],
   "gravar": {
     "app": [
       {

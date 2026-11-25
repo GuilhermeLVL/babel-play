@@ -1,6 +1,7 @@
 # voz-natural-paga Specification
 
 ## Purpose
+
 Voz natural da nuvem via OpenRouter (Kokoro padrão, MAI desligado) com retenção zero. Criada pela change `voz-natural-openrouter` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-voz-natural-openrouter/proposal.md` para o porquê.
 
 ## Requirements

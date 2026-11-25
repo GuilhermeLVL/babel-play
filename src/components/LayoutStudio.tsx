@@ -1,19 +1,31 @@
 import {
-BarChart2, BookOpen, Check, ChevronDown,   Eye, EyeOff,   Home, LayoutGrid, Library as LibraryIcon, LineChart,
-Lock,
-Mic, Move,
-Palette, RotateCcw, SlidersHorizontal, Sparkles,   X} from 'lucide-react';
+  BarChart2,
+  BookOpen,
+  Check,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  Home,
+  LayoutGrid,
+  Library as LibraryIcon,
+  LineChart,
+  Lock,
+  Mic,
+  Move,
+  Palette,
+  RotateCcw,
+  SlidersHorizontal,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 import { useLayout } from '../hooks/useLayout';
-import {
-  type CustomColors, readCustomColors,
-  SIZE_PRESETS,
-type ThemeType} from '../lib/appearance';
+import { type CustomColors, readCustomColors, SIZE_PRESETS, type ThemeType } from '../lib/appearance';
 import { acessoAoItem } from '../lib/galeria/acesso';
 import { t } from '../lib/i18n';
 import { AppLayoutConfig, PanelConfig } from '../lib/layoutStore';
-import { PANEL_TITLES,VIEWS_LABELS } from '../lib/panelMeta';
+import { PANEL_TITLES, VIEWS_LABELS } from '../lib/panelMeta';
 import { persistTheme } from '../lib/theme';
 import { askConfirm } from './Toast';
 
@@ -35,14 +47,14 @@ const SCREEN_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   library: LibraryIcon,
   analysis: BarChart2,
   reading: BookOpen,
-  metrics: LineChart
+  metrics: LineChart,
 };
 
 const CUSTOM_FIELDS: { key: keyof CustomColors; label: string }[] = [
   { key: 'accent', label: 'Destaque' },
   { key: 'canvas', label: 'Fundo' },
   { key: 'surface', label: 'Card' },
-  { key: 'ink', label: 'Texto' }
+  { key: 'ink', label: 'Texto' },
 ];
 
 const nearestSizeLabel = (heightPx: number): string => {
@@ -71,7 +83,9 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
   // Esc to close + lock background scroll while the studio is open.
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     window.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -85,12 +99,20 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
 
   if (!acessoEstudio.liberado) {
     return (
-      <div className="fixed inset-0 z-[110] bg-canvas/95 backdrop-blur-sm flex items-center justify-center p-6" role="dialog" aria-label="Estúdio ainda trancado">
+      <div
+        className="fixed inset-0 z-[110] bg-canvas/95 backdrop-blur-sm flex items-center justify-center p-6"
+        role="dialog"
+        aria-label="Estúdio ainda trancado"
+      >
         <div className="card-panel bg-surface max-w-md w-full p-6 text-center space-y-3">
           <Lock className="w-8 h-8 mx-auto text-ink-faint" aria-hidden />
           <h2 className="font-bold text-lg text-ink">O Estúdio ainda está trancado</h2>
-          <p className="text-[13px] text-ink-muted">{acessoEstudio.motivo ?? 'Continue estudando para liberar.'} O caminho para obter é a Loja, em Personalizar.</p>
-          <button onClick={onClose} className="btn-solid mx-auto">Voltar</button>
+          <p className="text-[13px] text-ink-muted">
+            {acessoEstudio.motivo ?? 'Continue estudando para liberar.'} O caminho para obter é a Loja, em Personalizar.
+          </p>
+          <button onClick={onClose} className="btn-solid mx-auto">
+            Voltar
+          </button>
         </div>
       </div>
     );
@@ -108,7 +130,12 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
 
   const applyPreset = (preset: CustomColors) => {
     // As paletas prontas carregam um `name` que não faz parte da paleta em si.
-    const colors: CustomColors = { canvas: preset.canvas, surface: preset.surface, ink: preset.ink, accent: preset.accent };
+    const colors: CustomColors = {
+      canvas: preset.canvas,
+      surface: preset.surface,
+      ink: preset.ink,
+      accent: preset.accent,
+    };
     setCustomColors(colors);
     persistTheme({ customColors: colors });
     setTheme('custom');
@@ -154,9 +181,13 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
             <div>
               <h1 className="font-marca font-bold text-lg md:text-xl text-ink tracking-tight leading-none flex items-center gap-2">
                 Estúdio de Personalização
-                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-warn bg-warn/10 text-warn-ink">Lendário</span>
+                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-warn bg-warn/10 text-warn-ink">
+                  Lendário
+                </span>
               </h1>
-              <p className="text-[12px] text-ink-muted mt-1">Cores, tema e a disposição das telas — do seu jeito, nos mínimos detalhes.</p>
+              <p className="text-[12px] text-ink-muted mt-1">
+                Cores, tema e a disposição das telas — do seu jeito, nos mínimos detalhes.
+              </p>
             </div>
           </div>
           <button
@@ -170,7 +201,10 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
         {/* Tabs */}
         <div className="max-w-5xl mx-auto w-full px-5 md:px-8">
           <div className="inline-flex items-center gap-1 p-1 bg-canvas border border-border-subtle rounded-xl mb-4">
-            <button onClick={() => setTab('aparencia')} className={`flex items-center gap-1.5 ${seg(tab === 'aparencia')}`}>
+            <button
+              onClick={() => setTab('aparencia')}
+              className={`flex items-center gap-1.5 ${seg(tab === 'aparencia')}`}
+            >
               <Palette className="w-4 h-4" /> Aparência
             </button>
             <button onClick={() => setTab('layout')} className={`flex items-center gap-1.5 ${seg(tab === 'layout')}`}>
@@ -189,27 +223,42 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                   paletas SAÍRAM daqui — viviam também em Personalizar e no cluster, três donos para
                   a mesma preferência. O Estúdio ficou com o que só ele faz: cores livres e layout. */}
               <p className="text-[12.5px] text-ink-muted -mt-2">
-                Temas prontos, paletas da galeria, modo claro/escuro e o resto do visual ficam em <b className="text-ink">Personalizar</b>. Aqui você edita as cores <b className="text-ink">livremente</b> e o layout das telas.
+                Temas prontos, paletas da galeria, modo claro/escuro e o resto do visual ficam em{' '}
+                <b className="text-ink">Personalizar</b>. Aqui você edita as cores{' '}
+                <b className="text-ink">livremente</b> e o layout das telas.
               </p>
 
               {/* Custom palette */}
               <section>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-muted">Cores personalizadas</h2>
+                  <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-muted">
+                    Cores personalizadas
+                  </h2>
                   {theme !== 'custom' && (
-                    <button onClick={() => applyPreset(customColors)} className="text-[12px] font-bold text-accent hover:underline cursor-pointer">
+                    <button
+                      onClick={() => applyPreset(customColors)}
+                      className="text-[12px] font-bold text-accent hover:underline cursor-pointer"
+                    >
                       Criar minha paleta →
                     </button>
                   )}
                 </div>
-                <div className={`rounded-2xl border border-border-subtle bg-surface p-5 transition-opacity ${theme === 'custom' ? '' : 'opacity-55'}`}>
+                <div
+                  className={`rounded-2xl border border-border-subtle bg-surface p-5 transition-opacity ${theme === 'custom' ? '' : 'opacity-55'}`}
+                >
                   {theme !== 'custom' && (
-                    <p className="text-[12px] text-ink-muted mb-4">Selecione o tema <b className="text-ink">Customizado</b> (ou clique em “Criar minha paleta”) para editar as cores livremente.</p>
+                    <p className="text-[12px] text-ink-muted mb-4">
+                      Selecione o tema <b className="text-ink">Customizado</b> (ou clique em “Criar minha paleta”) para
+                      editar as cores livremente.
+                    </p>
                   )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {CUSTOM_FIELDS.map(({ key, label }) => (
                       <div key={key} className="flex items-center gap-3">
-                        <label className="relative w-11 h-11 rounded-xl overflow-hidden border border-border-subtle shrink-0 cursor-pointer" style={{ backgroundColor: customColors[key] }}>
+                        <label
+                          className="relative w-11 h-11 rounded-xl overflow-hidden border border-border-subtle shrink-0 cursor-pointer"
+                          style={{ backgroundColor: customColors[key] }}
+                        >
                           <input
                             type="color"
                             value={customColors[key]}
@@ -230,7 +279,6 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                       </div>
                     ))}
                   </div>
-
                 </div>
               </section>
 
@@ -241,7 +289,9 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
                       <h3 className="font-display font-extrabold text-lg text-ink tracking-tight">Título de exemplo</h3>
-                      <p className="text-[13px] text-ink-muted mt-1 max-w-md">Este é um texto de amostra para conferir a legibilidade e o contraste do tema atual.</p>
+                      <p className="text-[13px] text-ink-muted mt-1 max-w-md">
+                        Este é um texto de amostra para conferir a legibilidade e o contraste do tema atual.
+                      </p>
                     </div>
                     <button className="btn-solid text-[13px] shrink-0">Ação principal</button>
                   </div>
@@ -252,7 +302,13 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                     <span className="badge-tag bg-rare-soft text-rare-ink">Raro</span>
                   </div>
                   <div className="flex items-end gap-2 mt-5 h-20">
-                    {[['bg-accent', 70], ['bg-good', 45], ['bg-warn', 85], ['bg-rare', 30], ['bg-accent', 60]].map(([c, h], i) => (
+                    {[
+                      ['bg-accent', 70],
+                      ['bg-good', 45],
+                      ['bg-warn', 85],
+                      ['bg-rare', 30],
+                      ['bg-accent', 60],
+                    ].map(([c, h], i) => (
                       <div key={i} className={`flex-1 rounded-t-md ${c as string}`} style={{ height: `${h}%` }} />
                     ))}
                   </div>
@@ -273,7 +329,9 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                         key={s}
                         onClick={() => setActiveScreen(s)}
                         className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[12.5px] font-bold transition-all cursor-pointer ${
-                          active ? 'bg-accent-soft/30 border-accent text-accent-ink' : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent/60'
+                          active
+                            ? 'bg-accent-soft/30 border-accent text-accent-ink'
+                            : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent/60'
                         }`}
                       >
                         <Icon className="w-4 h-4" /> {t(VIEWS_LABELS[s] || s)}
@@ -287,7 +345,10 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
               <section>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-muted">Painéis</h2>
-                  <button onClick={() => setAdvanced((v) => !v)} className="flex items-center gap-1 text-[12px] font-bold text-ink-muted hover:text-ink cursor-pointer">
+                  <button
+                    onClick={() => setAdvanced((v) => !v)}
+                    className="flex items-center gap-1 text-[12px] font-bold text-ink-muted hover:text-ink cursor-pointer"
+                  >
                     <SlidersHorizontal className="w-3.5 h-3.5" /> Avançado
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform ${advanced ? 'rotate-180' : ''}`} />
                   </button>
@@ -296,13 +357,20 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                   {panels.map(([panelKey, cfg]) => {
                     const activeSize = nearestSizeLabel(cfg.heightPx);
                     return (
-                      <div key={panelKey} className={`rounded-2xl border bg-surface p-4 transition-colors ${cfg.show ? 'border-border-subtle' : 'border-border-subtle/60 opacity-70'}`}>
+                      <div
+                        key={panelKey}
+                        className={`rounded-2xl border bg-surface p-4 transition-colors ${cfg.show ? 'border-border-subtle' : 'border-border-subtle/60 opacity-70'}`}
+                      >
                         <div className="flex items-center justify-between gap-3 flex-wrap">
-                          <div className="font-bold text-[13.5px] text-ink">{t(PANEL_TITLES[panelKey] || panelKey)}</div>
+                          <div className="font-bold text-[13.5px] text-ink">
+                            {t(PANEL_TITLES[panelKey] || panelKey)}
+                          </div>
                           <button
                             onClick={() => updatePanel(activeScreen, panelKey, { show: !cfg.show })}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors cursor-pointer border ${
-                              cfg.show ? 'bg-good-soft text-good-ink border-good/30' : 'bg-canvas text-ink-muted border-border-subtle hover:text-ink'
+                              cfg.show
+                                ? 'bg-good-soft text-good-ink border-good/30'
+                                : 'bg-canvas text-ink-muted border-border-subtle hover:text-ink'
                             }`}
                           >
                             {cfg.show ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
@@ -313,7 +381,9 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                         {cfg.show && (
                           <>
                             <div className="flex items-center gap-2 mt-3">
-                              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-muted me-1">Tamanho</span>
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-muted me-1">
+                                Tamanho
+                              </span>
                               <div className="inline-flex items-center gap-1 p-1 bg-canvas border border-border-subtle rounded-lg">
                                 {SIZE_PRESETS.map((p) => (
                                   <button
@@ -331,21 +401,33 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-3 border-t border-border-subtle/60">
                                 <div>
                                   <div className="flex items-center justify-between text-[11px] font-bold text-ink-muted mb-1">
-                                    <span>Largura</span><span className="text-ink">{cfg.widthPercent}%</span>
+                                    <span>Largura</span>
+                                    <span className="text-ink">{cfg.widthPercent}%</span>
                                   </div>
                                   <input
-                                    type="range" min={10} max={100} value={cfg.widthPercent}
-                                    onChange={(e) => updatePanel(activeScreen, panelKey, { widthPercent: Number(e.target.value) })}
+                                    type="range"
+                                    min={10}
+                                    max={100}
+                                    value={cfg.widthPercent}
+                                    onChange={(e) =>
+                                      updatePanel(activeScreen, panelKey, { widthPercent: Number(e.target.value) })
+                                    }
                                     className="w-full accent-accent cursor-pointer"
                                   />
                                 </div>
                                 <div>
                                   <div className="flex items-center justify-between text-[11px] font-bold text-ink-muted mb-1">
-                                    <span>Altura</span><span className="text-ink">{cfg.heightPx}px</span>
+                                    <span>Altura</span>
+                                    <span className="text-ink">{cfg.heightPx}px</span>
                                   </div>
                                   <input
-                                    type="number" min={50} max={1500} value={cfg.heightPx}
-                                    onChange={(e) => updatePanel(activeScreen, panelKey, { heightPx: Number(e.target.value) })}
+                                    type="number"
+                                    min={50}
+                                    max={1500}
+                                    value={cfg.heightPx}
+                                    onChange={(e) =>
+                                      updatePanel(activeScreen, panelKey, { heightPx: Number(e.target.value) })
+                                    }
                                     className="w-full bg-canvas border border-border-subtle rounded-lg px-2 py-1 text-[12px] text-ink outline-none focus:border-accent"
                                   />
                                 </div>

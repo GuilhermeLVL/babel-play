@@ -2,12 +2,20 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ITENS_REMOVIDOS } from '../src/core/reembolso'
-import { acessoAFormaDeRastro, acessoAoEstilo, faltaParaOPerfil, ITEM_DA_FORMA_DE_RASTRO, ITEM_DO_ESTILO } from '../src/lib/galeria/acesso'
+import {
+  acessoAFormaDeRastro,
+  acessoAoEstilo,
+  faltaParaOPerfil,
+  ITEM_DA_FORMA_DE_RASTRO,
+  ITEM_DO_ESTILO,
+} from '../src/lib/galeria/acesso'
 import { paletaPorId } from '../src/lib/galeria/paletas'
 import { PRESETS } from '../src/lib/galeria/perfis'
 import { CATALOGO_DA_LOJA, marcarPosse } from '../src/lib/loja'
 
-beforeEach(() => { for (const k of ['babel.loja_possuidos', 'babel.liberado', 'babel.conquistas']) localStorage.removeItem(k) })
+beforeEach(() => {
+  for (const k of ['babel.loja_possuidos', 'babel.liberado', 'babel.conquistas']) localStorage.removeItem(k)
+})
 
 describe('mapa de acesso da galeria — a mesma régua da Loja', () => {
   it('todo gate aponta para um item real do catálogo', () => {
@@ -37,7 +45,10 @@ describe('mapa de acesso da galeria — a mesma régua da Loja', () => {
   })
 
   it('a forma arco-íris do rastro é de conquista e não se vende', () => {
-    expect(acessoAFormaDeRastro('arcoiris', 99, 9999)).toMatchObject({ liberado: false, motivo: 'Conquista: Colecionador' })
+    expect(acessoAFormaDeRastro('arcoiris', 99, 9999)).toMatchObject({
+      liberado: false,
+      motivo: 'Conquista: Colecionador',
+    })
     localStorage.setItem('babel.conquistas', JSON.stringify(['colecionador']))
     expect(acessoAFormaDeRastro('arcoiris', 1, 0).liberado).toBe(true)
   })

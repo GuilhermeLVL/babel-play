@@ -26,16 +26,28 @@ const ascii = (s: string): number[] => [...s].map((c) => c.charCodeAt(0))
  */
 const ASSINATURAS: Array<{ tipo: TipoDeArquivo; testar: (b: Buffer) => boolean }> = [
   // WebM/Matroska — EBML.
-  { tipo: { mime: 'audio/webm', ext: 'webm', categoria: 'audio' }, testar: (b) => casa(b, 0, [0x1a, 0x45, 0xdf, 0xa3]) },
+  {
+    tipo: { mime: 'audio/webm', ext: 'webm', categoria: 'audio' },
+    testar: (b) => casa(b, 0, [0x1a, 0x45, 0xdf, 0xa3]),
+  },
   { tipo: { mime: 'audio/ogg', ext: 'ogg', categoria: 'audio' }, testar: (b) => casa(b, 0, ascii('OggS')) },
   // MP4/M4A: o `ftyp` fica no offset 4, depois do tamanho do box.
   { tipo: { mime: 'audio/mp4', ext: 'mp4', categoria: 'audio' }, testar: (b) => casa(b, 4, ascii('ftyp')) },
-  { tipo: { mime: 'audio/wav', ext: 'wav', categoria: 'audio' }, testar: (b) => casa(b, 0, ascii('RIFF')) && casa(b, 8, ascii('WAVE')) },
+  {
+    tipo: { mime: 'audio/wav', ext: 'wav', categoria: 'audio' },
+    testar: (b) => casa(b, 0, ascii('RIFF')) && casa(b, 8, ascii('WAVE')),
+  },
   { tipo: { mime: 'audio/mpeg', ext: 'mp3', categoria: 'audio' }, testar: (b) => casa(b, 0, ascii('ID3')) },
-  { tipo: { mime: 'application/zip', ext: 'zip', categoria: 'documento' }, testar: (b) => casa(b, 0, [0x50, 0x4b, 0x03, 0x04]) },
+  {
+    tipo: { mime: 'application/zip', ext: 'zip', categoria: 'documento' },
+    testar: (b) => casa(b, 0, [0x50, 0x4b, 0x03, 0x04]),
+  },
   { tipo: { mime: 'application/pdf', ext: 'pdf', categoria: 'documento' }, testar: (b) => casa(b, 0, ascii('%PDF-')) },
   // MP3 sem ID3: frame sync de 11 bits (FF Ex / FF Fx).
-  { tipo: { mime: 'audio/mpeg', ext: 'mp3', categoria: 'audio' }, testar: (b) => b.length >= 2 && b[0] === 0xff && (b[1] & 0xe0) === 0xe0 },
+  {
+    tipo: { mime: 'audio/mpeg', ext: 'mp3', categoria: 'audio' },
+    testar: (b) => b.length >= 2 && b[0] === 0xff && (b[1] & 0xe0) === 0xe0,
+  },
 ]
 
 /** O tipo detectado, ou `null` quando nenhuma assinatura conhecida casa. */

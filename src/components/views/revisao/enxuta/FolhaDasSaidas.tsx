@@ -75,104 +75,104 @@ export default function FolhaDasSaidas({
       }}
     >
       {vendoCena && cena ? (
-          <>
-            <p className="folha-rotulo">{t('A cena de “{palavra}”', { palavra })}</p>
-            <Cena cena={cena} semLink />
-            <p className="folha-frase cx-frase-da-folha" lang={idioma}>
-              “<FraseMarcada frase={cena.frase} palavra={palavra} />”
+        <>
+          <p className="folha-rotulo">{t('A cena de “{palavra}”', { palavra })}</p>
+          <Cena cena={cena} semLink />
+          <p className="folha-frase cx-frase-da-folha" lang={idioma}>
+            “<FraseMarcada frase={cena.frase} palavra={palavra} />”
+          </p>
+          <p className="folha-frase-trad">
+            {cena.traducao ? `“${cena.traducao}” · ` : ''}
+            <b>{traducao}</b>
+          </p>
+          <div className="cx-folha-pe">
+            <button
+              type="button"
+              className="q-ctl"
+              onClick={() => {
+                sentir('aba');
+                setVendoCena(false);
+              }}
+            >
+              <ArrowLeft aria-hidden /> {t('Outras saídas')}
+            </button>
+            {aoOuvirCena && (
+              <button type="button" className="q-ctl pri" onClick={aoOuvirCena}>
+                {cena.temAudio ? <AudioLines aria-hidden /> : <Volume2 aria-hidden />}{' '}
+                {cena.temAudio && cena.quem ? t('Ouvir {quem}', { quem: cena.quem }) : t('Ouvir')}
+              </button>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <CabecalhoDaFolha aoFechar={() => folha.current?.close()}>
+            <p className="folha-pal" lang={idioma}>
+              {t('“{palavra}” não está entrando', { palavra })}
             </p>
-            <p className="folha-frase-trad">
-              {cena.traducao ? `“${cena.traducao}” · ` : ''}
-              <b>{traducao}</b>
+            <p className="folha-glosa">
+              {tp(lapsos, 'Já escapou {n} vez.', 'Já escapou {n} vezes.')}{' '}
+              {t('Costuma ser o cartão, não você. Tente de outro jeito:')}
             </p>
-            <div className="cx-folha-pe">
-              <button
-                type="button"
-                className="q-ctl"
-                onClick={() => {
-                  sentir('aba');
-                  setVendoCena(false);
-                }}
-              >
-                <ArrowLeft aria-hidden /> {t('Outras saídas')}
-              </button>
-              {aoOuvirCena && (
-                <button type="button" className="q-ctl pri" onClick={aoOuvirCena}>
-                  {cena.temAudio ? <AudioLines aria-hidden /> : <Volume2 aria-hidden />}{' '}
-                  {cena.temAudio && cena.quem ? t('Ouvir {quem}', { quem: cena.quem }) : t('Ouvir')}
-                </button>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <CabecalhoDaFolha aoFechar={() => folha.current?.close()}>
-              <p className="folha-pal" lang={idioma}>
-                {t('“{palavra}” não está entrando', { palavra })}
-              </p>
-              <p className="folha-glosa">
-                {tp(lapsos, 'Já escapou {n} vez.', 'Já escapou {n} vezes.')}{' '}
-                {t('Costuma ser o cartão, não você. Tente de outro jeito:')}
-              </p>
-            </CabecalhoDaFolha>
-            <div className="cx-saidas">
-              <button
-                type="button"
-                className="q-linha"
-                disabled={!outra}
-                onClick={outra && sair(() => aoTrocarFrase(outra.frase))}
-              >
-                <span className="q-ic">
-                  <Repeat aria-hidden />
-                </span>
-                <span>
-                  <b>{t('Trocar a frase')}</b>
-                  <small>
-                    {outra
-                      ? `“${outra.frase}”${outra.titulo ? ` · ${outra.titulo}` : ''}`
-                      : origem
-                        ? t('Por enquanto esta palavra só apareceu uma vez nas suas capturas.')
-                        : t('Procurando outras frases…')}
-                  </small>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="q-linha"
-                disabled={!cena}
-                onClick={() => {
-                  sentir('abre');
-                  setVendoCena(true);
-                  aoOuvirCena?.();
-                }}
-              >
-                <span className="q-ic">
-                  <Film aria-hidden />
-                </span>
-                <span>
-                  <b>{t('Rever a cena')}</b>
-                  <small>
-                    {cena
-                      ? cena.temAudio
-                        ? t('O momento em que você ouviu a palavra, com a voz de quem falou.')
-                        : t('O momento em que você ouviu a palavra, na sessão de onde ela veio.')
-                      : origem
-                        ? t('Este cartão não nasceu de uma captura.')
-                        : t('Procurando a cena…')}
-                  </small>
-                </span>
-              </button>
-              <button type="button" className="q-linha" onClick={sair(aoDescansar)}>
-                <span className="q-ic">
-                  <Moon aria-hidden />
-                </span>
-                <span>
-                  <b>{t('Descansar 30 dias')}</b>
-                  <small>{t('Sai da fila e volta sozinha em {dia}. Dá para desfazer.', { dia: volta })}</small>
-                </span>
-              </button>
-            </div>
-          </>
+          </CabecalhoDaFolha>
+          <div className="cx-saidas">
+            <button
+              type="button"
+              className="q-linha"
+              disabled={!outra}
+              onClick={outra && sair(() => aoTrocarFrase(outra.frase))}
+            >
+              <span className="q-ic">
+                <Repeat aria-hidden />
+              </span>
+              <span>
+                <b>{t('Trocar a frase')}</b>
+                <small>
+                  {outra
+                    ? `“${outra.frase}”${outra.titulo ? ` · ${outra.titulo}` : ''}`
+                    : origem
+                      ? t('Por enquanto esta palavra só apareceu uma vez nas suas capturas.')
+                      : t('Procurando outras frases…')}
+                </small>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="q-linha"
+              disabled={!cena}
+              onClick={() => {
+                sentir('abre');
+                setVendoCena(true);
+                aoOuvirCena?.();
+              }}
+            >
+              <span className="q-ic">
+                <Film aria-hidden />
+              </span>
+              <span>
+                <b>{t('Rever a cena')}</b>
+                <small>
+                  {cena
+                    ? cena.temAudio
+                      ? t('O momento em que você ouviu a palavra, com a voz de quem falou.')
+                      : t('O momento em que você ouviu a palavra, na sessão de onde ela veio.')
+                    : origem
+                      ? t('Este cartão não nasceu de uma captura.')
+                      : t('Procurando a cena…')}
+                </small>
+              </span>
+            </button>
+            <button type="button" className="q-linha" onClick={sair(aoDescansar)}>
+              <span className="q-ic">
+                <Moon aria-hidden />
+              </span>
+              <span>
+                <b>{t('Descansar 30 dias')}</b>
+                <small>{t('Sai da fila e volta sozinha em {dia}. Dá para desfazer.', { dia: volta })}</small>
+              </span>
+            </button>
+          </div>
+        </>
       )}
     </FolhaDeBaixo>
   );

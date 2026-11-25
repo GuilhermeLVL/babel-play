@@ -17,13 +17,13 @@ A trilha do espanhol é ordenada por **frequência de uso**, não por CEFR. Como
 mesmos seis degraus para ordenar, a distinção viaja com o dado (`escala`) e aparece em toda parte
 que rotula:
 
-| Onde | CEFR (inglês) | Frequência (espanhol) |
-|---|---|---|
-| Gaveta do seletor | "nível do curso" · A1…C2 | "faixa do curso" · 1…6 |
-| Sala de escolha | "Nível da trilha" | "Faixa de frequência da trilha" |
-| Painel da trilha | "704 palavras do A1" | "955 palavras da faixa 1" |
-| Nome da etapa | `A1 · etapa 1` | `1 · etapa 1` |
-| Rodapé | listas curadas | "não níveis do CEFR", com a cobertura medida |
+| Onde              | CEFR (inglês)            | Frequência (espanhol)                        |
+| ----------------- | ------------------------ | -------------------------------------------- |
+| Gaveta do seletor | "nível do curso" · A1…C2 | "faixa do curso" · 1…6                       |
+| Sala de escolha   | "Nível da trilha"        | "Faixa de frequência da trilha"              |
+| Painel da trilha  | "704 palavras do A1"     | "955 palavras da faixa 1"                    |
+| Nome da etapa     | `A1 · etapa 1`           | `1 · etapa 1`                                |
+| Rodapé            | listas curadas           | "não níveis do CEFR", com a cobertura medida |
 
 O rodapé do painel mostra **41%**, que é a cobertura real de tradução daquela trilha — lido do
 dado a cada render, não escrito à mão.
@@ -66,12 +66,12 @@ português e inglês.
 
 ## Quatro idiomas (segunda rodada)
 
-| Idioma | Escala | Palavras | Com frase | Com glosa |
-|---|---|---|---:|---:|---:|
-| inglês | CEFR | 2.784 | 92% | embutida |
-| alemão | frequência | 5.758 | 93% | 49% |
-| francês | frequência | 5.752 | 93% | 58% |
-| espanhol | frequência | 5.727 | 90% | 37% |
+| Idioma   | Escala     | Palavras | Com frase | Com glosa |
+| -------- | ---------- | -------- | --------: | --------: |
+| inglês   | CEFR       | 2.784    |       92% |  embutida |
+| alemão   | frequência | 5.758    |       93% |       49% |
+| francês  | frequência | 5.752    |       93% |       58% |
+| espanhol | frequência | 5.727    |       90% |       37% |
 
 ### A qualidade da glosa, medida
 
@@ -95,7 +95,7 @@ Três correções, nesta ordem de impacto:
    `cebola¹` — nota de dicionário não é pista, e o `¹` apareceria na carta.
 
 **O cognato tem um custo, e ele apareceu na amostra**: `embarazo=embaraço` é falso amigo (é
-*gravidez*). O desempate acerta na média entre es-pt e erra exatamente onde as duas línguas
+_gravidez_). O desempate acerta na média entre es-pt e erra exatamente onde as duas línguas
 divergiram — mais um motivo para a revisão humana.
 
 ## Frases: os jogos de frase abriram
@@ -103,8 +103,8 @@ divergiram — mais um motivo para a revisão humana.
 As trilhas novas trazem exemplo do Tatoeba em ~90% das palavras **e a tradução dele em português**,
 que é o que `fraseJogavel` exige — sem ela quem monta a frase não sabe qual frase montar.
 
-| Par | Frases com tradução |
-|---|---:|
+| Par   |  Frases com tradução |
+| ----- | -------------------: |
 | es-pt | 3.696 de 5.163 (72%) |
 | fr-pt | 2.721 de 5.340 (51%) |
 | de-pt | 2.373 de 5.370 (44%) |
@@ -120,8 +120,8 @@ Duas decisões fizeram esse número:
 O par vem do export `<iso3>-por_links.tsv` do Tatoeba (77 mil linhas para es-pt), não do `links.csv`
 global de dezenas de milhões: mesma informação, três ordens de grandeza mais barata.
 
-Verificado na tela, em espanhol: "Montar a frase — 99 disponíveis", com a pista *"Este ano,
-esperamos uma boa colheita"* e as palavras `año cosecha buena Este una esperamos` para ordenar.
+Verificado na tela, em espanhol: "Montar a frase — 99 disponíveis", com a pista _"Este ano,
+esperamos uma boa colheita"_ e as palavras `año cosecha buena Este una esperamos` para ordenar.
 
 ## Limites declarados
 
@@ -164,11 +164,11 @@ todas fora.
 
 **Cada idioma é um chunk separado, sob demanda:**
 
-| Chunk | bruto | gzip |
-|---|---:|---:|
-| trilha es | 271 kB | 103 kB |
+| Chunk        |  bruto |   gzip |
+| ------------ | -----: | -----: |
+| trilha es    | 271 kB | 103 kB |
 | glosas es-pt | 329 kB | 130 kB |
-| níveis es | 44 kB | 21 kB |
+| níveis es    |  44 kB |  21 kB |
 
 Um usuário baixa **só o do idioma dele, uma vez**: ~239 kB gzip. Medido na tela: a trilha do
 francês carregou em **122 ms**, e nenhum outro idioma foi buscado.
@@ -185,11 +185,11 @@ local) mais 1,5 MB dos workers. Os quatro idiomas somam 2,1 MB — 7% do total.
 O custo por idioma é ~628 kB bruto. O problema não é o número de idiomas praticados; é que a glosa
 é de um PAR:
 
-| | repositório e deploy |
-|---|---:|
-| 28 idiomas × 1 nativo (pt) | ~17 MB |
-| 28 idiomas × 3 nativos | ~40 MB |
-| 28 idiomas × 5 nativos | ~57 MB |
+|                            | repositório e deploy |
+| -------------------------- | -------------------: |
+| 28 idiomas × 1 nativo (pt) |               ~17 MB |
+| 28 idiomas × 3 nativos     |               ~40 MB |
+| 28 idiomas × 5 nativos     |               ~57 MB |
 
 O que o usuário baixa não muda (239 kB, só o par dele), e o banco continua fora disso. O que cresce
 é o repositório, o tempo de build e o deploy. **Antes de passar de ~8 idiomas, os dados devem sair
@@ -226,7 +226,6 @@ língua apresentada como resposta. Agora o carregador só entrega a tradução e
 Antes, o gate de promoção do F26 recusava em silêncio: a pessoa errava palavras e nada era salvo,
 sem explicação. Verificado na tela trocando "Meu idioma" para alemão.
 
-
 ## Os dados saíram do bundle (2026-09-03)
 
 Com 16 idiomas, o que era o caminho mais simples virou o mais caro. `import.meta.glob` fazia um
@@ -236,11 +235,11 @@ build e pelo deploy inteiros, sem que ninguém baixasse mais nada por isso.
 `public/trilha/<lang>.json` e `public/glosas/<par>.json` agora são servidos como estáticos, e o
 carregador os busca por `fetch`. Medido, antes e depois:
 
-| | antes | depois |
-|---|---:|---:|
-| entrada do app | 742 kB | **742 kB** |
-| `dist/assets` | 34,0 MB | **27,7 MB** |
-| dados servidos sob demanda | — | 6,4 MB em 31 arquivos |
+|                            |   antes |                depois |
+| -------------------------- | ------: | --------------------: |
+| entrada do app             |  742 kB |            **742 kB** |
+| `dist/assets`              | 34,0 MB |           **27,7 MB** |
+| dados servidos sob demanda |       — | 6,4 MB em 31 arquivos |
 
 A entrada não muda porque nunca continha esses dados; o que muda é o custo de crescer. Acrescentar
 um idioma deixou de ser uma alteração no bundle.

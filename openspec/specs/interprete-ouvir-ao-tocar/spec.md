@@ -1,6 +1,7 @@
 # interprete-ouvir-ao-tocar Specification
 
 ## Purpose
+
 Intérprete v3 fase 1: histórico de falas, modo Conversa e toque para ouvir. Criada pela change `interprete-historico-e-toque` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-interprete-historico-e-toque/proposal.md` para o porquê.
 
 ## Requirements

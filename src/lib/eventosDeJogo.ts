@@ -35,8 +35,20 @@ export const EVENTOS_RAROS: ReadonlyArray<{ prob: number; efeito: EfeitoComposto
   { prob: 0.05, efeito: { id: 'patos', nome: 'Chuva de patos', rajadas: [{ kind: 'patos' }], som: 'add' } },
   { prob: 0.03, efeito: { id: 'voleibol', nome: 'Bola em jogo', rajadas: [{ kind: 'voleibol' }], som: 'speak' } },
   { prob: 0.03, efeito: { id: 'coracoes', nome: 'Chuva de corações', rajadas: [{ kind: 'coracoes' }], som: 'combo' } },
-  { prob: 0.015, efeito: { id: 'glitch', nome: 'Interferência', rajadas: [{ kind: 'fumaca', vezes: 2 }], som: 'error', tela: 'glitch' } },
-  { prob: 0.012, efeito: { id: 'pizza', nome: 'Rodízio surpresa', rajadas: [{ kind: 'pizza' }], som: 'levelUp', tela: 'zoom' } },
+  {
+    prob: 0.015,
+    efeito: {
+      id: 'glitch',
+      nome: 'Interferência',
+      rajadas: [{ kind: 'fumaca', vezes: 2 }],
+      som: 'error',
+      tela: 'glitch',
+    },
+  },
+  {
+    prob: 0.012,
+    efeito: { id: 'pizza', nome: 'Rodízio surpresa', rajadas: [{ kind: 'pizza' }], som: 'levelUp', tela: 'zoom' },
+  },
 ];
 
 /**
@@ -67,19 +79,51 @@ export interface ContextoDeJogada {
 export function eventosCondicionais(ctx: ContextoDeJogada): EfeitoComposto[] {
   const lista: EfeitoComposto[] = [];
   if (ctx.combo === 5) {
-    lista.push({ id: 'aquecendo', nome: 'Aquecendo!', rajadas: [{ kind: 'combo', vezes: 2 }], som: 'combo', tela: 'zoom' });
+    lista.push({
+      id: 'aquecendo',
+      nome: 'Aquecendo!',
+      rajadas: [{ kind: 'combo', vezes: 2 }],
+      som: 'combo',
+      tela: 'zoom',
+    });
   }
   if (ctx.combo === 10) {
-    lista.push({ id: 'tempestade', nome: 'Tempestade de raios', rajadas: [{ kind: 'raios', vezes: 3 }], som: 'fever', tela: 'tremor', vibracao: [30] });
+    lista.push({
+      id: 'tempestade',
+      nome: 'Tempestade de raios',
+      rajadas: [{ kind: 'raios', vezes: 3 }],
+      som: 'fever',
+      tela: 'tremor',
+      vibracao: [30],
+    });
   }
   if (ctx.combo === 15) {
-    lista.push({ id: 'sobrecarga', nome: 'Sobrecarga', rajadas: [{ kind: 'raios', vezes: 2 }, { kind: 'fumaca' }], tela: 'glitch', vibracao: [20, 40, 20] });
+    lista.push({
+      id: 'sobrecarga',
+      nome: 'Sobrecarga',
+      rajadas: [{ kind: 'raios', vezes: 2 }, { kind: 'fumaca' }],
+      tela: 'glitch',
+      vibracao: [20, 40, 20],
+    });
   }
   if (ctx.recorde) {
-    lista.push({ id: 'fogos', nome: 'Fogos de artifício', rajadas: [{ kind: 'fogos', vezes: 4 }, { kind: 'trofeu' }], som: 'levelUp', tela: 'flash', vibracao: [40, 60, 40] });
+    lista.push({
+      id: 'fogos',
+      nome: 'Fogos de artifício',
+      rajadas: [{ kind: 'fogos', vezes: 4 }, { kind: 'trofeu' }],
+      som: 'levelUp',
+      tela: 'flash',
+      vibracao: [40, 60, 40],
+    });
   }
   if (ctx.perfeita) {
-    lista.push({ id: 'perfeita', nome: 'Rodada impecável', rajadas: [{ kind: 'perfeito' }, { kind: 'coracoes' }], som: 'levelUp', tela: 'zoom' });
+    lista.push({
+      id: 'perfeita',
+      nome: 'Rodada impecável',
+      rajadas: [{ kind: 'perfeito' }, { kind: 'coracoes' }],
+      som: 'levelUp',
+      tela: 'zoom',
+    });
   }
   return lista;
 }
@@ -97,9 +141,15 @@ export function marcarEventoVisto(id: string): void {
     const atual = new Set<string>(JSON.parse(localStorage.getItem(CHAVE_VISTOS) || '[]'));
     atual.add(id);
     localStorage.setItem(CHAVE_VISTOS, JSON.stringify([...atual]));
-  } catch { /* sem storage */ }
+  } catch {
+    /* sem storage */
+  }
 }
 
 export function eventosVistos(): string[] {
-  try { return JSON.parse(localStorage.getItem(CHAVE_VISTOS) || '[]'); } catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem(CHAVE_VISTOS) || '[]');
+  } catch {
+    return [];
+  }
 }

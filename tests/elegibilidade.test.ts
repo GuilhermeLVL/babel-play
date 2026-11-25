@@ -7,14 +7,10 @@
  * já cobrem `estadoDoJogo` linha a linha; aqui fixamos o resultado ANTES de tocar no código (via
  * git, na cabeça) contra o resultado DEPOIS, para uma dúzia de pools variados.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import {
-  elegibilidadeDoJogo,
-  type EntradaDoEstado,
-  estadoDoJogo,
-} from '../src/core/minigames/estadoDosJogos'
-import { type MinigameId,MINIGAMES } from '../src/core/minigames/types'
+import { elegibilidadeDoJogo, type EntradaDoEstado, estadoDoJogo } from '../src/core/minigames/estadoDosJogos'
+import { type MinigameId, MINIGAMES } from '../src/core/minigames/types'
 import type { VocabCard } from '../src/types'
 
 function carta(word: string, translation: string): VocabCard {
@@ -48,12 +44,7 @@ const LATINAS = [
 ]
 
 /** Palavras japonesas — `entraNaGrade`/`digitavelNoTermo` recusam as duas. */
-const JAPONESAS = [
-  carta('食べる', 'comer'),
-  carta('飲む', 'beber'),
-  carta('歩く', 'andar'),
-  carta('読む', 'ler'),
-]
+const JAPONESAS = [carta('食べる', 'comer'), carta('飲む', 'beber'), carta('歩く', 'andar'), carta('読む', 'ler')]
 
 const FALAS = Array.from({ length: 12 }, (_, i) => ({
   id: `f${i}`,

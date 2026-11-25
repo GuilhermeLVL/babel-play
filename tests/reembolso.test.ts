@@ -38,7 +38,9 @@ describe('reembolsosDevidos — o núcleo puro', () => {
   })
 
   it('já creditado não volta de novo', () => {
-    expect(reembolsosDevidos([{ reason: 'loja:cur-pato', amount: 100 }], new Set(['reembolso:loja:cur-pato']))).toEqual([])
+    expect(reembolsosDevidos([{ reason: 'loja:cur-pato', amount: 100 }], new Set(['reembolso:loja:cur-pato']))).toEqual(
+      [],
+    )
   })
 
   it('aprimoramento, croma de item removido e posição paga também voltam; o resto não', () => {
@@ -123,8 +125,23 @@ describe('equipado que saiu cai no padrão, sem lançar', () => {
   })
 
   it('equiparItem com um item de tipo que saiu devolve false', () => {
-    const fantasma = { id: 'cur-pato', tipo: 'cursor', alvo: 'pato', nome: 'x', desc: '', raridade: 'raro', nivel: 1 } as unknown as ItemDaLoja
-    const ctx = { setTheme: vi.fn(), setFonte: vi.fn(), setMenuPosition: vi.fn(), onOpenStudio: vi.fn(), nivel: 99, saldo: 0 }
+    const fantasma = {
+      id: 'cur-pato',
+      tipo: 'cursor',
+      alvo: 'pato',
+      nome: 'x',
+      desc: '',
+      raridade: 'raro',
+      nivel: 1,
+    } as unknown as ItemDaLoja
+    const ctx = {
+      setTheme: vi.fn(),
+      setFonte: vi.fn(),
+      setMenuPosition: vi.fn(),
+      onOpenStudio: vi.fn(),
+      nivel: 99,
+      saldo: 0,
+    }
     expect(() => equiparItem(fantasma, ctx)).not.toThrow()
     expect(equiparItem(fantasma, ctx)).toBe(false)
   })
@@ -152,7 +169,13 @@ describe('o reembolso pela rota (espelho sem conta)', () => {
        razão antigo é semeado direto no banco — é exatamente o estado de quem já tinha comprado. */
     const db = await abrirStore()
     await db.put('gastos', { spendId: 'loja-cur-pato', amount: 100, reason: 'loja:cur-pato', ref: null, createdAt: 1 })
-    await db.put('gastos', { spendId: 'apr-sorte-n1', amount: 50, reason: 'aprimoramento:sorte:1', ref: null, createdAt: 2 })
+    await db.put('gastos', {
+      spendId: 'apr-sorte-n1',
+      amount: 50,
+      reason: 'aprimoramento:sorte:1',
+      ref: null,
+      createdAt: 2,
+    })
   }
 
   it('credita uma vez: a segunda chamada devolve 0 e o total não muda', async () => {

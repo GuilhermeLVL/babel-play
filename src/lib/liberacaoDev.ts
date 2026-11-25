@@ -27,12 +27,18 @@ const CHAVE_LIBERADO = 'babel.liberado';
 export function liberadoTudo(): boolean {
   const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
   if (!env?.DEV) return false;
-  try { return localStorage.getItem(CHAVE_LIBERADO) === '1'; } catch { return false; }
+  try {
+    return localStorage.getItem(CHAVE_LIBERADO) === '1';
+  } catch {
+    return false;
+  }
 }
 
 export function ativarLiberacaoTotal(ligar = true): void {
   try {
     if (ligar) localStorage.setItem(CHAVE_LIBERADO, '1');
     else localStorage.removeItem(CHAVE_LIBERADO);
-  } catch { /* sem storage: a bancada segue travada, que é o padrão seguro */ }
+  } catch {
+    /* sem storage: a bancada segue travada, que é o padrão seguro */
+  }
 }

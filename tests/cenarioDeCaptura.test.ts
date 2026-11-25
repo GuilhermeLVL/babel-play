@@ -6,9 +6,9 @@
  * `micEnabled`/`systemEnabled`, e quem tivesse "Gravar Minha Voz" salvo ficaria sem caminho de
  * volta para a captura de sistema. Estes testes prendem a ida e a volta.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { cenarioDasFontes, type CenarioDeCaptura,fontesDoCenario } from '../src/lib/cenarioDeCaptura'
+import { cenarioDasFontes, type CenarioDeCaptura, fontesDoCenario } from '../src/lib/cenarioDeCaptura'
 
 describe('cenarioDasFontes', () => {
   it('as duas fontes = conversa (é o único cenário que diariza e mostra Falantes)', () => {

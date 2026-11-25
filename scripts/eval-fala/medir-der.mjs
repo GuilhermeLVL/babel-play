@@ -55,17 +55,22 @@ const NORMALIZAR = args.includes('--normalizar')
  * pré-processamento do áudio. Varrer é mais honesto que chutar um valor novo.
  */
 const iSweep = args.indexOf('--limiares')
-const LIMIARES = iSweep >= 0 && args[iSweep + 1]
-  ? args[iSweep + 1].split(',').map(Number)
-  : [null]
+const LIMIARES = iSweep >= 0 && args[iSweep + 1] ? args[iSweep + 1].split(',').map(Number) : [null]
 
 function lerWav(buf) {
-  let pos = 12, fmt = null, dados = null
+  let pos = 12,
+    fmt = null,
+    dados = null
   while (pos + 8 <= buf.length) {
     const id = buf.toString('ascii', pos, pos + 4)
     const tam = buf.readUInt32LE(pos + 4)
     const corpo = pos + 8
-    if (id === 'fmt ') fmt = { canais: buf.readUInt16LE(corpo + 2), taxa: buf.readUInt32LE(corpo + 4), bits: buf.readUInt16LE(corpo + 14) }
+    if (id === 'fmt ')
+      fmt = {
+        canais: buf.readUInt16LE(corpo + 2),
+        taxa: buf.readUInt32LE(corpo + 4),
+        bits: buf.readUInt16LE(corpo + 14),
+      }
     else if (id === 'data') dados = buf.subarray(corpo, Math.min(corpo + tam, buf.length))
     pos = corpo + tam + (tam % 2)
   }
@@ -114,63 +119,72 @@ async function main() {
 
   const linhas = []
   for (const limiar of LIMIARES) {
-  if (limiar !== null) console.log(`
+    if (limiar !== null)
+      console.log(`
 ── joinThreshold = ${limiar} ──`)
-  for (const c of cenarios) {
-    const { pcm, taxa } = lerWav(readFileSync(path.join(DIR, c.arquivo)))
-    if (taxa !== 16000) throw new Error(`${c.arquivo}: esperado 16 kHz`)
+    for (const c of cenarios) {
+      const { pcm, taxa } = lerWav(readFileSync(path.join(DIR, c.arquivo)))
+      if (taxa !== 16000) throw new Error(`${c.arquivo}: esperado 16 kHz`)
 
-    // Um cluster por CENÁRIO, como numa sessão real.
-    const clusterer = new SpeakerClusterer(limiar === null ? {} : { joinThreshold: limiar })
-    const verdade = []
-    const atribuido = []
-    const turnosHip = []
-    let ultimo = null
-    let semEmbedding = 0
+      // Um cluster por CENÁRIO, como numa sessão real.
+      const clusterer = new SpeakerClusterer(limiar === null ? {} : { joinThreshold: limiar })
+      const verdade = []
+      const atribuido = []
+      const turnosHip = []
+      let ultimo = null
+      let semEmbedding = 0
 
-    for (const t of c.turnos) {
-      const trecho = pcm.subarray(Math.round(t.inicioMs / 1000 * 16000), Math.round(t.fimMs / 1000 * 16000))
-      const dur = trecho.length / 16000
+      for (const t of c.turnos) {
+        const trecho = pcm.subarray(Math.round((t.inicioMs / 1000) * 16000), Math.round((t.fimMs / 1000) * 16000))
+        const dur = trecho.length / 16000
 
-      let id
-      if (dur < MIN_EMBED_S) {
-        // Regra de produção ATUAL: fala curta demais HERDA o último falante (speakerId.ts:79).
-        // Reproduzida aqui para o número refletir o produto, não o modelo.
-        semEmbedding++
-        id = ultimo ?? 'voice_1'
-      } else {
-        const entrada = NORMALIZAR ? normalizarRms(trecho) : trecho
-        const inputs = await processor(entrada)
-        const out = await model(inputs)
-        const tensor = out[Object.keys(out)[0]]
-        const emb = Float32Array.from(tensor.data)
-        id = clusterer.assign(emb).clusterId
+        let id
+        if (dur < MIN_EMBED_S) {
+          // Regra de produção ATUAL: fala curta demais HERDA o último falante (speakerId.ts:79).
+          // Reproduzida aqui para o número refletir o produto, não o modelo.
+          semEmbedding++
+          id = ultimo ?? 'voice_1'
+        } else {
+          const entrada = NORMALIZAR ? normalizarRms(trecho) : trecho
+          const inputs = await processor(entrada)
+          const out = await model(inputs)
+          const tensor = out[Object.keys(out)[0]]
+          const emb = Float32Array.from(tensor.data)
+          id = clusterer.assign(emb).clusterId
+        }
+        ultimo = id
+        verdade.push(t.falante)
+        atribuido.push(id)
+        turnosHip.push({ inicioMs: t.inicioMs, fimMs: t.fimMs, falante: id })
       }
-      ultimo = id
-      verdade.push(t.falante)
-      atribuido.push(id)
-      turnosHip.push({ inicioMs: t.inicioMs, fimMs: t.fimMs, falante: id })
+
+      const der = calcularDer(c.turnos, turnosHip, 250)
+      const pureza = purezaDeClusters(verdade, atribuido)
+      linhas.push({ limiar, cenario: c.nome, descricao: c.descricao, der, pureza, semEmbedding })
+
+      console.log(
+        `${c.nome.padEnd(18)} DER ${(der.der * 100).toFixed(0).padStart(4)}%  ` +
+          `pureza ${(pureza.pureza * 100).toFixed(0).padStart(3)}%  cobertura ${(pureza.cobertura * 100).toFixed(0).padStart(3)}%  ` +
+          `clusters ${pureza.clustersCriados}/${pureza.falantesReais}` +
+          (semEmbedding ? `  (${semEmbedding} fala(s) curtas herdaram o falante)` : ''),
+      )
     }
-
-    const der = calcularDer(c.turnos, turnosHip, 250)
-    const pureza = purezaDeClusters(verdade, atribuido)
-    linhas.push({ limiar, cenario: c.nome, descricao: c.descricao, der, pureza, semEmbedding })
-
-    console.log(`${c.nome.padEnd(18)} DER ${(der.der * 100).toFixed(0).padStart(4)}%  ` +
-      `pureza ${(pureza.pureza * 100).toFixed(0).padStart(3)}%  cobertura ${(pureza.cobertura * 100).toFixed(0).padStart(3)}%  ` +
-      `clusters ${pureza.clustersCriados}/${pureza.falantesReais}` +
-      (semEmbedding ? `  (${semEmbedding} fala(s) curtas herdaram o falante)` : ''))
-  }
-
   }
 
   mkdirSync(path.dirname(SAIDA), { recursive: true })
-  writeFileSync(SAIDA, JSON.stringify({
-    geradoEm: new Date().toISOString(),
-    variante: NORMALIZAR ? 'normalizada' : 'producao',
-    limite: 'cenarios concatenados: sem fala sobreposta, sem reverberacao, sem ruido ambiente continuo',
-    linhas,
-  }, null, 2))
+  writeFileSync(
+    SAIDA,
+    JSON.stringify(
+      {
+        geradoEm: new Date().toISOString(),
+        variante: NORMALIZAR ? 'normalizada' : 'producao',
+        limite: 'cenarios concatenados: sem fala sobreposta, sem reverberacao, sem ruido ambiente continuo',
+        linhas,
+      },
+      null,
+      2,
+    ),
+  )
 
   console.log('')
   for (const limiar of LIMIARES) {
@@ -180,10 +194,15 @@ async function main() {
     // confusão e AUMENTA fragmentação — o ponto ótimo é onde os dois se equilibram, e reportar só
     // o DER esconderia metade da troca.
     const frag = g.reduce((s, l) => s + Math.max(0, l.pureza.clustersCriados - l.pureza.falantesReais), 0)
-    console.log(`limiar ${String(limiar ?? 'padrao (0.5)').padEnd(14)} DER medio ${(medio * 100).toFixed(1).padStart(5)}%  · clusters a mais: ${frag}`)
+    console.log(
+      `limiar ${String(limiar ?? 'padrao (0.5)').padEnd(14)} DER medio ${(medio * 100).toFixed(1).padStart(5)}%  · clusters a mais: ${frag}`,
+    )
   }
   console.log(`
 resultado bruto: ${SAIDA}`)
 }
 
-main().catch((e) => { console.error('\nfalhou:', e); process.exit(1) })
+main().catch((e) => {
+  console.error('\nfalhou:', e)
+  process.exit(1)
+})

@@ -22,8 +22,23 @@ import { fileURLToPath } from 'node:url'
 
 const AQUI = dirname(fileURLToPath(import.meta.url))
 
-const TOPO = ['.qr-topo', '.qr-topo .q-voltar', '.qr-progresso', '.qr-progresso .q-barra', '.qr-conta', '.cx-desfazer', '.cx-linha']
-const CARTAO = ['.qr-cartao', '.ct-selos .qr-selo', '.termo', '.ct-frase', '.ct-frase .exemplo', '.ct-frase .exemplo mark']
+const TOPO = [
+  '.qr-topo',
+  '.qr-topo .q-voltar',
+  '.qr-progresso',
+  '.qr-progresso .q-barra',
+  '.qr-conta',
+  '.cx-desfazer',
+  '.cx-linha',
+]
+const CARTAO = [
+  '.qr-cartao',
+  '.ct-selos .qr-selo',
+  '.termo',
+  '.ct-frase',
+  '.ct-frase .exemplo',
+  '.ct-frase .exemplo mark',
+]
 
 /** Dá a nota "Bom" até a sessão acabar (as notas vão ao banco de teste). */
 const ATE_O_FIM =
@@ -31,7 +46,11 @@ const ATE_O_FIM =
 
 /** estado → [`?cx=` do protótipo, passos no app, seletores] */
 const ESTADOS = {
-  frente: ['frente-inicio', [], [...TOPO, ...CARTAO, '.qr-dica', '.cx-fileira', '.cx-fileira .ct-som', '.qr-principal', '.cx-teclas']],
+  frente: [
+    'frente-inicio',
+    [],
+    [...TOPO, ...CARTAO, '.qr-dica', '.cx-fileira', '.cx-fileira .ct-som', '.qr-principal', '.cx-teclas'],
+  ],
   'verso-cena': [
     'verso-cena',
     [{ clicar: '.qr-principal' }, { esperar: 1500 }],

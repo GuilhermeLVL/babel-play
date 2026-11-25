@@ -6,8 +6,8 @@
  * os campos e a alternância entrar/criar. A porta de boot no App.tsx (só ativa no modo público) é
  * coberta por typecheck + build.
  */
-import { cleanup,fireEvent, render, screen } from '@testing-library/react'
-import { afterEach,describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import Login from '../src/components/Login'
 

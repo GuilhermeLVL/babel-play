@@ -8,10 +8,10 @@
  * `vocab_cards` é PARCIAL (`deleted_at IS NULL`), então reimportar depois de uma desativação NÃO
  * pode criar um cartão paralelo — tem de ressuscitar o mesmo id, com o mesmo `review_logs`.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let vocabRepo: any
@@ -29,7 +29,9 @@ beforeAll(async () => {
   ;({ vocabCards, reviewLogs } = await h.load('../../server/db/schema'))
   ;({ eq: eqFn } = await import('drizzle-orm'))
 })
-afterAll(async () => { await h?.cleanup?.() })
+afterAll(async () => {
+  await h?.cleanup?.()
+})
 
 async function criarDeckComNotas(userId: string, sufixo: string, palavras: Array<{ frente: string; verso?: string }>) {
   const deck = await ankiRepo.criarOuAcharDeck(userId as never, {
@@ -39,9 +41,16 @@ async function criarDeckComNotas(userId: string, sufixo: string, palavras: Array
     idiomaAlvo: 'pt',
   })
   const imp = await ankiRepo.criarImport(userId as never, { deckId: deck.id, arquivo: `arquivo${sufixo}.apkg` })
-  await ankiRepo.gravarNotas(userId as never, deck.id, imp.id, palavras.map((p, i) => ({
-    guid: `${sufixo}-g${i}`, frente: p.frente, verso: p.verso ?? 'definição curta',
-  })))
+  await ankiRepo.gravarNotas(
+    userId as never,
+    deck.id,
+    imp.id,
+    palavras.map((p, i) => ({
+      guid: `${sufixo}-g${i}`,
+      frente: p.frente,
+      verso: p.verso ?? 'definição curta',
+    })),
+  )
   return { deck, imp }
 }
 
@@ -51,9 +60,18 @@ describe('projetarDoAnki — nota vira cartão jogável', () => {
     const { deck } = await criarDeckComNotas(u, '-proj1', [{ frente: 'ledger', verso: 'livro-razão' }])
     const notas = await ankiRepo.listarNotas(u, deck.id, {})
 
-    const r = await vocabRepo.projetarDoAnki(u, deck.id, notas.itens.map((n: any) =>
-      ({ id: n.id, frente: n.frente, verso: n.verso, exemplo: n.exemplo, motivoDaBaixa: n.motivoDaBaixa })),
-      { srcLang: 'en', tgtLang: 'pt' })
+    const r = await vocabRepo.projetarDoAnki(
+      u,
+      deck.id,
+      notas.itens.map((n: any) => ({
+        id: n.id,
+        frente: n.frente,
+        verso: n.verso,
+        exemplo: n.exemplo,
+        motivoDaBaixa: n.motivoDaBaixa,
+      })),
+      { srcLang: 'en', tgtLang: 'pt' },
+    )
 
     expect(r.criados).toBe(1)
     expect(r.reaproveitados).toBe(0)
@@ -101,7 +119,10 @@ describe('ativação em lote — 3.600 (aqui, 500) notas importadas ⇒ ZERO car
   it('é IDEMPOTENTE: chamar duas vezes seguidas não projeta a mesma nota duas vezes', async () => {
     const u = asUserId('proj-lote-idem')
     const letras = 'abcdefghij'
-    const palavras = Array.from({ length: 10 }, (_, i) => ({ frente: `idem${letras[i]}`, verso: `definicao sem digito ${letras[i]}` }))
+    const palavras = Array.from({ length: 10 }, (_, i) => ({
+      frente: `idem${letras[i]}`,
+      verso: `definicao sem digito ${letras[i]}`,
+    }))
     const { deck } = await criarDeckComNotas(u, '-idem', palavras)
 
     const r1 = await vocabRepo.ativarLote(u, deck.id, 300)
@@ -126,10 +147,30 @@ describe('dedupe entre baralhos — mesma palavra em DOIS baralhos', () => {
     const notasA = await ankiRepo.listarNotas(u, deckA.id, {})
     const notasB = await ankiRepo.listarNotas(u, deckB.id, {})
 
-    await vocabRepo.projetarDoAnki(u, deckA.id, notasA.itens.map((n: any) =>
-      ({ id: n.id, frente: n.frente, verso: n.verso, exemplo: n.exemplo, motivoDaBaixa: n.motivoDaBaixa })), { srcLang: 'en' })
-    const r2 = await vocabRepo.projetarDoAnki(u, deckB.id, notasB.itens.map((n: any) =>
-      ({ id: n.id, frente: n.frente, verso: n.verso, exemplo: n.exemplo, motivoDaBaixa: n.motivoDaBaixa })), { srcLang: 'en' })
+    await vocabRepo.projetarDoAnki(
+      u,
+      deckA.id,
+      notasA.itens.map((n: any) => ({
+        id: n.id,
+        frente: n.frente,
+        verso: n.verso,
+        exemplo: n.exemplo,
+        motivoDaBaixa: n.motivoDaBaixa,
+      })),
+      { srcLang: 'en' },
+    )
+    const r2 = await vocabRepo.projetarDoAnki(
+      u,
+      deckB.id,
+      notasB.itens.map((n: any) => ({
+        id: n.id,
+        frente: n.frente,
+        verso: n.verso,
+        exemplo: n.exemplo,
+        motivoDaBaixa: n.motivoDaBaixa,
+      })),
+      { srcLang: 'en' },
+    )
 
     expect(r2.criados).toBe(0)
     expect(r2.reaproveitados).toBe(1)
@@ -154,9 +195,12 @@ describe('a armadilha — reativação após desativação NÃO racha o históri
     const { deck } = await criarDeckComNotas(u, '-armadilha', [{ frente: 'churn', verso: 'evasão de clientes' }])
     const nota0 = (await ankiRepo.listarNotas(u, deck.id, {})).itens[0]
 
-    const r1 = await vocabRepo.projetarDoAnki(u, deck.id,
+    const r1 = await vocabRepo.projetarDoAnki(
+      u,
+      deck.id,
       [{ id: nota0.id, frente: nota0.frente, verso: nota0.verso, exemplo: nota0.exemplo, motivoDaBaixa: null }],
-      { srcLang: 'en' })
+      { srcLang: 'en' },
+    )
     expect(r1.criados).toBe(1)
     const cardOriginal = (await vocabRepo.list(u)).find((c: any) => c.word === 'churn')
     const cardIdOriginal = cardOriginal.id
@@ -164,13 +208,20 @@ describe('a armadilha — reativação após desativação NÃO racha o históri
     // Um review_log DE VERDADE, para provar que ele continua ligado ao cartão vivo depois.
     const logId = 'log-armadilha'
     await db.insert(reviewLogs).values({
-      id: logId, createdAt: Date.now(), updatedAt: Date.now(), userId: u,
-      cardId: cardIdOriginal, reviewedAt: Date.now(), grade: 3,
+      id: logId,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      userId: u,
+      cardId: cardIdOriginal,
+      reviewedAt: Date.now(),
+      grade: 3,
     })
 
     // Simula o que "desativar o baralho" faz ao cartão jogável (fora do escopo deste arquivo):
     // soft-delete com o motivo que autoriza reativação.
-    await db.update(vocabCards).set({ deletedAt: Date.now(), updatedAt: Date.now() })
+    await db
+      .update(vocabCards)
+      .set({ deletedAt: Date.now(), updatedAt: Date.now() })
       .where(eqFn(vocabCards.id, cardIdOriginal))
     // `ankiRepo.desativarBaralho` é quem grava isto na nota, na integração real.
     await ankiRepo.desativarBaralho(u, deck.id)
@@ -181,10 +232,20 @@ describe('a armadilha — reativação após desativação NÃO racha o históri
     const notaAposDesativar = (await ankiRepo.listarNotas(u, deck.id, {})).itens[0]
     expect(notaAposDesativar.motivoDaBaixa).toBe('desativacao')
 
-    const r2 = await vocabRepo.projetarDoAnki(u, deck.id, [{
-      id: notaAposDesativar.id, frente: notaAposDesativar.frente, verso: notaAposDesativar.verso,
-      exemplo: notaAposDesativar.exemplo, motivoDaBaixa: notaAposDesativar.motivoDaBaixa,
-    }], { srcLang: 'en' })
+    const r2 = await vocabRepo.projetarDoAnki(
+      u,
+      deck.id,
+      [
+        {
+          id: notaAposDesativar.id,
+          frente: notaAposDesativar.frente,
+          verso: notaAposDesativar.verso,
+          exemplo: notaAposDesativar.exemplo,
+          motivoDaBaixa: notaAposDesativar.motivoDaBaixa,
+        },
+      ],
+      { srcLang: 'en' },
+    )
 
     expect(r2.reativados).toBe(1)
     expect(r2.criados).toBe(0)
@@ -198,8 +259,7 @@ describe('a armadilha — reativação após desativação NÃO racha o históri
     expect(log[0].cardId).toBe(cardIdOriginal)
 
     // NENHUM cartão paralelo para a mesma palavra.
-    const todosChurn = await db.select().from(vocabCards)
-      .where(eqFn(vocabCards.userId, u))
+    const todosChurn = await db.select().from(vocabCards).where(eqFn(vocabCards.userId, u))
     expect(todosChurn.filter((c: any) => c.word === 'churn')).toHaveLength(1)
   })
 
@@ -208,18 +268,26 @@ describe('a armadilha — reativação após desativação NÃO racha o históri
     const { deck } = await criarDeckComNotas(u, '-manual', [{ frente: 'moat', verso: 'fosso competitivo' }])
     const nota0 = (await ankiRepo.listarNotas(u, deck.id, {})).itens[0]
 
-    await vocabRepo.projetarDoAnki(u, deck.id,
+    await vocabRepo.projetarDoAnki(
+      u,
+      deck.id,
       [{ id: nota0.id, frente: nota0.frente, verso: nota0.verso, exemplo: nota0.exemplo, motivoDaBaixa: null }],
-      { srcLang: 'en' })
+      { srcLang: 'en' },
+    )
     const cardOriginal = (await vocabRepo.list(u)).find((c: any) => c.word === 'moat')
 
     // O USUÁRIO apagou o cartão manualmente — motivo_da_baixa NÃO é 'desativacao'.
-    await db.update(vocabCards).set({ deletedAt: Date.now(), updatedAt: Date.now() })
+    await db
+      .update(vocabCards)
+      .set({ deletedAt: Date.now(), updatedAt: Date.now() })
       .where(eqFn(vocabCards.id, cardOriginal.id))
 
-    const r2 = await vocabRepo.projetarDoAnki(u, deck.id,
+    const r2 = await vocabRepo.projetarDoAnki(
+      u,
+      deck.id,
       [{ id: nota0.id, frente: nota0.frente, verso: nota0.verso, exemplo: nota0.exemplo, motivoDaBaixa: 'manual' }],
-      { srcLang: 'en' })
+      { srcLang: 'en' },
+    )
 
     expect(r2.criados).toBe(1)
     expect(r2.reativados).toBe(0)
@@ -240,9 +308,18 @@ describe('S8 (auditoria) — word sem teto superior na projeção', () => {
     const { deck } = await criarDeckComNotas(u, '-s8', [{ frente: fraseLonga, verso: 'definição' }])
     const notas = await ankiRepo.listarNotas(u, deck.id, {})
 
-    const r = await vocabRepo.projetarDoAnki(u, deck.id, notas.itens.map((n: any) =>
-      ({ id: n.id, frente: n.frente, verso: n.verso, exemplo: n.exemplo, motivoDaBaixa: n.motivoDaBaixa })),
-      { srcLang: 'en', tgtLang: 'pt' })
+    const r = await vocabRepo.projetarDoAnki(
+      u,
+      deck.id,
+      notas.itens.map((n: any) => ({
+        id: n.id,
+        frente: n.frente,
+        verso: n.verso,
+        exemplo: n.exemplo,
+        motivoDaBaixa: n.motivoDaBaixa,
+      })),
+      { srcLang: 'en', tgtLang: 'pt' },
+    )
 
     // Não virou cartão nenhum.
     expect(r.criados).toBe(0)
@@ -262,9 +339,18 @@ describe('S8 (auditoria) — word sem teto superior na projeção', () => {
     const { deck } = await criarDeckComNotas(u, '-s8ok', [{ frente: 'runway', verso: 'pista de pouso' }])
     const notas = await ankiRepo.listarNotas(u, deck.id, {})
 
-    const r = await vocabRepo.projetarDoAnki(u, deck.id, notas.itens.map((n: any) =>
-      ({ id: n.id, frente: n.frente, verso: n.verso, exemplo: n.exemplo, motivoDaBaixa: n.motivoDaBaixa })),
-      { srcLang: 'en', tgtLang: 'pt' })
+    const r = await vocabRepo.projetarDoAnki(
+      u,
+      deck.id,
+      notas.itens.map((n: any) => ({
+        id: n.id,
+        frente: n.frente,
+        verso: n.verso,
+        exemplo: n.exemplo,
+        motivoDaBaixa: n.motivoDaBaixa,
+      })),
+      { srcLang: 'en', tgtLang: 'pt' },
+    )
 
     expect(r.criados).toBe(1)
   })
@@ -274,15 +360,25 @@ describe('selecionarParaJogo — filtro por baralho', () => {
   it('com fonteRef="anki:<deckId>" devolve só os daquele baralho; sem fonteRef, devolve todos', async () => {
     const u = asUserId('proj-filtro')
     const { deck: deckA } = await criarDeckComNotas(u, '-filtroA', [{ frente: 'scale', verso: 'escalar negócio' }])
-    const { deck: deckB } = await criarDeckComNotas(u, '-filtroB', [{ frente: 'bootstrap', verso: 'iniciar sem capital externo' }])
+    const { deck: deckB } = await criarDeckComNotas(u, '-filtroB', [
+      { frente: 'bootstrap', verso: 'iniciar sem capital externo' },
+    ])
 
     await vocabRepo.ativarLote(u, deckA.id, 300)
     await vocabRepo.ativarLote(u, deckB.id, 300)
 
-    const soDeckA = await vocabRepo.selecionarParaJogo(u, { fonte: 'baralho', fonteRef: `anki:${deckA.id}`, limite: 50 })
+    const soDeckA = await vocabRepo.selecionarParaJogo(u, {
+      fonte: 'baralho',
+      fonteRef: `anki:${deckA.id}`,
+      limite: 50,
+    })
     expect(soDeckA.itens.map((i: any) => i.word)).toEqual(['scale'])
 
-    const soDeckB = await vocabRepo.selecionarParaJogo(u, { fonte: 'baralho', fonteRef: `anki:${deckB.id}`, limite: 50 })
+    const soDeckB = await vocabRepo.selecionarParaJogo(u, {
+      fonte: 'baralho',
+      fonteRef: `anki:${deckB.id}`,
+      limite: 50,
+    })
     expect(soDeckB.itens.map((i: any) => i.word)).toEqual(['bootstrap'])
 
     const semRef = await vocabRepo.selecionarParaJogo(u, { fonte: 'baralho', limite: 50 })

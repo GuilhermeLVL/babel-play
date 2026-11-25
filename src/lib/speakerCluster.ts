@@ -152,7 +152,7 @@ export class SpeakerClusterer {
 
   /** Pessoas CONFIRMADAS (o que a tela mostra): exclui provisórias e já desconta as fundidas. */
   get count(): number {
-    return this.clusters.filter(c => !c.provisional).length;
+    return this.clusters.filter((c) => !c.provisional).length;
   }
 
   /** Vozes rastreadas, incluindo as provisórias — só para diagnóstico. */
@@ -174,7 +174,10 @@ export class SpeakerClusterer {
     let bestSim = -Infinity;
     for (const c of this.clusters) {
       const sim = cosineSimilarity(c.vec, emb);
-      if (sim > bestSim) { bestSim = sim; best = c; }
+      if (sim > bestSim) {
+        bestSim = sim;
+        best = c;
+      }
     }
 
     // Gente diferente mesmo → voz nova, mas PROVISÓRIA até uma segunda fala confirmar.
@@ -242,7 +245,7 @@ export class SpeakerClusterer {
       }
       vencedor.vec = l2normalize(vencedor.vec);
       vencedor.weight = Math.min(this.maxCentroidWeight, vencedor.weight + perdedor.weight);
-      this.clusters = this.clusters.filter(c => c.id !== perdedor.id);
+      this.clusters = this.clusters.filter((c) => c.id !== perdedor.id);
       merged.push({ from: perdedor.id, into: vencedor.id });
       if (perdedor.id === into.id) break; // o próprio "into" foi absorvido, nada mais a comparar
     }

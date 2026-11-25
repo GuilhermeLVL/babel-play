@@ -9,8 +9,8 @@
  *
  * Os três estados que a tela precisa distinguir estão cobertos aqui.
  */
-import { cleanup,render, screen } from '@testing-library/react'
-import { afterEach,describe, expect, it } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
 
 afterEach(() => cleanup())
 import NotaDeContagem, { formatarInicio, rotuloDeOcorrencias } from '../src/components/views/vocab/NotaDeContagem'

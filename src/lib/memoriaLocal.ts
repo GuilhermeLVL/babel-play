@@ -16,16 +16,27 @@ const chaveVistas = (origem: string) => `babel.vistas.${origem}`;
 const chavePrecisoes = (jogo: string) => `babel.precisoes.${jogo}`;
 
 export function lerVistas(origem: string): string[] {
-  try { return JSON.parse(localStorage.getItem(chaveVistas(origem)) || '[]') as string[]; } catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem(chaveVistas(origem)) || '[]') as string[];
+  } catch {
+    return [];
+  }
 }
 
 /** Acrescenta refs (mais recentes no fim) e corta pelo teto. Devolve a lista nova. */
 export function registrarVistas(origem: string, refs: Iterable<string>): string[] {
   const atual = lerVistas(origem);
   const set = new Set(atual);
-  for (const r of refs) { set.delete(r); set.add(r); } // re-inserir move para o fim (mais recente)
+  for (const r of refs) {
+    set.delete(r);
+    set.add(r);
+  } // re-inserir move para o fim (mais recente)
   const lista = [...set].slice(-TETO_VISTAS);
-  try { localStorage.setItem(chaveVistas(origem), JSON.stringify(lista)); } catch { /* sem storage */ }
+  try {
+    localStorage.setItem(chaveVistas(origem), JSON.stringify(lista));
+  } catch {
+    /* sem storage */
+  }
   return lista;
 }
 
@@ -35,11 +46,19 @@ export function vistasRecentes(origem: string, n = 24): Set<string> {
 }
 
 export function lerPrecisoes(jogo: string): number[] {
-  try { return JSON.parse(localStorage.getItem(chavePrecisoes(jogo)) || '[]') as number[]; } catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem(chavePrecisoes(jogo)) || '[]') as number[];
+  } catch {
+    return [];
+  }
 }
 
 export function registrarPrecisao(jogo: string, precisao: number): number[] {
   const lista = [...lerPrecisoes(jogo), Math.max(0, Math.min(100, Math.round(precisao)))].slice(-TETO_PRECISOES);
-  try { localStorage.setItem(chavePrecisoes(jogo), JSON.stringify(lista)); } catch { /* sem storage */ }
+  try {
+    localStorage.setItem(chavePrecisoes(jogo), JSON.stringify(lista));
+  } catch {
+    /* sem storage */
+  }
   return lista;
 }

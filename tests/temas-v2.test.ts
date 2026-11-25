@@ -119,7 +119,15 @@ describe('CSS do tema completo', () => {
       const escuro = bloco(cssTemas, `[data-theme="${id}"].dark,`)
       expect(claro, `${id} sem bloco claro`).not.toBeNull()
       expect(escuro, `${id} sem bloco escuro`).not.toBeNull()
-      for (const token of ['--font-display-val', '--textura', '--fundo-animado', '--hud-barra', '--hud-combo-quente', '--canvas', '--accent'])
+      for (const token of [
+        '--font-display-val',
+        '--textura',
+        '--fundo-animado',
+        '--hud-barra',
+        '--hud-combo-quente',
+        '--canvas',
+        '--accent',
+      ])
         expect(claro, `${id} claro sem ${token}`).toContain(`${token}:`)
       for (const token of ['--canvas', '--surface', '--ink', '--accent', '--accent-contrast'])
         expect(escuro, `${id} escuro sem ${token}`).toContain(`${token}:`)
@@ -163,8 +171,14 @@ describe('a Água: paleta do protótipo e cena própria', () => {
   const cssAgua = readFileSync(path.join(raiz, 'src/styles/polimento/agua.css'), 'utf8')
   const tokens = (corpo: string) =>
     Object.fromEntries([...corpo.matchAll(/(--[a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim().toLowerCase()]))
-  const doApp = { claro: tokens(bloco(cssTemas, '[data-theme="agua"] {')!), escuro: tokens(bloco(cssTemas, '[data-theme="agua"].dark,')!) }
-  const doProto = { claro: tokens(bloco(cssAgua, "[data-theme='agua'] {")!), escuro: tokens(bloco(cssAgua, "[data-theme='agua'].dark {")!) }
+  const doApp = {
+    claro: tokens(bloco(cssTemas, '[data-theme="agua"] {')!),
+    escuro: tokens(bloco(cssTemas, '[data-theme="agua"].dark,')!),
+  }
+  const doProto = {
+    claro: tokens(bloco(cssAgua, "[data-theme='agua'] {")!),
+    escuro: tokens(bloco(cssAgua, "[data-theme='agua'].dark {")!),
+  }
   /* Os dois tons do claro que o protótipo tinha abaixo de 4,5:1 (`tests/contrastePaletas.test.ts`). */
   const ACERTADOS: Record<string, string> = { '--ink-faint': '#4e6d7e', '--good': '#1e8758' }
 

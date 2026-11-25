@@ -4,10 +4,10 @@
  * Prova as DUAS metades: (1) leitura — A nunca vê os dados de B; (2) escrita — update/remove/
  * replace de A sobre linha de B são no-op (pega o WHERE id=? que esqueceu AND user_id=?).
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')
@@ -34,7 +34,9 @@ beforeAll(async () => {
     { idx: 0, sourceText: 'oi do B', sourceLang: 'pt', targetLang: 'en' },
   ])
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('Marco 1 — isolamento sessions/utterances', () => {
   it('list só devolve as sessões do próprio usuário', async () => {

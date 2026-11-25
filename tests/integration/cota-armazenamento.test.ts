@@ -9,10 +9,10 @@ import { existsSync, mkdtempSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterAll, afterEach,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let router: any
@@ -31,8 +31,15 @@ beforeAll(async () => {
   ;({ sessionsRepo: sessions } = await h.load('../../server/db/repositories/sessions'))
   quota = await h.load('../../server/lib/storageQuota')
 })
-afterAll(async () => { delete process.env.AUDIO_DIR; await h.cleanup() })
-afterEach(() => { delete process.env.AUTH_REQUIRED; delete process.env.FREE_STORAGE_MB; delete process.env.PRO_STORAGE_MB })
+afterAll(async () => {
+  delete process.env.AUDIO_DIR
+  await h.cleanup()
+})
+afterEach(() => {
+  delete process.env.AUTH_REQUIRED
+  delete process.env.FREE_STORAGE_MB
+  delete process.env.PRO_STORAGE_MB
+})
 
 function handlerDe(rota: string, metodo: 'post' | 'delete') {
   const layer = router.stack.find((l: any) => l.route?.path === rota && l.route?.methods?.[metodo])
@@ -44,8 +51,14 @@ const remover = (req: any, res: any) => handlerDe('/:id', 'delete')(req, res)
 
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 
@@ -66,7 +79,13 @@ function corpoDeAudio(bytes: number): Buffer {
 }
 
 function reqUpload(u: string, id: string, bytes: number) {
-  return { userId: asUserId(u), params: { id }, body: corpoDeAudio(bytes), headers: { 'content-type': 'audio/webm' }, path: `/${id}/audio` } as any
+  return {
+    userId: asUserId(u),
+    params: { id },
+    body: corpoDeAudio(bytes),
+    headers: { 'content-type': 'audio/webm' },
+    path: `/${id}/audio`,
+  } as any
 }
 
 /** Só os arquivos desta sessão — o diretório é compartilhado pelos casos. */

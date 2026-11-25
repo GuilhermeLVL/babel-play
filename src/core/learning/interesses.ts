@@ -51,7 +51,7 @@ export const INTERESSES: readonly Interesse[] = [
   { slug: 'pronuncia', rotulo: 'Pronúncia e sotaque', grupo: 'estudo' },
 ] as const;
 
-const PORslug = new Map(INTERESSES.map(i => [i.slug, i]));
+const PORslug = new Map(INTERESSES.map((i) => [i.slug, i]));
 
 /** O interesse, ou `undefined` se o slug não existe (dado antigo, cliente adulterado). */
 export function interessePorSlug(slug: string): Interesse | undefined {
@@ -67,7 +67,7 @@ export function interessePorSlug(slug: string): Interesse | undefined {
  */
 export function saneiaInteresses(slugs: readonly string[]): string[] {
   const pedidos = new Set(slugs);
-  return INTERESSES.filter(i => pedidos.has(i.slug)).map(i => i.slug);
+  return INTERESSES.filter((i) => pedidos.has(i.slug)).map((i) => i.slug);
 }
 
 /**

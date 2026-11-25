@@ -95,7 +95,7 @@ export function fluenciaDoBaralho(
 ): Fluencia {
   const agora = opts.agora ?? Date.now();
 
-  const noDeck = cartas.filter(c => c.inDeck);
+  const noDeck = cartas.filter((c) => c.inDeck);
   const porNivel = new Map<CefrLevel, { retencoes: number[]; naFaixa: number }>();
   let semNivel = 0;
 
@@ -103,7 +103,10 @@ export function fluenciaDoBaralho(
     /* Sem `opts.curado`: ver o cabeçalho. A coluna do banco veio de um estimador depreciado que
        media comprimento de string, e promovê-la a curada lavaria o dado ruim. */
     const nivel = nivelCefr(c.word ?? '', opts.lang ?? c.srcLang ?? 'en').level;
-    if (!nivel) { semNivel++; continue; }
+    if (!nivel) {
+      semNivel++;
+      continue;
+    }
 
     const entrada = porNivel.get(nivel) ?? { retencoes: [], naFaixa: 0 };
     entrada.naFaixa++;
@@ -118,24 +121,22 @@ export function fluenciaDoBaralho(
     porNivel.set(nivel, entrada);
   }
 
-  const faixas: FaixaDeFluencia[] = NIVEIS_CEFR
-    .filter(n => porNivel.has(n))
-    .map(nivel => {
-      const { retencoes, naFaixa } = porNivel.get(nivel)!;
-      const temEvidencia = retencoes.length >= MIN_CARTOES_POR_FAIXA;
-      const retencao = temEvidencia ? retencoes.reduce((a, b) => a + b, 0) / retencoes.length : null;
-      return {
-        nivel,
-        naFaixa,
-        medidos: retencoes.length,
-        retencao,
-        sustentada: retencao !== null && retencao >= RETENCAO_DE_DOMINIO,
-      };
-    });
+  const faixas: FaixaDeFluencia[] = NIVEIS_CEFR.filter((n) => porNivel.has(n)).map((nivel) => {
+    const { retencoes, naFaixa } = porNivel.get(nivel)!;
+    const temEvidencia = retencoes.length >= MIN_CARTOES_POR_FAIXA;
+    const retencao = temEvidencia ? retencoes.reduce((a, b) => a + b, 0) / retencoes.length : null;
+    return {
+      nivel,
+      naFaixa,
+      medidos: retencoes.length,
+      retencao,
+      sustentada: retencao !== null && retencao >= RETENCAO_DE_DOMINIO,
+    };
+  });
 
   const considerados = faixas.reduce((n, f) => n + f.medidos, 0);
   const total = noDeck.length;
-  const comEvidencia = faixas.filter(f => f.retencao !== null);
+  const comEvidencia = faixas.filter((f) => f.retencao !== null);
 
   const { rotulo, motivo } = derivarRotulo(faixas, comEvidencia.length);
 
@@ -176,7 +177,10 @@ function derivarRotulo(
   let parouEm: FaixaDeFluencia | null = null;
 
   for (const f of faixas) {
-    if (f.sustentada) { alcancado = f.nivel; continue; }
+    if (f.sustentada) {
+      alcancado = f.nivel;
+      continue;
+    }
     parouEm = f;
     break;
   }
@@ -192,7 +196,7 @@ function derivarRotulo(
   }
 
   const motivo = parouEm
-    ? `Você sustenta o ${alcancado} (lembra ${pct(faixas.find(f => f.nivel === alcancado)!.retencao)} dessas palavras). O ${parouEm.nivel} ainda não entra: ${pct(parouEm.retencao)}, e o corte é ${Math.round(RETENCAO_DE_DOMINIO * 100)}%.`
+    ? `Você sustenta o ${alcancado} (lembra ${pct(faixas.find((f) => f.nivel === alcancado)!.retencao)} dessas palavras). O ${parouEm.nivel} ainda não entra: ${pct(parouEm.retencao)}, e o corte é ${Math.round(RETENCAO_DE_DOMINIO * 100)}%.`
     : `Você sustenta todas as faixas medidas, até o ${alcancado}, com pelo menos ${Math.round(RETENCAO_DE_DOMINIO * 100)}% de lembrança.`;
 
   return { rotulo: alcancado, motivo };

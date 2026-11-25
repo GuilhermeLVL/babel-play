@@ -82,7 +82,9 @@ const copia = path.join(tmp, 'copia.db')
 /* ── 1. foto da origem, sem escrever nela ─────────────────────────────────── */
 
 async function fotografarOrigem() {
-  const r = spawnSync('sqlite3', ['-readonly', ORIGEM, `.backup "${copia.split(path.sep).join('/')}"`], { encoding: 'utf8' })
+  const r = spawnSync('sqlite3', ['-readonly', ORIGEM, `.backup "${copia.split(path.sep).join('/')}"`], {
+    encoding: 'utf8',
+  })
   if (r.status === 0 && existsSync(copia)) return 'sqlite3 -readonly .backup'
   const motivo = r.error ? String(r.error.message) : (r.stderr || `status ${r.status}`).trim()
   console.warn(`[fixture] sqlite3 indisponivel (${motivo.slice(0, 100)}); caindo em VACUUM INTO`)
@@ -105,10 +107,12 @@ const linhas = async (sql, args = []) => (await c.execute({ sql, args })).rows
 const executar = (sql, args = []) => c.execute({ sql, args })
 const contar = async (t) => Number(Object.values((await linhas(`SELECT COUNT(*) AS n FROM "${t}"`))[0])[0])
 
-const tabelas = (await linhas("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"))
-  .map((r) => String(r.name))
+const tabelas = (
+  await linhas("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+).map((r) => String(r.name))
 const temTabela = (t) => tabelas.includes(t)
-const colunas = async (t) => (await linhas(`PRAGMA table_info("${t}")`)).map((r) => ({ nome: String(r.name), tipo: String(r.type ?? '') }))
+const colunas = async (t) =>
+  (await linhas(`PRAGMA table_info("${t}")`)).map((r) => ({ nome: String(r.name), tipo: String(r.type ?? '') }))
 const temColuna = async (t, col) => (await colunas(t)).some((x) => x.nome === col)
 
 const antes = {}
@@ -135,7 +139,9 @@ async function renumerar(tabela, coluna, valor, { ordem = 'created_at', apenasNa
 /** Substitui cada valor DISTINTO por um marcador numerado (mantem a igualdade entre linhas). */
 async function porValorDistinto(tabela, coluna, valor) {
   if (!temTabela(tabela) || !(await temColuna(tabela, coluna))) return 0
-  const distintos = await linhas(`SELECT DISTINCT "${coluna}" AS v FROM "${tabela}" WHERE "${coluna}" IS NOT NULL ORDER BY "${coluna}"`)
+  const distintos = await linhas(
+    `SELECT DISTINCT "${coluna}" AS v FROM "${tabela}" WHERE "${coluna}" IS NOT NULL ORDER BY "${coluna}"`,
+  )
   let n = 0
   for (const r of distintos) {
     n++
@@ -175,9 +181,21 @@ trocas['provider_credentials.label'] = await renumerar('provider_credentials', '
 trocas['provider_credentials.base_url'] = await constante('provider_credentials', 'base_url', 'https://exemplo.test')
 trocas['billing_events.provider_ref'] = await renumerar('billing_events', 'provider_ref', (n) => `ref-${n}`)
 trocas['billing_events.payload'] = await constante('billing_events', 'payload', MARCADOR_PAYLOAD)
-trocas['subscriptions.provider_customer_id'] = await renumerar('subscriptions', 'provider_customer_id', (n) => `cus-${n}`)
-trocas['subscriptions.provider_subscription_id'] = await renumerar('subscriptions', 'provider_subscription_id', (n) => `sub-${n}`)
-trocas['credit_purchases.provider_payment_id'] = await renumerar('credit_purchases', 'provider_payment_id', (n) => `pay-${n}`)
+trocas['subscriptions.provider_customer_id'] = await renumerar(
+  'subscriptions',
+  'provider_customer_id',
+  (n) => `cus-${n}`,
+)
+trocas['subscriptions.provider_subscription_id'] = await renumerar(
+  'subscriptions',
+  'provider_subscription_id',
+  (n) => `sub-${n}`,
+)
+trocas['credit_purchases.provider_payment_id'] = await renumerar(
+  'credit_purchases',
+  'provider_payment_id',
+  (n) => `pay-${n}`,
+)
 trocas['utterances.speaker_name'] = await porValorDistinto('utterances', 'speaker_name', (n) => `Falante ${n}`)
 trocas['anki_decks.arquivo_origem'] = await nomeBase('anki_decks', 'arquivo_origem')
 trocas['anki_imports.arquivo'] = await nomeBase('anki_imports', 'arquivo')
@@ -193,7 +211,8 @@ const colunasUnicas = new Set()
 for (const t of tabelas) {
   for (const idx of await linhas(`PRAGMA index_list("${t}")`)) {
     if (Number(idx.unique) !== 1) continue
-    for (const col of await linhas(`PRAGMA index_info("${String(idx.name)}")`)) colunasUnicas.add(`${t}.${String(col.name)}`)
+    for (const col of await linhas(`PRAGMA index_info("${String(idx.name)}")`))
+      colunasUnicas.add(`${t}.${String(col.name)}`)
   }
 }
 const varridas = {}
@@ -202,13 +221,21 @@ for (const t of tabelas) {
     if (t === 'users' && col.nome === 'email') continue
     if (!(col.tipo === '' || /^(text|char|clob|varchar)/i.test(col.tipo))) continue
     const unica = colunasUnicas.has(`${t}.${col.nome}`)
-    const rows = await linhas(`SELECT rowid AS rid, "${col.nome}" AS v FROM "${t}" WHERE typeof("${col.nome}") = 'text' AND "${col.nome}" LIKE '%@%'`)
+    const rows = await linhas(
+      `SELECT rowid AS rid, "${col.nome}" AS v FROM "${t}" WHERE typeof("${col.nome}") = 'text' AND "${col.nome}" LIKE '%@%'`,
+    )
     for (const r of rows) {
       const texto = String(r.v)
-      if (!REGEX_EMAIL.test(texto)) { REGEX_EMAIL.lastIndex = 0; continue }
+      if (!REGEX_EMAIL.test(texto)) {
+        REGEX_EMAIL.lastIndex = 0
+        continue
+      }
       REGEX_EMAIL.lastIndex = 0
       const marcador = unica ? `removido-${r.rid}@exemplo.test` : EMAIL_REMOVIDO
-      await executar(`UPDATE "${t}" SET "${col.nome}" = ? WHERE rowid = ?`, [texto.replace(REGEX_EMAIL, marcador), r.rid])
+      await executar(`UPDATE "${t}" SET "${col.nome}" = ? WHERE rowid = ?`, [
+        texto.replace(REGEX_EMAIL, marcador),
+        r.rid,
+      ])
       varridas[`${t}.${col.nome}`] = (varridas[`${t}.${col.nome}`] ?? 0) + 1
     }
   }
@@ -219,8 +246,14 @@ for (const t of tabelas) {
 if (REDUZIR) {
   const grandes = tabelas.filter((t) => t !== '__drizzle_migrations' && antes[t] > LINHAS_POR_TABELA)
   for (const t of grandes) {
-    const ordem = (await temColuna(t, 'created_at')) ? '"created_at", rowid' : (await temColuna(t, 'criado_em')) ? '"criado_em", rowid' : 'rowid'
-    await executar(`DELETE FROM "${t}" WHERE rowid NOT IN (SELECT rowid FROM "${t}" ORDER BY ${ordem} LIMIT ?)`, [LINHAS_POR_TABELA])
+    const ordem = (await temColuna(t, 'created_at'))
+      ? '"created_at", rowid'
+      : (await temColuna(t, 'criado_em'))
+        ? '"criado_em", rowid'
+        : 'rowid'
+    await executar(`DELETE FROM "${t}" WHERE rowid NOT IN (SELECT rowid FROM "${t}" ORDER BY ${ordem} LIMIT ?)`, [
+      LINHAS_POR_TABELA,
+    ])
   }
 
   /* As FKs declaradas, mais as relacoes LOGICAS do acervo Anki, que o schema nao declara. */
@@ -236,7 +269,8 @@ if (REDUZIR) {
     ['anki_notes', 'import_id', 'anki_imports'],
     ['anki_notes', 'projected_card_id', 'vocab_cards'],
   ]) {
-    if (temTabela(filho) && temTabela(pai) && (await temColuna(filho, coluna))) relacoes.push({ filho, coluna, pai, paiColuna: 'id' })
+    if (temTabela(filho) && temTabela(pai) && (await temColuna(filho, coluna)))
+      relacoes.push({ filho, coluna, pai, paiColuna: 'id' })
   }
 
   /* Ate estabilizar: apagar um pai pode deixar orfaos em filhos que ja tinham passado. */
@@ -257,7 +291,9 @@ if (REDUZIR) {
 await executar('PRAGMA foreign_keys = ON')
 const pendentes = await linhas('PRAGMA foreign_key_check')
 if (pendentes.length) {
-  console.error(`[fixture] FALHOU: foreign_key_check devolveu ${pendentes.length} linha(s): ${JSON.stringify(pendentes.slice(0, 5))}`)
+  console.error(
+    `[fixture] FALHOU: foreign_key_check devolveu ${pendentes.length} linha(s): ${JSON.stringify(pendentes.slice(0, 5))}`,
+  )
   process.exit(1)
 }
 
@@ -265,7 +301,9 @@ if (pendentes.length) {
 let sobras = 0
 for (const t of tabelas) {
   for (const col of await colunas(t)) {
-    const rows = await linhas(`SELECT "${col.nome}" AS v FROM "${t}" WHERE typeof("${col.nome}") = 'text' AND "${col.nome}" LIKE '%@%'`)
+    const rows = await linhas(
+      `SELECT "${col.nome}" AS v FROM "${t}" WHERE typeof("${col.nome}") = 'text' AND "${col.nome}" LIKE '%@%'`,
+    )
     for (const r of rows) {
       const achados = String(r.v).match(REGEX_EMAIL) ?? []
       sobras += achados.filter((e) => !e.endsWith('@exemplo.test')).length
@@ -295,20 +333,33 @@ for (const sufixo of ['', '-wal', '-shm', '-journal']) {
   if (existsSync(DESTINO + sufixo)) rmSync(DESTINO + sufixo, { force: true })
 }
 copyFileSync(copia, DESTINO)
-try { rmSync(tmp, { recursive: true, force: true }) } catch { /* OneDrive/AV pode segurar */ }
+try {
+  rmSync(tmp, { recursive: true, force: true })
+} catch {
+  /* OneDrive/AV pode segurar */
+}
 
 /* ── 5. relatorio ─────────────────────────────────────────────────────────── */
 
 const bytes = statSync(DESTINO).size
-console.log(`[fixture] gravada em ${path.relative(RAIZ, DESTINO)} (${(bytes / 1024).toFixed(0)} KB)${REDUZIR ? ` — reduzida a ${LINHAS_POR_TABELA} linha(s) por tabela grande` : ''}`)
+console.log(
+  `[fixture] gravada em ${path.relative(RAIZ, DESTINO)} (${(bytes / 1024).toFixed(0)} KB)${REDUZIR ? ` — reduzida a ${LINHAS_POR_TABELA} linha(s) por tabela grande` : ''}`,
+)
 console.log('[fixture] linhas por tabela (origem -> fixture):')
-for (const t of tabelas) console.log(`  ${t.padEnd(24)} ${String(antes[t]).padStart(6)} -> ${String(depois[t]).padStart(6)}`)
+for (const t of tabelas)
+  console.log(`  ${t.padEnd(24)} ${String(antes[t]).padStart(6)} -> ${String(depois[t]).padStart(6)}`)
 const trocadas = Object.entries(trocas).filter(([, n]) => n > 0)
-console.log(`[fixture] colunas anonimizadas: ${trocadas.length ? trocadas.map(([k, n]) => `${k}=${n}`).join(' ') : 'nenhuma linha com dado a trocar'}`)
+console.log(
+  `[fixture] colunas anonimizadas: ${trocadas.length ? trocadas.map(([k, n]) => `${k}=${n}`).join(' ') : 'nenhuma linha com dado a trocar'}`,
+)
 const varridasLista = Object.entries(varridas)
-console.log(`[fixture] e-mails varridos de texto livre: ${varridasLista.length ? varridasLista.map(([k, n]) => `${k}=${n}`).join(' ') : 'nenhum'}`)
+console.log(
+  `[fixture] e-mails varridos de texto livre: ${varridasLista.length ? varridasLista.map(([k, n]) => `${k}=${n}`).join(' ') : 'nenhum'}`,
+)
 if (bytes > LIMITE_COMMITAVEL) {
-  console.log(`[fixture] ATENCAO: ${(bytes / 1048576).toFixed(2)} MB passa do limite commitavel de 2 MB${REDUZIR ? '; baixe --linhas' : '; rode com --reduzir'}`)
+  console.log(
+    `[fixture] ATENCAO: ${(bytes / 1048576).toFixed(2)} MB passa do limite commitavel de 2 MB${REDUZIR ? '; baixe --linhas' : '; rode com --reduzir'}`,
+  )
   process.exit(3)
 }
 process.exit(0)

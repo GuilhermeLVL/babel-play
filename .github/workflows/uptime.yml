@@ -13,7 +13,7 @@ name: uptime
 
 on:
   schedule:
-    - cron: "*/15 * * * *" # a cada 15 min — o mínimo que o Actions honra com folga
+    - cron: '*/15 * * * *' # a cada 15 min — o mínimo que o Actions honra com folga
   workflow_dispatch: {}
 
 permissions:

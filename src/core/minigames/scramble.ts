@@ -66,7 +66,7 @@ export function shuffleWords(palavras: string[], rand: () => number = Math.rando
  */
 export function checkOrder(montada: string[], correta: string[]): boolean {
   const limpar = (xs: string[]) =>
-    xs.map(p => p.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')).join(' ');
+    xs.map((p) => p.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')).join(' ');
   return limpar(montada) === limpar(correta);
 }
 
@@ -94,9 +94,9 @@ export function buildScrambleRounds(
   const rand = opts.rand ?? Math.random;
   const quantidade = opts.quantidade ?? 5;
   return sentences
-    .filter(s => fraseJogavel(s.text, s.translation, s.lang))
+    .filter((s) => fraseJogavel(s.text, s.translation, s.lang))
     .slice(0, quantidade)
-    .map(s => {
+    .map((s) => {
       const correta = tokenize(s.text, s.lang);
       return {
         sentenceId: s.id,

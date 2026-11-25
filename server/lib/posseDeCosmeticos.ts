@@ -101,11 +101,10 @@ export async function recusaDePosse(
   return {
     tipo,
     alvo,
-    motivo:
-      !temPortaDeNivel(item)
-        ? `exige ${item.precoSeeds ?? 0} seeds`
-        : item.precoSeeds !== undefined
-          ? `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
-          : `exige nível ${item.nivel}`,
+    motivo: !temPortaDeNivel(item)
+      ? `exige ${item.precoSeeds ?? 0} seeds`
+      : item.precoSeeds !== undefined
+        ? `exige nível ${item.nivel} ou ${item.precoSeeds} seeds`
+        : `exige nível ${item.nivel}`,
   }
 }

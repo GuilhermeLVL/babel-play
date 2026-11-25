@@ -20,9 +20,11 @@ Os tres eixos de idioma existem e nao sao respeitados de ponta a ponta (achados 
 ## Capabilities
 
 ### New Capabilities
+
 - `tres-eixos-de-idioma`: interface, alvo e conteudo tem uma fonte cada, escolhidas pelo usuario, respeitadas por todo codigo que fala, le ou classifica.
 
 ### Modified Capabilities
+
 - `trilha-por-idioma` (change `trilha-multi-idioma`): o nivel CEFR e resolvido por idioma tambem no servidor.
 
 ## Impact

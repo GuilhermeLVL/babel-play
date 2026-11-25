@@ -107,7 +107,10 @@ if (alvo) {
     try {
       const r = await medirRota(base, rota)
       if (r.erro) console.log(`  ${String(r.status).padStart(4)} | ${r.caminho}`)
-      else console.log(`  ${String(r.p50).padStart(4)} ms p50 | ${String(r.p90).padStart(4)} ms p90 | ${String(r.kb).padStart(8)} KB | ${r.caminho}`)
+      else
+        console.log(
+          `  ${String(r.p50).padStart(4)} ms p50 | ${String(r.p90).padStart(4)} ms p90 | ${String(r.kb).padStart(8)} KB | ${r.caminho}`,
+        )
     } catch (e) {
       console.log(`   err | ${rota} — ${String(e?.message ?? e).slice(0, 60)}`)
     }

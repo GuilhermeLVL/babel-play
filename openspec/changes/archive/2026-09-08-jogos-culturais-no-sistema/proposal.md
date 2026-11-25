@@ -8,12 +8,12 @@ contrato de volta. Esta change é a volta.
 
 ## O que estava errado, medido
 
-| Fato | Número |
-|---|---|
-| Jogos que reportavam `gameId: 'blitz' as any` | **9 de 9** |
-| Jogos que ignoravam a prop `items` (assinavam `_itemsProp`) | **6 de 9** |
-| Jogos que preenchiam `cardId` (sem ele não há FSRS) | **0 de 9** |
-| Tabelas `Record<MinigameId, …>` que param de compilar com os ids novos | 7 |
+| Fato                                                                   | Número     |
+| ---------------------------------------------------------------------- | ---------- |
+| Jogos que reportavam `gameId: 'blitz' as any`                          | **9 de 9** |
+| Jogos que ignoravam a prop `items` (assinavam `_itemsProp`)            | **6 de 9** |
+| Jogos que preenchiam `cardId` (sem ele não há FSRS)                    | **0 de 9** |
+| Tabelas `Record<MinigameId, …>` que param de compilar com os ids novos | 7          |
 
 Religar qualquer um deles como estava teria gravado a rodada com `exercise_kind: 'blitz'` e a nota
 de velocidade do Duelo — contaminando recorde, combo e histórico de outro jogo.

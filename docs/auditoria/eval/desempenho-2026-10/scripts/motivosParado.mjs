@@ -28,8 +28,17 @@ const anims = await s.page.evaluate(() =>
     return `${a.constructor.name}:${a.animationName ?? a.transitionProperty ?? ''}:${t ? t.tagName + '.' + String(t.className?.baseVal ?? t.className).slice(0, 30) : ''}${a.effect?.pseudoElement ?? ''}`;
   }),
 );
-console.log(`${nome}${suf} ${caminho}: ocupacao ${r.principal.ocupacao_pct}% (trace pesado: so as proporcoes valem), recalculos ${r.estilo.recalculos} em 3 s, estilo ${r.principal.grupos_ms.estilo} ms`);
-console.log('recalculos por numero de elementos:', Object.entries(hist).sort((a, b) => b[1].ms - a[1].ms).slice(0, 8).map(([k, v]) => `${k} el: ${v.n}x, ${r1(v.ms)} ms (${r1(v.ms / v.n)} ms cada)`).join(' | '));
+console.log(
+  `${nome}${suf} ${caminho}: ocupacao ${r.principal.ocupacao_pct}% (trace pesado: so as proporcoes valem), recalculos ${r.estilo.recalculos} em 3 s, estilo ${r.principal.grupos_ms.estilo} ms`,
+);
+console.log(
+  'recalculos por numero de elementos:',
+  Object.entries(hist)
+    .sort((a, b) => b[1].ms - a[1].ms)
+    .slice(0, 8)
+    .map(([k, v]) => `${k} el: ${v.n}x, ${r1(v.ms)} ms (${r1(v.ms / v.n)} ms cada)`)
+    .join(' | '),
+);
 console.log(`seletores: ${e.seletores_total_ms} ms no total`);
 for (const t of e.topo.slice(0, 10)) console.log(`   ${t.ms} ms tent=${t.tentativas} casou=${t.casou} ${t.seletor}`);
 console.log('motivos:\n   ' + e.motivos.slice(0, 25).join('\n   '));

@@ -11,9 +11,9 @@
  * O que este arquivo prende é a régua: cada família vale o que a REGRA diz. (O Passe saiu na onda 5
  * das recompensas v2; a temporada, que o substitui, tem a mesma régua.)
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { ehRecusa,valorDoCredito } from '../src/core/economiaAutoridade'
+import { ehRecusa, valorDoCredito } from '../src/core/economiaAutoridade'
 import { CONQUISTAS } from '../src/core/learning/conquistas'
 import { recompensaDaTrilha } from '../src/core/temporada'
 

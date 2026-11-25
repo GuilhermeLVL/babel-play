@@ -1,10 +1,11 @@
 ---
-titulo: "Falsos cognatos entre inglês e português: as armadilhas mais comuns"
-descricao: "Lista comentada de falsos cognatos inglês–português (actually, pretend, library, parents e outros), com exemplos e dicas para não cair neles."
-slug: "falsos-cognatos-ingles-portugues"
-publicado: "2026-10-25"
+titulo: 'Falsos cognatos entre inglês e português: as armadilhas mais comuns'
+descricao: 'Lista comentada de falsos cognatos inglês–português (actually, pretend, library, parents e outros), com exemplos e dicas para não cair neles.'
+slug: 'falsos-cognatos-ingles-portugues'
+publicado: '2026-10-25'
 revisado: false
-palavrasChave: ["falsos cognatos", "false friends inglês", "actually significa", "armadilhas do inglês"]
+palavrasChave:
+  ['falsos cognatos', 'false friends inglês', 'actually significa', 'armadilhas do inglês']
 ---
 
 Inglês e português compartilham milhares de palavras parecidas, em grande parte por causa do latim. _Important, animal, hospital, family, natural_ se entendem de primeira. São os **cognatos**, e eles ajudam muito no começo.

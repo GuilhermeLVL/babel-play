@@ -4,16 +4,16 @@
  */
 
 export interface Usage {
-  inputTokens: number
-  outputTokens: number
+  inputTokens: number;
+  outputTokens: number;
 }
 
 export interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 export interface ChatResult {
-  text: string
-  usage: Usage
+  text: string;
+  usage: Usage;
 }

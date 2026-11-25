@@ -27,12 +27,12 @@ material, demoção quando não sobra.
 
 ## Por jogo
 
-| jogo | unidade | precisa | fonte na trilha | memória |
-| --- | --- | --- | --- | --- |
-| memory, wordsearch, blitz, termo | palavra | tradução (memory/termo) | etapa atual + errando/vencidas | FSRS + memória |
-| scramble | frase | frase | frases Tatoeba (`frasesDaTrilha`) | memória por id |
-| karaoke, escuta, ditado | frase + áudio | áudio ou TTS | palavra falada por TTS | memória por id |
-| conectores | frase | frase com conector | (bloqueado: só 4,5% das frases têm conector) | memória por id |
+| jogo                             | unidade       | precisa                 | fonte na trilha                              | memória        |
+| -------------------------------- | ------------- | ----------------------- | -------------------------------------------- | -------------- |
+| memory, wordsearch, blitz, termo | palavra       | tradução (memory/termo) | etapa atual + errando/vencidas               | FSRS + memória |
+| scramble                         | frase         | frase                   | frases Tatoeba (`frasesDaTrilha`)            | memória por id |
+| karaoke, escuta, ditado          | frase + áudio | áudio ou TTS            | palavra falada por TTS                       | memória por id |
+| conectores                       | frase         | frase com conector      | (bloqueado: só 4,5% das frases têm conector) | memória por id |
 
 Trilha: a rodada recorta pela **etapa atual** (primeira com < 80% das palavras no caderno) mais o
 que está voltando por erro ou vencido — a revisão espaçada natural. `cartoesDaTrilha` agora atribui

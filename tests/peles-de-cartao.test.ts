@@ -42,8 +42,12 @@ describe('o estado vem do FSRS que o cartão já tem', () => {
   })
 
   it('Learning e Relearning são aprendida', () => {
-    expect(estadoDoCartao(cartao({ fsrsState: 'Learning', fsrsStability: 2, lastReview: AGORA }), AGORA)).toBe('aprendida')
-    expect(estadoDoCartao(cartao({ fsrsState: 'Relearning', fsrsStability: 40, lastReview: AGORA }), AGORA)).toBe('aprendida')
+    expect(estadoDoCartao(cartao({ fsrsState: 'Learning', fsrsStability: 2, lastReview: AGORA }), AGORA)).toBe(
+      'aprendida',
+    )
+    expect(estadoDoCartao(cartao({ fsrsState: 'Relearning', fsrsStability: 40, lastReview: AGORA }), AGORA)).toBe(
+      'aprendida',
+    )
   })
 
   it('Review acima do corte de domínio é dominada; abaixo, volta a aprendida', () => {

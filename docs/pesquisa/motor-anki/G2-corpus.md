@@ -6,14 +6,14 @@
 
 ## O que o parser passou a fazer (e a prova em baralho real)
 
-| Incremento | Antes | Depois |
-|---|---|---|
-| Referências de mídia | `[sound:]` e `<img>` **apagados** do texto; a referência não sobrava nem como ponteiro | extraídas do campo bruto antes da limpeza, agregadas por nota |
-| Cloze | `{{c1::...}}` vazava cru para a tela | resolvido em texto legível + lacunas com ordinal e dica |
-| Baralho e tipo de nota | desconhecidos | nome do baralho (hierarquia `::` normalizada) e do note type |
-| Estrutura | — | hash dos nomes de campo normalizados + ordem, para reconhecer tipos já vistos |
-| Volume | `SELECT ... FROM notes` **sem LIMIT** | teto de 50.000 notas por leitura, com `truncado`/`totalNoArquivo` |
-| Mapa de mídia | nunca aberto (só um booleano) | JSON legado **e** protobuf `MediaEntries`; mídia zstd por arquivo |
+| Incremento             | Antes                                                                                  | Depois                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Referências de mídia   | `[sound:]` e `<img>` **apagados** do texto; a referência não sobrava nem como ponteiro | extraídas do campo bruto antes da limpeza, agregadas por nota                 |
+| Cloze                  | `{{c1::...}}` vazava cru para a tela                                                   | resolvido em texto legível + lacunas com ordinal e dica                       |
+| Baralho e tipo de nota | desconhecidos                                                                          | nome do baralho (hierarquia `::` normalizada) e do note type                  |
+| Estrutura              | —                                                                                      | hash dos nomes de campo normalizados + ordem, para reconhecer tipos já vistos |
+| Volume                 | `SELECT ... FROM notes` **sem LIMIT**                                                  | teto de 50.000 notas por leitura, com `truncado`/`totalNoArquivo`             |
+| Mapa de mídia          | nunca aberto (só um booleano)                                                          | JSON legado **e** protobuf `MediaEntries`; mídia zstd por arquivo             |
 
 Verificação no baralho real do AnkiWeb (`4000 Essential English Words`, 214 MB):
 
@@ -33,10 +33,10 @@ por nota, ou seja, **14.400 arquivos** que o importador não sabia que existiam.
 O achado que mais muda o produto. `pistaUtil` recusa pista com mais de 42 caracteres ou 5 palavras
 — régua calibrada para **fala capturada**. Distribuição real do verso no baralho medido:
 
-| | mediana | p90 | p99 | máximo |
-|---|---|---|---|---|
-| caracteres | 57 | 76 | 96 | 125 |
-| palavras | 11 | 15 | 18 | 24 |
+|            | mediana | p90 | p99 | máximo |
+| ---------- | ------- | --- | --- | ------ |
+| caracteres | 57      | 76  | 96  | 125    |
+| palavras   | 11      | 15  | 18  | 24     |
 
 82,8% estouram o limite de caractere e 98,2% o de palavra. Daí o perfil por origem
 (`captura` 42/5 · `curado` 160/30, que cobre 100% do baralho com folga e ainda barra parágrafo):

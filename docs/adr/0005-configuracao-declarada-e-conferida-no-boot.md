@@ -9,13 +9,13 @@
 O plano desta rodada previa transformar `server/lib/config.ts` num schema Zod avaliado uma vez no
 boot, com os 40+ `process.env` diretos passando a importar dele. Medindo antes de executar:
 
-| medida | valor |
-|---|---|
-| arquivos do servidor que leem `process.env` | 18 |
-| leituras diretas (`process.env.NOME`) | 60 |
-| leituras **dinâmicas** (`process.env[variavel]`) | 2 — `storageQuota.ts` e `usageQuota.ts` |
-| variáveis declaradas em `config.ts` (`VARIAVEIS`) | 57 |
-| variáveis lidas e **não** declaradas | 0 |
+| medida                                            | valor                                   |
+| ------------------------------------------------- | --------------------------------------- |
+| arquivos do servidor que leem `process.env`       | 18                                      |
+| leituras diretas (`process.env.NOME`)             | 60                                      |
+| leituras **dinâmicas** (`process.env[variavel]`)  | 2 — `storageQuota.ts` e `usageQuota.ts` |
+| variáveis declaradas em `config.ts` (`VARIAVEIS`) | 57                                      |
+| variáveis lidas e **não** declaradas              | 0                                       |
 
 O inventário está completo, é conferido no boot (`conferirConfiguracao`), a falta de uma variável
 crítica registra falha e faz `/api/health` responder `degraded` em vez de o servidor subir mudo, e
@@ -30,7 +30,7 @@ leituras: a maioria é `const` de módulo, resolvida uma vez no carregamento, qu
 **O desenho atual fica. Não haverá objeto de configuração tipado por Zod substituindo as 60
 leituras.** O que muda é o que estava genuinamente fora do contrato:
 
-1. As **duas leituras dinâmicas** (`process.env[`${plano}_STORAGE_MB`]` e a equivalente de
+1. As **duas leituras dinâmicas** (`process.env[`${plano}\_STORAGE_MB`]` e a equivalente de
    `usageQuota`) passam a declarar explicitamente cada nome que podem produzir. Elas são invisíveis
    ao `grep`, ao inventário e à regra ast-grep — a única classe de leitura que o desenho atual
    realmente não alcança.

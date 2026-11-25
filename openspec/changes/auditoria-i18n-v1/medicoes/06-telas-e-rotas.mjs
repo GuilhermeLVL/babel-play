@@ -25,10 +25,18 @@ const telas = topo.map((p) => {
   // formatadores de locale. Uma tela pode acertar o formato do número e continuar
   // 100% em português. Separo as duas coisas.
   const imp = cru.match(/import\s*\{([^}]*)\}\s*from\s*['"][^'"]*lib\/i18n['"]/);
-  const importados = imp ? imp[1].split(',').map((s) => s.trim()).filter(Boolean) : [];
+  const importados = imp
+    ? imp[1]
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
   return {
-    arquivo: relativo(p), nome: relativo(p).split('/').pop().replace('.tsx', ''),
-    t, compT, importados,
+    arquivo: relativo(p),
+    nome: relativo(p).split('/').pop().replace('.tsx', ''),
+    t,
+    compT,
+    importados,
     soFormatador: importados.length > 0 && !importados.some((n) => n === 't' || n === 'tp'),
   };
 });
@@ -52,11 +60,15 @@ const soFmt = telas.filter((x) => x.soFormatador);
 
 let texto = tabela(
   ['tela', 't(', '<T', 'importa de lib/i18n', 'estado'],
-  telas.sort((a, b) => b.t - a.t).map((x) => [
-    x.nome, x.t, x.compT,
-    x.importados.join(' ') || '—',
-    x.t > 0 ? 'traduz' : (x.soFormatador ? 'só formata número/data' : 'nada'),
-  ]),
+  telas
+    .sort((a, b) => b.t - a.t)
+    .map((x) => [
+      x.nome,
+      x.t,
+      x.compT,
+      x.importados.join(' ') || '—',
+      x.t > 0 ? 'traduz' : x.soFormatador ? 'só formata número/data' : 'nada',
+    ]),
 );
 
 texto += `\n\nTelas de topo em src/components/views/: ${telas.length}`;
@@ -69,6 +81,10 @@ texto += `\n  cobertura sobre as telas de topo: ${pct(visitadas.length, telas.le
 texto += `\n  cobertura sobre as rotas declaradas: ${pct(visitadas.length, rotasUnicas.length)}`;
 
 export default publicar('06 — telas, rotas e cobertura do e2e', texto, {
-  telas: telas.length, comT: comT.length, semT: semT.map((x) => x.nome),
-  rotas: rotasUnicas, visitadasPeloE2E: visitadas, detalhe: telas,
+  telas: telas.length,
+  comT: comT.length,
+  semT: semT.map((x) => x.nome),
+  rotas: rotasUnicas,
+  visitadasPeloE2E: visitadas,
+  detalhe: telas,
 });

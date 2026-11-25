@@ -16,23 +16,23 @@ O escopo de `questBase.css` é `.tela, .q-palco, .quest-pronto, dialog, .toast`.
 
 ## Função de antes → onde fica
 
-| Antes (computador) | Onde fica no desenho novo |
-| --- | --- |
-| Iniciar / Parar | Botão grande / Encerrar na faixa |
-| Microfone (ativo, mudo, pedindo permissão) | Linha de decisões antes de gravar, e a faixa |
-| Legendas flutuantes | Faixa (e Opções, antes de gravar) |
-| Par de idiomas | Linha de decisões e faixa |
-| Foco cheio | "Tela cheia" na faixa e em Opções |
-| Selo do modelo local | Cabeçalho e Opções |
-| Ajustes da captura, Ajuda, Intérprete | Chips do cabeçalho e Opções |
-| Falantes (separar vozes, renomear, marcar quem fala) | Opções → "Quem está falando" |
-| Palavra → painel lateral de vocabulário | Palavra → folha da palavra |
-| Menu do balão → Tradução Nuance | Folha da frase |
-| Velocidade da voz | Opções |
-| Aparência da legenda | Ajustes (ver decisões) |
-| Altura redimensionável | Sai: o palco ocupa a tela |
-| Avisos (retomada, nuvem, tradutor, captura não salva, teto, permissão, download) | Bloco de avisos acima do palco |
-| Simulador de dev | Só na tela de sempre |
+| Antes (computador)                                                               | Onde fica no desenho novo                    |
+| -------------------------------------------------------------------------------- | -------------------------------------------- |
+| Iniciar / Parar                                                                  | Botão grande / Encerrar na faixa             |
+| Microfone (ativo, mudo, pedindo permissão)                                       | Linha de decisões antes de gravar, e a faixa |
+| Legendas flutuantes                                                              | Faixa (e Opções, antes de gravar)            |
+| Par de idiomas                                                                   | Linha de decisões e faixa                    |
+| Foco cheio                                                                       | "Tela cheia" na faixa e em Opções            |
+| Selo do modelo local                                                             | Cabeçalho e Opções                           |
+| Ajustes da captura, Ajuda, Intérprete                                            | Chips do cabeçalho e Opções                  |
+| Falantes (separar vozes, renomear, marcar quem fala)                             | Opções → "Quem está falando"                 |
+| Palavra → painel lateral de vocabulário                                          | Palavra → folha da palavra                   |
+| Menu do balão → Tradução Nuance                                                  | Folha da frase                               |
+| Velocidade da voz                                                                | Opções                                       |
+| Aparência da legenda                                                             | Ajustes (ver decisões)                       |
+| Altura redimensionável                                                           | Sai: o palco ocupa a tela                    |
+| Avisos (retomada, nuvem, tradutor, captura não salva, teto, permissão, download) | Bloco de avisos acima do palco               |
+| Simulador de dev                                                                 | Só na tela de sempre                         |
 
 ## As peças do Quest: o que serve
 

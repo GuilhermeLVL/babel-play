@@ -1,8 +1,8 @@
 import type { VocabCard } from '../../types';
 import { isDueNow } from '../learning/due';
-import { type HistoricoDoItem,ordenarPorMemoria } from '../learning/memoriaDeItens';
+import { type HistoricoDoItem, ordenarPorMemoria } from '../learning/memoriaDeItens';
 import { pistaDeJogo } from '../learning/pistaDeJogo';
-import { chaveComparavel,pistaUtil } from '../learning/quality';
+import { chaveComparavel, pistaUtil } from '../learning/quality';
 import { idiomaDoCartao } from '../texto/idioma';
 import { memoDeTexto } from '../texto/memoDeTexto';
 import { comBaseLatina } from '../texto/palavra';
@@ -29,7 +29,13 @@ export function chaveDoTermo(texto: string): string {
   return texto ? chaveDoTermoGuardada(texto) : '';
 }
 /* Guardada pela palavra (`memoDeTexto`): o gate do saguão pergunta por todo o acervo, a cada passada. */
-const chaveDoTermoGuardada = memoDeTexto((texto: string): string => comBaseLatina(texto).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^\p{L}]/gu, ''));
+const chaveDoTermoGuardada = memoDeTexto((texto: string): string =>
+  comBaseLatina(texto)
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/[^\p{L}]/gu, ''),
+);
 
 export type MotivoForaDoTermo = 'hifen-ou-espaco' | 'curta' | 'longa' | 'sem-pista';
 
@@ -79,15 +85,18 @@ export function diagnosticoTermo(cards: VocabCard[]): { jogaveis: number; foraPo
   for (const c of cards) {
     if (!c.inDeck) continue;
     const m = motivoForaDoTermo(c);
-    if (m) foraPor[m] += 1; else jogaveis += 1;
+    if (m) foraPor[m] += 1;
+    else jogaveis += 1;
   }
   return { jogaveis, foraPor };
 }
 
 /** Levenshtein pequeno, só para o "quase". */
 export function distanciaDeEdicao(a: string, b: string): number {
-  const m = a.length, n = b.length;
-  if (!m) return n; if (!n) return m;
+  const m = a.length,
+    n = b.length;
+  if (!m) return n;
+  if (!n) return m;
   let prev = Array.from({ length: n + 1 }, (_, j) => j);
   for (let i = 1; i <= m; i++) {
     const cur = [i];
@@ -114,7 +123,11 @@ export interface Julgamento {
  * Julga um palpite CONTRA A RODADA (resposta + alternativas), não só contra a resposta.
  * `quaseJaUsado`: o aviso de "quase" só vale uma vez por tabuleiro.
  */
-export function julgarPalpite(palpiteBruto: string, rodada: RodadaTermo, opts: { ultimaTentativa?: boolean; quaseJaUsado?: boolean } = {}): Julgamento {
+export function julgarPalpite(
+  palpiteBruto: string,
+  rodada: RodadaTermo,
+  opts: { ultimaTentativa?: boolean; quaseJaUsado?: boolean } = {},
+): Julgamento {
   const palpite = avaliarPalpite(palpiteBruto, rodada.resposta);
   if (acertou(palpite)) return { palpite, acertou: true };
   const chave = chaveDoTermo(palpiteBruto);
@@ -122,12 +135,19 @@ export function julgarPalpite(palpiteBruto: string, rodada: RodadaTermo, opts: {
   if (sinonimo) {
     const alvo = rodada.resposta;
     return {
-      palpite, acertou: false, sinonimo,
+      palpite,
+      acertou: false,
+      sinonimo,
       dica: `"${sinonimo}" também significa isso — mas a desta rodada tem ${alvo.length} letras e começa com ${alvo[0]}.`,
     };
   }
   if (opts.ultimaTentativa && !opts.quaseJaUsado && distanciaDeEdicao(chave, rodada.resposta) === 1) {
-    return { palpite, acertou: false, quase: true, dica: 'Quase: uma letra de diferença. Esta não conta como tentativa.' };
+    return {
+      palpite,
+      acertou: false,
+      quase: true,
+      dica: 'Quase: uma letra de diferença. Esta não conta como tentativa.',
+    };
   }
   return { palpite, acertou: false };
 }
@@ -313,7 +333,16 @@ export const DEGRAUS_MINIMOS = 2;
  */
 export function rodadasDaEscada(
   cards: VocabCard[],
-  opts: { dificil?: boolean; now?: number; shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string>; memoria?: ReadonlyMap<string, HistoricoDoItem>; semente?: string; diaDe?: (ts: number) => number; faixa?: ReguaDeLetras } = {},
+  opts: {
+    dificil?: boolean;
+    now?: number;
+    shuffle?: <T>(xs: T[]) => T[];
+    evitar?: ReadonlySet<string>;
+    memoria?: ReadonlyMap<string, HistoricoDoItem>;
+    semente?: string;
+    diaDe?: (ts: number) => number;
+    faixa?: ReguaDeLetras;
+  } = {},
 ): RodadaTermo[] {
   /* A FAIXA GOVERNA AS DUAS ALAVANCAS que decidem o custo do Termo: quantas letras a palavra pode
      ter e até quantos tabuleiros a escada sobe. Sem ela, todo mundo recebia 4–8 letras e o
@@ -325,7 +354,12 @@ export function rodadasDaEscada(
   const disponiveis = contarJogaveisMulti(cards, faixa);
   if (planoDaEscada(disponiveis, escada).length < DEGRAUS_MINIMOS) return [];
 
-  const rodadas = buildTermoRounds(cards, { ...opts, faixa, quantidade: consumoDaEscada(disponiveis, escada), mesmoTamanho: true });
+  const rodadas = buildTermoRounds(cards, {
+    ...opts,
+    faixa,
+    quantidade: consumoDaEscada(disponiveis, escada),
+    mesmoTamanho: true,
+  });
   if (planoDaEscada(rodadas.length, escada).length < DEGRAUS_MINIMOS) return [];
   return rodadas.slice(0, consumoDaEscada(rodadas.length, escada));
 }
@@ -381,7 +415,7 @@ export function avaliarPalpite(palpite: string, resposta: string): Palpite {
 
 /** Acertou? (todas as letras certas) */
 export function acertou(palpite: Palpite): boolean {
-  return palpite.estados.length > 0 && palpite.estados.every(e => e === 'certa');
+  return palpite.estados.length > 0 && palpite.estados.every((e) => e === 'certa');
 }
 
 /**
@@ -448,18 +482,27 @@ function embaralhar<T>(xs: T[]): T[] {
 
 export function buildTermoRounds(
   cards: VocabCard[],
-  opts: { quantidade?: number; dificil?: boolean; now?: number; mesmoTamanho?: boolean;
-          shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string>;
-          memoria?: ReadonlyMap<string, HistoricoDoItem>; semente?: string; diaDe?: (ts: number) => number;
-          faixa?: ReguaDeLetras } = {},
+  opts: {
+    quantidade?: number;
+    dificil?: boolean;
+    now?: number;
+    mesmoTamanho?: boolean;
+    shuffle?: <T>(xs: T[]) => T[];
+    evitar?: ReadonlySet<string>;
+    memoria?: ReadonlyMap<string, HistoricoDoItem>;
+    semente?: string;
+    diaDe?: (ts: number) => number;
+    faixa?: ReguaDeLetras;
+  } = {},
 ): RodadaTermo[] {
   const now = opts.now ?? Date.now();
   const quantidade = opts.quantidade ?? 5;
   // Elegibilidade pela chave Unicode (ver `motivoForaDoTermo`): hífen/espaço fora, acentos ok.
   // A FAIXA entra aqui: é ela que decide o comprimento aceito (ver `LETRAS_POR_FAIXA`).
   // O teclado é QWERTY fixo: palavra que ele não escreve vira rodada insolúvel.
-  let candidatos = cards.filter(c => c.inDeck && digitavelNoTermo(c.word ?? '')
-    && motivoForaDoTermo(c, opts.faixa ?? 'medio') === null);
+  let candidatos = cards.filter(
+    (c) => c.inDeck && digitavelNoTermo(c.word ?? '') && motivoForaDoTermo(c, opts.faixa ?? 'medio') === null,
+  );
   /* SINÔNIMOS DO ACERVO: para cada tradução, quais palavras (do acervo INTEIRO recebido) a
      carregam. É o que permite aceitar "deceased" quando a rodada pediu "dead". */
   const porPista = new Map<string, string[]>();
@@ -497,18 +540,24 @@ export function buildTermoRounds(
   let ordenados: VocabCard[];
   if (opts.memoria && opts.semente) {
     // Seleção v2: régua de memória + semente própria do Termo (rotação distinta dos outros jogos).
-    const { ordenados: porMemoria } = ordenarPorMemoria(candidatos, c => c.word, {
-      memoria: opts.memoria, semente: `termo:${opts.semente}`, agora: now,
+    const { ordenados: porMemoria } = ordenarPorMemoria(candidatos, (c) => c.word, {
+      memoria: opts.memoria,
+      semente: `termo:${opts.semente}`,
+      agora: now,
       diaDe: opts.diaDe ?? ((ts) => Math.floor(ts / 86_400_000)),
-      urgente: c => isDueNow(c, 'fsrs', now), cotaDeNovas: 0.3, limite: quantidade,
+      urgente: (c) => isDueNow(c, 'fsrs', now),
+      cotaDeNovas: 0.3,
+      limite: quantidade,
     });
-    ordenados = !evitar?.size ? porMemoria : [...porMemoria.filter(semPenalidade), ...porMemoria.filter(c => !semPenalidade(c))];
+    ordenados = !evitar?.size
+      ? porMemoria
+      : [...porMemoria.filter(semPenalidade), ...porMemoria.filter((c) => !semPenalidade(c))];
   } else {
-    const grupo = (vencido: boolean) => shuffle(candidatos.filter(c => isDueNow(c, 'fsrs', now) === vencido));
+    const grupo = (vencido: boolean) => shuffle(candidatos.filter((c) => isDueNow(c, 'fsrs', now) === vencido));
     const porUrgencia = [...grupo(true), ...grupo(false)];
     ordenados = !evitar?.size
       ? porUrgencia
-      : [...porUrgencia.filter(semPenalidade), ...porUrgencia.filter(c => !semPenalidade(c))];
+      : [...porUrgencia.filter(semPenalidade), ...porUrgencia.filter((c) => !semPenalidade(c))];
   }
 
   /**
@@ -534,9 +583,11 @@ export function buildTermoRounds(
     escolhidos.push(c);
   }
 
-  return escolhidos.map(c => {
+  return escolhidos.map((c) => {
     const palavra = (c.word ?? '').trim();
-    const alternativas = (porPista.get(chaveComparavel(c.translation ?? '')) ?? []).filter(w => chaveDoTermo(w) !== chaveDoTermo(palavra));
+    const alternativas = (porPista.get(chaveComparavel(c.translation ?? '')) ?? []).filter(
+      (w) => chaveDoTermo(w) !== chaveDoTermo(palavra),
+    );
     return {
       cardId: c.id,
       resposta: chaveDoTermo(palavra),
@@ -549,9 +600,7 @@ export function buildTermoRounds(
       lang: idiomaDoCartao(c),
       ...(alternativas.length ? { alternativas } : {}),
       // Pista ambígua nasce com a frase de contexto (quando existe): é o desempate honesto.
-      ...(alternativas.length && (c.sentence ?? '').trim()
-        ? { contexto: pistaDeJogo(palavra, c.sentence).texto }
-        : {}),
+      ...(alternativas.length && (c.sentence ?? '').trim() ? { contexto: pistaDeJogo(palavra, c.sentence).texto } : {}),
     };
   });
 }
@@ -562,7 +611,8 @@ function maiorGrupoPorTamanho(cards: VocabCard[]): VocabCard[] {
   for (const c of cards) {
     const n = chaveDoTermo(c.word ?? '').length;
     const lista = porTamanho.get(n);
-    if (lista) lista.push(c); else porTamanho.set(n, [c]);
+    if (lista) lista.push(c);
+    else porTamanho.set(n, [c]);
   }
   let melhor: VocabCard[] = [];
   for (const [tamanho, lista] of porTamanho) {
@@ -578,7 +628,7 @@ function maiorGrupoPorTamanho(cards: VocabCard[]): VocabCard[] {
  * todas de comprimentos diferentes não joga Dueto, e a tela precisa dizer isso com número.
  */
 export function contarJogaveisMulti(cards: VocabCard[], faixa: ReguaDeLetras = 'medio'): number {
-  const jogaveis = cards.filter(c => c.inDeck && motivoForaDoTermo(c, faixa) === null);
+  const jogaveis = cards.filter((c) => c.inDeck && motivoForaDoTermo(c, faixa) === null);
   return maiorGrupoPorTamanho(jogaveis).length;
 }
 
@@ -590,7 +640,10 @@ export function contarJogaveisMulti(cards: VocabCard[], faixa: ReguaDeLetras = '
  * tabuleiros AINDA ABERTOS. Contar tabuleiro já resolvido pintaria de verde uma letra que não
  * ajuda mais em nada, que é pior do que não pintar.
  */
-export function estadoDoTecladoMulti(palpitesPorTabuleiro: Palpite[][], resolvidos: boolean[]): Record<string, EstadoLetra> {
+export function estadoDoTecladoMulti(
+  palpitesPorTabuleiro: Palpite[][],
+  resolvidos: boolean[],
+): Record<string, EstadoLetra> {
   const abertos = palpitesPorTabuleiro.filter((_, i) => !resolvidos[i]);
   return estadoDoTeclado(abertos.flat());
 }
@@ -606,7 +659,9 @@ export function estadoDoTecladoMulti(palpitesPorTabuleiro: Palpite[][], resolvid
 export function letrasCertas(palpites: Palpite[], tamanho: number): (string | null)[] {
   const certas: (string | null)[] = new Array(tamanho).fill(null);
   for (const p of palpites) {
-    p.estados.forEach((e, i) => { if (e === 'certa' && i < tamanho) certas[i] = p.letras[i]; });
+    p.estados.forEach((e, i) => {
+      if (e === 'certa' && i < tamanho) certas[i] = p.letras[i];
+    });
   }
   return certas;
 }
@@ -625,11 +680,16 @@ export function dicaDeLetra(
 ): { posicao: number; letra: string } | null {
   const conhecidas = new Set<number>(jaReveladas);
   for (const p of palpites) {
-    p.estados.forEach((e, i) => { if (e === 'certa') conhecidas.add(i); });
+    p.estados.forEach((e, i) => {
+      if (e === 'certa') conhecidas.add(i);
+    });
   }
   // `jaReveladas` não é detalhe: sem ele o sorteio repetia uma posição já revelada e a pessoa
   // gastava a ajuda para receber de volta o que já estava na tela.
-  const candidatas = resposta.split('').map((_, i) => i).filter(i => !conhecidas.has(i));
+  const candidatas = resposta
+    .split('')
+    .map((_, i) => i)
+    .filter((i) => !conhecidas.has(i));
   if (!candidatas.length) return null;
   const posicao = candidatas[Math.floor(Math.random() * candidatas.length)];
   return { posicao, letra: resposta[posicao] };

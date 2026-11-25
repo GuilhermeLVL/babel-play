@@ -25,10 +25,12 @@ Chirp 3 HD); falta o seletor e uma estimativa honesta do gênero do falante.
 ## Capabilities
 
 ### New Capabilities
+
 - `catalogo-de-vozes`: lista de vozes por idioma com gênero, motor e prévia; escolha por idioma.
 - `voz-por-falante`: estimativa local de faixa de tom, escolha automática da voz mais próxima, fixação por falante e override.
 
 ### Modified Capabilities
+
 <!-- Nenhuma: o comportamento do modo intérprete ainda mora na change `modo-interprete` (não arquivada). -->
 
 ## Impact

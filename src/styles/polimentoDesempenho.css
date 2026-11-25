@@ -21,7 +21,10 @@
    barra do celular). */
 @keyframes px-pulso-composto {
   0% {
-    transform: scale(var(--px-pulso-x, var(--px-pulso-padrao, 0.5455)), var(--px-pulso-y, var(--px-pulso-padrao, 0.5455)));
+    transform: scale(
+      var(--px-pulso-x, var(--px-pulso-padrao, 0.5455)),
+      var(--px-pulso-y, var(--px-pulso-padrao, 0.5455))
+    );
     opacity: 0.7;
   }
   70%,

@@ -19,7 +19,7 @@
  * Ou seja: quem tem conta erra uma palavra e a recebe de volta imediatamente, para sempre, sem
  * espaçamento e sem escape. Exatamente a queixa de "palavras se repetindo infinitamente".
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { agregarHistorico } from '../server/db/repositories/exerciseResults'
 import { estadoDoItem, prontoParaVoltar } from '../src/core/learning/memoriaDeItens'
@@ -27,27 +27,48 @@ import { estadoDoItem, prontoParaVoltar } from '../src/core/learning/memoriaDeIt
 const T0 = Date.UTC(2026, 8, 1, 10)
 const diaDe = (ts: number) => Math.floor(ts / 86_400_000)
 
-type Linha = { itemRef: string; correct: number; createdAt: number; roundId: string | null; exerciseKind: string | null }
-const linha = (itemRef: string, correct: 0 | 1, min: number, roundId: string, jogo = 'termo'): Linha =>
-  ({ itemRef, correct, createdAt: T0 + min * 60_000, roundId, exerciseKind: jogo })
+type Linha = {
+  itemRef: string
+  correct: number
+  createdAt: number
+  roundId: string | null
+  exerciseKind: string | null
+}
+const linha = (itemRef: string, correct: 0 | 1, min: number, roundId: string, jogo = 'termo'): Linha => ({
+  itemRef,
+  correct,
+  createdAt: T0 + min * 60_000,
+  roundId,
+  exerciseKind: jogo,
+})
 
 const de = (rows: Linha[], ref: string) => agregarHistorico(rows).find((h) => h.itemRef === ref)!
 
 describe('o histórico agregado conta erros SEGUIDOS', () => {
   it('quatro erros em sequência somam quatro — e é o que faz a palavra virar leech', () => {
-    const h = de([
-      linha('again', 0, 0, 'r1'), linha('again', 0, 10, 'r2'),
-      linha('again', 0, 20, 'r3'), linha('again', 0, 30, 'r4'),
-    ], 'again')
+    const h = de(
+      [
+        linha('again', 0, 0, 'r1'),
+        linha('again', 0, 10, 'r2'),
+        linha('again', 0, 20, 'r3'),
+        linha('again', 0, 30, 'r4'),
+      ],
+      'again',
+    )
     expect(h.errosSeguidos).toBe(4)
     expect(estadoDoItem(h).tag).toBe('leech')
   })
 
   it('um acerto zera a contagem: a palavra volta como "aprendendo", não como leech', () => {
-    const h = de([
-      linha('again', 0, 0, 'r1'), linha('again', 0, 10, 'r2'),
-      linha('again', 0, 20, 'r3'), linha('again', 1, 30, 'r4'),
-    ], 'again')
+    const h = de(
+      [
+        linha('again', 0, 0, 'r1'),
+        linha('again', 0, 10, 'r2'),
+        linha('again', 0, 20, 'r3'),
+        linha('again', 1, 30, 'r4'),
+      ],
+      'again',
+    )
     expect(h.errosSeguidos).toBe(0)
     expect(estadoDoItem(h).tag).toBe('aprendendo')
   })
@@ -62,28 +83,25 @@ describe('o histórico agregado conta RODADAS desde o último erro', () => {
   })
 
   it('passadas duas rodadas do MESMO jogo, a janela vence e a palavra volta', () => {
-    const h = de([
-      linha('again', 0, 0, 'r1'),
-      linha('other', 1, 10, 'r2'), linha('other', 1, 20, 'r3'),
-    ], 'again')
+    const h = de([linha('again', 0, 0, 'r1'), linha('other', 1, 10, 'r2'), linha('other', 1, 20, 'r3')], 'again')
     expect(h.rodadasDesdeUltimoErro).toBe(2)
     expect(prontoParaVoltar(h, T0 + 60_000, diaDe)).toBe(true)
   })
 
   it('rodada de OUTRO jogo não conta: a janela é por jogo', () => {
-    const h = de([
-      linha('again', 0, 0, 'r1'),
-      linha('other', 1, 10, 'r2', 'memory'), linha('other', 1, 20, 'r3', 'memory'),
-    ], 'again')
+    const h = de(
+      [linha('again', 0, 0, 'r1'), linha('other', 1, 10, 'r2', 'memory'), linha('other', 1, 20, 'r3', 'memory')],
+      'again',
+    )
     expect(h.rodadasDesdeUltimoErro).toBe(0)
     expect(prontoParaVoltar(h, T0 + 60_000, diaDe)).toBe(false)
   })
 
   it('linhas da mesma rodada contam UMA vez', () => {
-    const h = de([
-      linha('again', 0, 0, 'r1'),
-      linha('x', 1, 10, 'r2'), linha('y', 1, 10, 'r2'), linha('z', 1, 10, 'r2'),
-    ], 'again')
+    const h = de(
+      [linha('again', 0, 0, 'r1'), linha('x', 1, 10, 'r2'), linha('y', 1, 10, 'r2'), linha('z', 1, 10, 'r2')],
+      'again',
+    )
     expect(h.rodadasDesdeUltimoErro).toBe(1)
   })
 })

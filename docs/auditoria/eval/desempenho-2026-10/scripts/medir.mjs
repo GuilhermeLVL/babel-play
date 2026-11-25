@@ -28,7 +28,12 @@ export async function instalarMedidor(page) {
         const pronto = () => {
           if (modo === 'tela') {
             const f = tela?.firstElementChild;
-            return !!f && f !== antigo && !f.classList.contains('carregando-da-tela') && !tela.querySelector('.q-esqueleto, .carregando-da-tela');
+            return (
+              !!f &&
+              f !== antigo &&
+              !f.classList.contains('carregando-da-tela') &&
+              !tela.querySelector('.q-esqueleto, .carregando-da-tela')
+            );
           }
           if (modo === 'aparece') return !!document.querySelector(seletor);
           if (modo === 'some') return !document.querySelector(seletor);
@@ -40,7 +45,11 @@ export async function instalarMedidor(page) {
             if (a.playState !== 'running') return false;
             const t = a.effect?.getComputedTiming?.();
             /* a inclinacao do giroscopio redispara uma transicao de transform a cada escrita: nao conta como entrada */
-            if (a.transitionProperty === 'transform' && a.effect?.target?.matches?.('button.q-tile, .carta, .px-premium, .px-vitrine-tela, .px-arte')) return false;
+            if (
+              a.transitionProperty === 'transform' &&
+              a.effect?.target?.matches?.('button.q-tile, .carta, .px-premium, .px-vitrine-tela, .px-arte')
+            )
+              return false;
             return !t || t.iterations !== Infinity;
           });
         const acabar = (motivo) => {
@@ -55,7 +64,12 @@ export async function instalarMedidor(page) {
             const res_ = performance
               .getEntriesByType('resource')
               .filter((r) => r.startTime >= t0 - 1 && r.startTime <= t1)
-              .map((r) => ({ n: r.name.split('/').pop(), kb: Math.round(r.transferSize / 102.4) / 10, dec: Math.round(r.decodedBodySize / 102.4) / 10, fim: Math.round(r.responseEnd - t0) }));
+              .map((r) => ({
+                n: r.name.split('/').pop(),
+                kb: Math.round(r.transferSize / 102.4) / 10,
+                dec: Math.round(r.decodedBodySize / 102.4) / 10,
+                fim: Math.round(r.responseEnd - t0),
+              }));
             res({
               motivo,
               troca: tTroca == null ? null : tTroca - t0,
@@ -65,7 +79,13 @@ export async function instalarMedidor(page) {
               assentou: t1 - t0,
               frames: fr,
               lt: lt.map((x) => ({ s: Math.round(x.s - t0), d: Math.round(x.d) })),
-              ev: ev.map((x) => ({ n: x.n, d: x.d, atraso: Math.round(x.ps - x.s), proc: Math.round(x.pe - x.ps), id: x.id })),
+              ev: ev.map((x) => ({
+                n: x.n,
+                d: x.d,
+                atraso: Math.round(x.ps - x.s),
+                proc: Math.round(x.pe - x.ps),
+                id: x.id,
+              })),
               res: res_,
               nosAntes,
               nosDepois: document.querySelectorAll('*').length,
@@ -85,7 +105,8 @@ export async function instalarMedidor(page) {
             if (tConteudo == null) {
               if (pronto()) tConteudo = agora;
             } else if (tPintou == null) tPintou = agora;
-            if (tPintou != null && agora - t0 > minimo && agora - tPintou > 120 && !animando()) return acabar('assentou');
+            if (tPintou != null && agora - t0 > minimo && agora - tPintou > 120 && !animando())
+              return acabar('assentou');
             if (agora - t0 > teto) return acabar('teto');
           }
           requestAnimationFrame(tique);

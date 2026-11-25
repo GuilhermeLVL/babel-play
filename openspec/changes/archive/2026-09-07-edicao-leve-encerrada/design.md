@@ -33,11 +33,11 @@ Então ele veio para `/api/rank`, no Express. As decisões que a versão Cloudfl
 foram preservadas (uma linha por apelido, tetos de plausibilidade, um envio por minuto por origem);
 três coisas mudaram, e cada uma por um motivo:
 
-| o que mudou | por quê |
-|---|---|
-| `ip` → `ip_hash` | endereço guardado sem prazo e sem caminho de exclusão é dado pessoal numa tabela que se apresenta como anônima. O hash responde à única pergunta da trava ("vieram do mesmo lugar?") e a nenhuma outra |
-| `Set` de nove nomes → `MINIGAME_IDS` | a lista à mão envelheceria em silêncio: um jogo novo levaria 404 sem ninguém entender por quê |
-| leitura+escrita → um `INSERT ... ON CONFLICT` | duas partidas terminando juntas não podem criar duas linhas do mesmo apelido; quem arbitra é o índice único, não uma leitura anterior |
+| o que mudou                                   | por quê                                                                                                                                                                                                |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ip` → `ip_hash`                              | endereço guardado sem prazo e sem caminho de exclusão é dado pessoal numa tabela que se apresenta como anônima. O hash responde à única pergunta da trava ("vieram do mesmo lugar?") e a nenhuma outra |
+| `Set` de nove nomes → `MINIGAME_IDS`          | a lista à mão envelheceria em silêncio: um jogo novo levaria 404 sem ninguém entender por quê                                                                                                          |
+| leitura+escrita → um `INSERT ... ON CONFLICT` | duas partidas terminando juntas não podem criar duas linhas do mesmo apelido; quem arbitra é o índice único, não uma leitura anterior                                                                  |
 
 **A rota fica antes do `authMiddleware`**, como o health e o webhook. Não é descuido: o placar é
 público e anônimo por desenho, e exigir token o quebraria justamente no modo para o qual foi feito.

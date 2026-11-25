@@ -13,7 +13,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EstadoDasMissoes, Missao } from '../src/core/missoes'
 
 const creditarSeeds = vi.fn()
-vi.mock('../src/data/api', async (orig) => ({ ...(await orig<object>()), creditarSeeds: (...a: unknown[]) => creditarSeeds(...a) }))
+vi.mock('../src/data/api', async (orig) => ({
+  ...(await orig<object>()),
+  creditarSeeds: (...a: unknown[]) => creditarSeeds(...a),
+}))
 
 const { podeAvisarMissao, registrarAvisoDeMissao, reivindicarMetaDoDia } = await import('../src/lib/metaDoDia')
 const { podeAvisarOfensiva } = await import('../src/lib/ofensiva')

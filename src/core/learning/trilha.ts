@@ -125,20 +125,18 @@ export { chaveDaPalavra };
  * completar com palavra de outro nível: a promessa é "vocabulário A2", e cumprir pela metade é
  * melhor que cumprir errado.
  */
-export function proximasPalavras(
-  dado: DadoTrilha,
-  nivel: CefrLevel,
-  opts: EscolhaOpts,
-): PalavraDaTrilha[] {
+export function proximasPalavras(dado: DadoTrilha, nivel: CefrLevel, opts: EscolhaOpts): PalavraDaTrilha[] {
   const shuffle = opts.shuffle ?? embaralhar;
   const doNivel = dado.niveis[nivel] ?? [];
-  const candidatas = doNivel.filter(par => !opts.jaTem.has(chaveDaPalavra(par[0])));
-  return shuffle(candidatas)
-    .slice(0, Math.max(0, opts.quantidade))
-    /* `frase`/`fraseTraduzida` só entram quando o par as tem — ver o docstring de `PalavraDaTrilha`. */
-    .map(([palavra, traducao, frase, fraseTraduzida]) => (
-      frase ? { palavra, traducao, nivel, frase, fraseTraduzida } : { palavra, traducao, nivel }
-    ));
+  const candidatas = doNivel.filter((par) => !opts.jaTem.has(chaveDaPalavra(par[0])));
+  return (
+    shuffle(candidatas)
+      .slice(0, Math.max(0, opts.quantidade))
+      /* `frase`/`fraseTraduzida` só entram quando o par as tem — ver o docstring de `PalavraDaTrilha`. */
+      .map(([palavra, traducao, frase, fraseTraduzida]) =>
+        frase ? { palavra, traducao, nivel, frase, fraseTraduzida } : { palavra, traducao, nivel },
+      )
+  );
 }
 
 /**
@@ -227,11 +225,7 @@ export function escoreDaTrilha(nivel: CefrLevel, palavra: string): number {
   return Math.round((base * 0.7 + forma * 0.3) * 100) / 100;
 }
 
-export function cartoesDaTrilha(
-  dado: DadoTrilha,
-  nivel: CefrLevel,
-  opts: CartoesOpts = {},
-): VocabCardDaTrilha[] {
+export function cartoesDaTrilha(dado: DadoTrilha, nivel: CefrLevel, opts: CartoesOpts = {}): VocabCardDaTrilha[] {
   const doNivel = dado.niveis[nivel] ?? [];
   if (!doNivel.length) return []; // nível ausente do arquivo devolve vazio; a tela avisa, não quebra
   const shuffle = opts.shuffle ?? embaralhar;
@@ -239,32 +233,34 @@ export function cartoesDaTrilha(
   const lang = baseLangDe(dado.lang) || 'en';
   const sessao = SESSAO_DA_TRILHA(dado.lang);
 
-  return shuffle(doNivel).slice(0, teto).map(([palavra, traducao, frase, fraseTraduzida]) => ({
-    id: '',                       // ver o doc de `VocabCardDaTrilha.id`
-    word: (palavra ?? '').trim(),
-    translation: (traducao ?? '').trim(),
-    srcLang: lang,
-    cefrLevel: nivel,
-    cefrConfidence: CONFIANCA_CURADA,
-    /* SELEÇÃO v2: a camada de dificuldade era INERTE na trilha (cartão em memória, sem
+  return shuffle(doNivel)
+    .slice(0, teto)
+    .map(([palavra, traducao, frase, fraseTraduzida]) => ({
+      id: '', // ver o doc de `VocabCardDaTrilha.id`
+      word: (palavra ?? '').trim(),
+      translation: (traducao ?? '').trim(),
+      srcLang: lang,
+      cefrLevel: nivel,
+      cefrConfidence: CONFIANCA_CURADA,
+      /* SELEÇÃO v2: a camada de dificuldade era INERTE na trilha (cartão em memória, sem
        `difficultyScore`), então os chips e o modo Auto não tinham efeito. O nível CEFR curado é
        procedência real (`lexical` em `dificuldade.ts`), e dentro de um nível a palavra mais longa
        tende a ser mais difícil (`forma`). É um escore de partida: o histórico vai por cima. */
-    difficultyScore: escoreDaTrilha(nivel, palavra ?? ''),
-    /* `sourceSessionId` continua sendo escrito porque é o que `bulkAdd` decompõe para gravar
+      difficultyScore: escoreDaTrilha(nivel, palavra ?? ''),
+      /* `sourceSessionId` continua sendo escrito porque é o que `bulkAdd` decompõe para gravar
        `origin_kind='trilha'` na ocorrência. Mas ele NÃO sobrevive na coluna do cartão (o servidor
        o sanea para NULL), então quem filtra é `daTrilha`. Os dois juntos: um para escrever, outro
        para ler. */
-    sourceSessionId: sessao,
-    daTrilha: true,
-    inDeck: true,
-    fsrsDueAt: '',
-    leitnerDueAt: '',
-    /* A frase entra no campo `sentence`, o MESMO nome que o cartão do banco usa — é assim que os
+      sourceSessionId: sessao,
+      daTrilha: true,
+      inDeck: true,
+      fsrsDueAt: '',
+      leitnerDueAt: '',
+      /* A frase entra no campo `sentence`, o MESMO nome que o cartão do banco usa — é assim que os
        jogos de lacuna passam a funcionar na trilha sem saber que a fonte mudou. Ausente quando o
        par não tem frase; string vazia afirmaria que existe um exemplo em branco. */
-    ...(frase ? { sentence: frase, sentenceTranslation: fraseTraduzida } : {}),
-  }));
+      ...(frase ? { sentence: frase, sentenceTranslation: fraseTraduzida } : {}),
+    }));
 }
 
 /**
@@ -307,14 +303,16 @@ export function frasesDaTrilha(
      de frase, e a tela diz isso. */
   const comFrase = doNivel.filter((par): par is [string, string, string, string] => !!par[2] && !!par[3]);
   const teto = opts.quantidade === undefined ? comFrase.length : Math.max(0, opts.quantidade);
-  return shuffle(comFrase).slice(0, teto).map(([palavra, , frase, fraseTraduzida]) => ({
-    id: `trilha:${palavra}`,
-    text: frase.trim(),
-    translation: fraseTraduzida.trim(),
-    lang,
-    startMs: 0,
-    endMs: 0,
-  }));
+  return shuffle(comFrase)
+    .slice(0, teto)
+    .map(([palavra, , frase, fraseTraduzida]) => ({
+      id: `trilha:${palavra}`,
+      text: frase.trim(),
+      translation: fraseTraduzida.trim(),
+      lang,
+      startMs: 0,
+      endMs: 0,
+    }));
 }
 
 export interface ProgressoNivel {
@@ -333,14 +331,12 @@ export interface ProgressoNivel {
  * saber se está no começo do A2 ou no fim dele, e a escolha de nível vira chute.
  */
 export function progressoDaTrilha(dado: DadoTrilha, jaTem: ReadonlySet<string>): ProgressoNivel[] {
-  return NIVEIS_CEFR
-    .filter(n => (dado.niveis[n] ?? []).length > 0)
-    .map(nivel => {
-      const lista = dado.niveis[nivel] ?? [];
-      // Só a PALAVRA casa com o baralho: a tradução é o verso do cartão, não a chave dele.
-      const tem = lista.reduce((n, par) => n + (jaTem.has(chaveDaPalavra(par[0])) ? 1 : 0), 0);
-      return { nivel, total: lista.length, jaTem: tem, pct: lista.length ? Math.round((tem / lista.length) * 100) : 0 };
-    });
+  return NIVEIS_CEFR.filter((n) => (dado.niveis[n] ?? []).length > 0).map((nivel) => {
+    const lista = dado.niveis[nivel] ?? [];
+    // Só a PALAVRA casa com o baralho: a tradução é o verso do cartão, não a chave dele.
+    const tem = lista.reduce((n, par) => n + (jaTem.has(chaveDaPalavra(par[0])) ? 1 : 0), 0);
+    return { nivel, total: lista.length, jaTem: tem, pct: lista.length ? Math.round((tem / lista.length) * 100) : 0 };
+  });
 }
 
 /**
@@ -356,9 +352,9 @@ export function progressoDaTrilha(dado: DadoTrilha, jaTem: ReadonlySet<string>):
  * e um dia um idioma novo pode chegar sem elas.
  */
 export function niveisEmJogo(dado: DadoTrilha, nivel?: CefrLevel): CefrLevel[] {
-  const existentes = NIVEIS_CEFR.filter(n => (dado.niveis[n] ?? []).length > 0)
-  if (!nivel) return existentes
-  return existentes.includes(nivel) ? [nivel] : []
+  const existentes = NIVEIS_CEFR.filter((n) => (dado.niveis[n] ?? []).length > 0);
+  if (!nivel) return existentes;
+  return existentes.includes(nivel) ? [nivel] : [];
 }
 
 /**
@@ -372,6 +368,6 @@ export function niveisEmJogo(dado: DadoTrilha, nivel?: CefrLevel): CefrLevel[] {
  * aqui, e nem em `CONFIANCA_CURADA`: a confiança é do NÍVEL, não da tradução.
  */
 export function nivelSugerido(progresso: ProgressoNivel[]): CefrLevel {
-  const aberto = progresso.find(p => p.pct < 80);
+  const aberto = progresso.find((p) => p.pct < 80);
   return aberto?.nivel ?? progresso[progresso.length - 1]?.nivel ?? 'A1';
 }

@@ -13,8 +13,8 @@ Levantado por três exploradores independentes + conferência direta das linhas 
 `montarRodada(jogo, semente?, apenas?, evitarTambem?)` é uma closure no componente React
 (`src/components/views/Play.tsx:482-751`), com 8 ramos para 9 jogos. O servidor só **ordena o
 pool** (`GET /api/vocab/para-jogo`, limite 200, `src/core/minigames/composicao.ts:262`) com
-fallback local no catch; a invariante está escrita no código: *"a composição ORDENA e PRIORIZA;
-ela nunca ADICIONA"* (`composicao.ts:340-350`). Prévia passa exclusivamente por
+fallback local no catch; a invariante está escrita no código: _"a composição ORDENA e PRIORIZA;
+ela nunca ADICIONA"_ (`composicao.ts:340-350`). Prévia passa exclusivamente por
 `previaSegura`/`REVELAVEL`; o fim de rodada grava SRS via `reviewCard`, gateado por
 `MINIGAMES[jogo].writesSrs`.
 
@@ -37,11 +37,11 @@ em `vocab_occurrences (origin_kind, origin_ref)` com índice pronto (`vocab.ts:4
 
 ### Campos mínimos por jogo
 
-| Jogo | Exige | Observações |
-|---|---|---|
-| memory / wordsearch / blitz | `word` + tradução (blitz aceita frase→cloze) + `srcLang` | passam por `avaliarCartao` (`quality.ts:182-214`); wordsearch normaliza A–Z |
-| termo (solo/dueto/quarteto) | palavra 4–6 letras, sem hífen/espaço; mesmo comprimento e pista única por degrau | `LETRAS_POR_FAIXA`, escada 1+2+4 |
-| scramble / escuta / ditado / conectores / karaokê | **falas** (frases de gravação) | escuta/ditado/karaokê exigem áudio real (`endMs>startMs`) ou, na trilha, TTS (`startMs:0,endMs:0` é o sinal); conectores só en/pt/es |
+| Jogo                                              | Exige                                                                            | Observações                                                                                                                          |
+| ------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| memory / wordsearch / blitz                       | `word` + tradução (blitz aceita frase→cloze) + `srcLang`                         | passam por `avaliarCartao` (`quality.ts:182-214`); wordsearch normaliza A–Z                                                          |
+| termo (solo/dueto/quarteto)                       | palavra 4–6 letras, sem hífen/espaço; mesmo comprimento e pista única por degrau | `LETRAS_POR_FAIXA`, escada 1+2+4                                                                                                     |
+| scramble / escuta / ditado / conectores / karaokê | **falas** (frases de gravação)                                                   | escuta/ditado/karaokê exigem áudio real (`endMs>startMs`) ou, na trilha, TTS (`startMs:0,endMs:0` é o sinal); conectores só en/pt/es |
 
 `MinigameItem.lang` é escrito mas ignorado pelos 3 jogos de palavra que o recebem. `vocab_cards`
 já tem `clozePrompt/clozeAnswer` e `selecionarParaJogo` já os devolve — cloze do Anki tem destino
@@ -114,14 +114,14 @@ usa:
 enum Version { VERSION_UNKNOWN = 0; VERSION_LEGACY_1 = 1; VERSION_LEGACY_2 = 2; VERSION_LATEST = 3; }
 ```
 
-| Variante | Coleção | Mapa `media` | Mídia numerada | Compressão |
-|---|---|---|---|---|
-| Legacy 1 | `collection.anki2` | JSON `{"0":"nome.mp3"}` | crua | nenhuma |
-| Legacy 2 | `collection.anki21` (+ `collection.anki2` de cortesia) | JSON | crua | nenhuma |
-| **Latest** | **`collection.anki21b`** (schema v18) | **protobuf `MediaEntries`** | **cada arquivo numerado é zstd** | zstd |
+| Variante   | Coleção                                                | Mapa `media`                | Mídia numerada                   | Compressão |
+| ---------- | ------------------------------------------------------ | --------------------------- | -------------------------------- | ---------- |
+| Legacy 1   | `collection.anki2`                                     | JSON `{"0":"nome.mp3"}`     | crua                             | nenhuma    |
+| Legacy 2   | `collection.anki21` (+ `collection.anki2` de cortesia) | JSON                        | crua                             | nenhuma    |
+| **Latest** | **`collection.anki21b`** (schema v18)                  | **protobuf `MediaEntries`** | **cada arquivo numerado é zstd** | zstd       |
 
 - **A armadilha do `collection.anki2` falso é real e documentada**: no export moderno, o
-  `collection.anki2` presente é um *stub* com a mensagem "please update" para clientes antigos
+  `collection.anki2` presente é um _stub_ com a mensagem "please update" para clientes antigos
   ([fórum oficial](https://forums.ankiweb.net/t/collection-anki2-in-exported-apkg-file/44380);
   [meta.rs](https://github.com/ankitects/anki/blob/main/rslib/src/import_export/package/meta.rs)).
   Nossa ordem de preferência `anki21b→anki21→anki2` já a evita por construção.
@@ -140,10 +140,11 @@ message MediaEntries { message MediaEntry {
 } repeated MediaEntry entries = 1; }
 ```
 
-  O índice da entrada na lista ↔ o nome numérico no zip
-  ([import_export.proto](https://github.com/ankitects/anki/blob/main/proto/anki/import_export.proto)).
-  A negociação de upload por hash planejada no G3 pode partir dos sha1 do próprio pacote (o
-  servidor **recalcula** de qualquer forma — hash de cliente nunca é autoridade).
+O índice da entrada na lista ↔ o nome numérico no zip
+([import_export.proto](https://github.com/ankitects/anki/blob/main/proto/anki/import_export.proto)).
+A negociação de upload por hash planejada no G3 pode partir dos sha1 do próprio pacote (o
+servidor **recalcula** de qualquer forma — hash de cliente nunca é autoridade).
+
 - Estrutura interna relevante: `notes` (`flds` separado por `0x1f`, `guid` de sync, `mid`, `sfld`
   de ordenação, `csum` anti-duplicata, `tags` por espaço), `cards` (queue/type/due/ivl/factor), e
   no schema v18 as tabelas `notetypes`/`fields`/`templates`/`decks` substituem os JSON
@@ -216,16 +217,16 @@ notetypes, paginação) são incrementos sobre código testado, não uma reescri
 
 Levantamento com fontes linkadas; onde a evidência é secundária/agregadora, está dito.
 
-| Hipótese | Veredito | Evidência-âncora |
-|---|---|---|
-| Tédio/burnout/"review hell" | **VALIDADA** | ["Anki burnout" (2026)](https://immit.co/blog/anki-burnout-why-it-happens-and-the-fix-that-actually-lasts-2026); ["Why 80% quit SRS"](https://my-senpai.com/insights/ankiburnout.html); reviews de add-ons: "makes anki less boring" ([Pokemanki](https://ankiweb.net/shared/info/1677779223)) |
-| Campos bagunçados de decks de terceiros | **VALIDADA** | [FAQ oficial sobre note type alterado quebrar updates](https://faqs.ankiweb.net/some-updates-were-ignored-because-the-note-type-has-changed.html); [fórum](https://forums.ankiweb.net/t/deck-sharing-and-changing-note-types/41355); existe serviço pago (AnkiHub) só para gerir isso |
-| Mídia quebrada em decks compartilhados | **VALIDADA** | [FAQ oficial dedicada](https://faqs.ankiweb.net/a-shared-deck-is-not-showing-images-or-playing-audio.html); threads recorrentes ([ex.](https://forums.ankiweb.net/t/media-files-missing-in-shared-deck/51544)); causas incluem case-sensitivity |
-| Decks gigantes intimidam | **VALIDADA (evidência média)** | [fórum](https://forums.ankiweb.net/t/overwhelming-amount-of-available-cards-in-deck/1149); autores publicam fatias 1K/2K/3K "se 10.000 soa esmagador" |
-| Falta produção/pronúncia | **VALIDADA (evidência secundária)** | consenso "Anki é manutenção de memória" ([síntese](https://studycardsai.com/blog/best-way-to-use-anki-for-language-learning-reddit)); a demanda aparece como migração para outras ferramentas, não como feature request |
-| Fricção mobile com áudio | **VALIDADA** | [AnkiDroid #12992](https://github.com/ankidroid/Anki-Android/issues/12992); [Opus não toca](https://forums.ankiweb.net/t/solved-ankidroid-audio-files-not-playing-reason-opus-format/69182) |
-| Social/streaks | **PARCIAL** | atendida por add-ons ([Leaderboard](https://shigeyukey.github.io/shige-addons-wiki/anki-leaderboard.html)); nicho — retenção, não aquisição |
-| Outras dores achadas | — | **medo de perder o scheduling ao trocar de app** ([guia de migração](https://kachika.app/en/blog/how-to-switch-from-anki/); [ferramenta dedicada](https://github.com/kaCVanime/anki-transfer-scheduling)); ansiedade com FSRS ([ex.](https://forums.ankiweb.net/t/my-fsrs-algorithm-is-completely-messed-up/56692)) |
+| Hipótese                                | Veredito                            | Evidência-âncora                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tédio/burnout/"review hell"             | **VALIDADA**                        | ["Anki burnout" (2026)](https://immit.co/blog/anki-burnout-why-it-happens-and-the-fix-that-actually-lasts-2026); ["Why 80% quit SRS"](https://my-senpai.com/insights/ankiburnout.html); reviews de add-ons: "makes anki less boring" ([Pokemanki](https://ankiweb.net/shared/info/1677779223))                      |
+| Campos bagunçados de decks de terceiros | **VALIDADA**                        | [FAQ oficial sobre note type alterado quebrar updates](https://faqs.ankiweb.net/some-updates-were-ignored-because-the-note-type-has-changed.html); [fórum](https://forums.ankiweb.net/t/deck-sharing-and-changing-note-types/41355); existe serviço pago (AnkiHub) só para gerir isso                               |
+| Mídia quebrada em decks compartilhados  | **VALIDADA**                        | [FAQ oficial dedicada](https://faqs.ankiweb.net/a-shared-deck-is-not-showing-images-or-playing-audio.html); threads recorrentes ([ex.](https://forums.ankiweb.net/t/media-files-missing-in-shared-deck/51544)); causas incluem case-sensitivity                                                                     |
+| Decks gigantes intimidam                | **VALIDADA (evidência média)**      | [fórum](https://forums.ankiweb.net/t/overwhelming-amount-of-available-cards-in-deck/1149); autores publicam fatias 1K/2K/3K "se 10.000 soa esmagador"                                                                                                                                                               |
+| Falta produção/pronúncia                | **VALIDADA (evidência secundária)** | consenso "Anki é manutenção de memória" ([síntese](https://studycardsai.com/blog/best-way-to-use-anki-for-language-learning-reddit)); a demanda aparece como migração para outras ferramentas, não como feature request                                                                                             |
+| Fricção mobile com áudio                | **VALIDADA**                        | [AnkiDroid #12992](https://github.com/ankidroid/Anki-Android/issues/12992); [Opus não toca](https://forums.ankiweb.net/t/solved-ankidroid-audio-files-not-playing-reason-opus-format/69182)                                                                                                                         |
+| Social/streaks                          | **PARCIAL**                         | atendida por add-ons ([Leaderboard](https://shigeyukey.github.io/shige-addons-wiki/anki-leaderboard.html)); nicho — retenção, não aquisição                                                                                                                                                                         |
+| Outras dores achadas                    | —                                   | **medo de perder o scheduling ao trocar de app** ([guia de migração](https://kachika.app/en/blog/how-to-switch-from-anki/); [ferramenta dedicada](https://github.com/kaCVanime/anki-transfer-scheduling)); ansiedade com FSRS ([ex.](https://forums.ankiweb.net/t/my-fsrs-algorithm-is-completely-messed-up/56692)) |
 
 **Demanda por "jogar" com decks**: comprovada por consumo — add-ons de gamificação populares
 ([Ankimon](https://github.com/Unlucky-Life/ankimon) ~15k downloads;
@@ -263,18 +264,18 @@ medida de por que posição fixa falha).
 
 **Tabela de priors** (nomes observados por papel — entra pré-cadastrada no mapeador do G1):
 
-| Papel | Nomes observados |
-|---|---|
-| palavra-alvo | `Word`, `Expression`¹, `Vocabulary-Kanji`, `word_to_translate`, `Simplified`/`Hanzi`, `Front`, `Target Word` |
-| leitura | `Reading`, `Word Reading`, `Vocabulary-Furigana`/`-Kana`, `Pinyin`/`Zhuyin`, `Transcription`/`IPA` |
-| significado | `Meaning`, `Word Meaning`, `Vocabulary-English`, `Definition`, `Glossary`, `Back` |
-| frase | `Sentence`, `Expression`¹, `SentKanji`, `Example`, `source_sentences` |
-| tradução da frase | `Sentence Meaning`, `SentEng`, `Sentence-English`, `target_sentences` |
-| áudio da palavra | `Word Audio`, `Vocabulary-Audio`, `Sound`, `Audio` |
-| áudio da frase | `Sentence Audio`, `SentAudio`, `Sentence-Audio` |
-| imagem | `Picture`, `Image`, `Snapshot`, `IMG` |
-| cloze | `Text` (+`Extra`), `Sentence-Clozed` |
-| metadados | `Frequency`, `Notes`, `Pitch Accent`, `part_of_speech`, `№`, `Source`, `URL` |
+| Papel             | Nomes observados                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ |
+| palavra-alvo      | `Word`, `Expression`¹, `Vocabulary-Kanji`, `word_to_translate`, `Simplified`/`Hanzi`, `Front`, `Target Word` |
+| leitura           | `Reading`, `Word Reading`, `Vocabulary-Furigana`/`-Kana`, `Pinyin`/`Zhuyin`, `Transcription`/`IPA`           |
+| significado       | `Meaning`, `Word Meaning`, `Vocabulary-English`, `Definition`, `Glossary`, `Back`                            |
+| frase             | `Sentence`, `Expression`¹, `SentKanji`, `Example`, `source_sentences`                                        |
+| tradução da frase | `Sentence Meaning`, `SentEng`, `Sentence-English`, `target_sentences`                                        |
+| áudio da palavra  | `Word Audio`, `Vocabulary-Audio`, `Sound`, `Audio`                                                           |
+| áudio da frase    | `Sentence Audio`, `SentAudio`, `Sentence-Audio`                                                              |
+| imagem            | `Picture`, `Image`, `Snapshot`, `IMG`                                                                        |
+| cloze             | `Text` (+`Extra`), `Sentence-Clozed`                                                                         |
+| metadados         | `Frequency`, `Notes`, `Pitch Accent`, `part_of_speech`, `№`, `Source`, `URL`                                 |
 
 ¹ `Expression` é **ambíguo**: palavra em decks de vocabulário, frase em subs2srs — o mapeador
 precisa desambiguar por conteúdo (comprimento médio, presença de espaço), não só por nome.
@@ -286,8 +287,8 @@ níveis com alta confiança; (d) furigana armazenada é `palavra[leitura]`, não
 
 ## §5 — Jurídico e ético
 
-*Pesquisa informativa, não aconselhamento jurídico formal. FATO = citável com fonte;
-INTERPRETAÇÃO = leitura nossa, marcada como tal.*
+_Pesquisa informativa, não aconselhamento jurídico formal. FATO = citável com fonte;
+INTERPRETAÇÃO = leitura nossa, marcada como tal._
 
 **Licença dos decks compartilhados.** [FATO] Os [Termos do AnkiWeb](https://ankiweb.net/account/terms)
 embutem uma "Shared Deck License": quem baixa recebe licença permanente e mundial **para os seus
@@ -296,7 +297,7 @@ declarar. Na prática quase nenhum deck declara licença (verificado nas página
 exceções existem ([deck Refold com word list Apache 2.0](https://ankiweb.net/shared/info/216385733);
 [Ultimate Geography, open-source com dados CC BY-SA](https://github.com/anki-geo/ultimate-geography)).
 [INTERPRETAÇÃO] A licença autoriza **o usuário** a estudar — não autoriza **o app** a redistribuir.
-Transformar o deck em jogos *para o próprio importador* é compatível com "personal studies";
+Transformar o deck em jogos _para o próprio importador_ é compatível com "personal studies";
 qualquer distribuição a terceiros não é, salvo licença explícita.
 
 **subs2srs / mídia minerada.** [FATO] Clipes e screenshots de filmes são reprodução de obra
@@ -349,25 +350,25 @@ automatizar contra endpoint não documentado, nem redistribuir.
 
 ## §6 — Implicações de engenharia (cada achado → restrição/requisito numerado)
 
-| # | Implicação | Origem | Onde morde |
-|---|---|---|---|
-| R1 | O parser passa a **preservar** `[sound:]`, `<img>`, `{{cN::}}`, furigana `palavra[leitura]` e tags TTS — hoje as apaga; sem isso a medição de mídia do G2 é impossível | §1 | `server/import/anki.ts` (`limparCampo`) |
-| R2 | Abrir o mapa `media` nas **duas formas** (JSON legado; protobuf `MediaEntries` no Latest) e descomprimir a **mídia numerada zstd** do formato novo; `sha1`+`size` por entrada alimentam a negociação de upload — o servidor sempre recalcula | §1 | parser + fase de mídia (G3) |
-| R3 | Manter a detecção `anki21b→anki21→anki2` (evita o stub "please update" por construção) e passar a ler o `meta` quando presente | §1 | parser |
-| R4 | `.colpkg` entra lendo como apkg (mesmas tabelas); a UI avisa "coleção inteira, todos os decks"; restauração de backup NÃO é escopo | §1 | G1 spec |
-| R5 | Node **≥22.15** vira requisito documentado de deploy (zstd nativo do zlib) | §2 | `docs/deploy.md` |
-| R6 | ADR-1: parser TS próprio, estendido — nenhuma lib npm cobre anki21b + mídia-zstd + protobuf; Python traria runtime novo | §2 | G1 ADRs |
-| R7 | Mapeador: normalizar nomes compostos (espaço/hífen/CamelCase) antes de casar; desambiguar `Expression` por conteúdo; procurar `[sound:]` em **qualquer** campo; priors da tabela do §4 pré-cadastrados; hash de perfil sobre nomes normalizados + ordem | §4 | G1 mapeador-e-perfis |
-| R8 | Anti-burnout é requisito, não estilo: ativação em lotes ≤300 sem contador de backlog; decks grandes fatiados por subdeck/tag (import parcial) | §3 | G1 acervo-e-ingestao |
-| R9 | Auditoria de mídia no ingest ("X áudios faltando, Y imagens") com fallback TTS declarado — a dor nº 1 dos decks compartilhados vira feature; transcodificação para formato universal na fase de mídia | §3 | G1/G3 |
-| R10 | `cards.data` carrega o estado FSRS do Anki moderno → importar preservando memória e exportar progresso de volta são **viáveis**; portas abertas em ADR — e o §3 mostra que scheduling é a maior barreira de troca, então a porta tem prioridade pós-programa | §1+§3 | G1 ADRs |
-| R11 | Jurídico operacional: conteúdo importado é privado do importador; **nunca** semear catálogo de decks famosos; takedown voluntário; **dedupe de mídia POR USUÁRIO** (global ≈ distribuição); marca só em uso nominativo ("Importar baralho Anki (.apkg)") | §5 | G1 ADRs + telas |
-| R12 | Corpus: 15 candidatos verificados + 2 âncoras GitHub; download do AnkiWeb funciona anônimo (2 passos com token); baixar manualmente 1×, guardar fora do repo, só métricas JSON entram | §5 | G2 runner |
-| R13 | A régua `pistaUtil` (42 chars/5 palavras) rejeitou 98% de um deck en-en real → **perfil de qualidade por origem** especificado no G1 e calibrado com o corpus no G2 | §0 | `quality.ts` / G1 |
-| R14 | Cloze: múltiplos `c1/c2/c3` na mesma nota geram vários cartões → o modelo de projeção precisa prever **1 nota → N itens jogáveis** | §1+§4 | G1 acervo |
+| #   | Implicação                                                                                                                                                                                                                                                   | Origem | Onde morde                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | --------------------------------------- |
+| R1  | O parser passa a **preservar** `[sound:]`, `<img>`, `{{cN::}}`, furigana `palavra[leitura]` e tags TTS — hoje as apaga; sem isso a medição de mídia do G2 é impossível                                                                                       | §1     | `server/import/anki.ts` (`limparCampo`) |
+| R2  | Abrir o mapa `media` nas **duas formas** (JSON legado; protobuf `MediaEntries` no Latest) e descomprimir a **mídia numerada zstd** do formato novo; `sha1`+`size` por entrada alimentam a negociação de upload — o servidor sempre recalcula                 | §1     | parser + fase de mídia (G3)             |
+| R3  | Manter a detecção `anki21b→anki21→anki2` (evita o stub "please update" por construção) e passar a ler o `meta` quando presente                                                                                                                               | §1     | parser                                  |
+| R4  | `.colpkg` entra lendo como apkg (mesmas tabelas); a UI avisa "coleção inteira, todos os decks"; restauração de backup NÃO é escopo                                                                                                                           | §1     | G1 spec                                 |
+| R5  | Node **≥22.15** vira requisito documentado de deploy (zstd nativo do zlib)                                                                                                                                                                                   | §2     | `docs/deploy.md`                        |
+| R6  | ADR-1: parser TS próprio, estendido — nenhuma lib npm cobre anki21b + mídia-zstd + protobuf; Python traria runtime novo                                                                                                                                      | §2     | G1 ADRs                                 |
+| R7  | Mapeador: normalizar nomes compostos (espaço/hífen/CamelCase) antes de casar; desambiguar `Expression` por conteúdo; procurar `[sound:]` em **qualquer** campo; priors da tabela do §4 pré-cadastrados; hash de perfil sobre nomes normalizados + ordem      | §4     | G1 mapeador-e-perfis                    |
+| R8  | Anti-burnout é requisito, não estilo: ativação em lotes ≤300 sem contador de backlog; decks grandes fatiados por subdeck/tag (import parcial)                                                                                                                | §3     | G1 acervo-e-ingestao                    |
+| R9  | Auditoria de mídia no ingest ("X áudios faltando, Y imagens") com fallback TTS declarado — a dor nº 1 dos decks compartilhados vira feature; transcodificação para formato universal na fase de mídia                                                        | §3     | G1/G3                                   |
+| R10 | `cards.data` carrega o estado FSRS do Anki moderno → importar preservando memória e exportar progresso de volta são **viáveis**; portas abertas em ADR — e o §3 mostra que scheduling é a maior barreira de troca, então a porta tem prioridade pós-programa | §1+§3  | G1 ADRs                                 |
+| R11 | Jurídico operacional: conteúdo importado é privado do importador; **nunca** semear catálogo de decks famosos; takedown voluntário; **dedupe de mídia POR USUÁRIO** (global ≈ distribuição); marca só em uso nominativo ("Importar baralho Anki (.apkg)")     | §5     | G1 ADRs + telas                         |
+| R12 | Corpus: 15 candidatos verificados + 2 âncoras GitHub; download do AnkiWeb funciona anônimo (2 passos com token); baixar manualmente 1×, guardar fora do repo, só métricas JSON entram                                                                        | §5     | G2 runner                               |
+| R13 | A régua `pistaUtil` (42 chars/5 palavras) rejeitou 98% de um deck en-en real → **perfil de qualidade por origem** especificado no G1 e calibrado com o corpus no G2                                                                                          | §0     | `quality.ts` / G1                       |
+| R14 | Cloze: múltiplos `c1/c2/c3` na mesma nota geram vários cartões → o modelo de projeção precisa prever **1 nota → N itens jogáveis**                                                                                                                           | §1+§4  | G1 acervo                               |
 
 ---
 
-*Próximo gate: G1 — design + ADRs em 3–4 changes OpenSpec (`acervo-e-ingestao`,
+_Próximo gate: G1 — design + ADRs em 3–4 changes OpenSpec (`acervo-e-ingestao`,
 `mapeador-e-perfis`, `midia-e-cota`, `fonte-nos-jogos-e-telas`), só após aprovação deste
-relatório.*
+relatório._

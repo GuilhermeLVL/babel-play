@@ -10,11 +10,11 @@ Medição: `medicoes/13-censo-de-cobertura.mjs`.
 
 ## 1. O número global, com o denominador mais estrito
 
-| método | denominador | `t()` | cobertura |
-|---|---:|---:|---:|
-| do repo (`orfas.mjs:52`, literais com acento) | 3.145 | 373 | **11,9%** |
-| meu, Fase 0 (todo nó de texto JSX) | 2.150 | 367 | **17,1%** |
-| meu, Fase 2 (só nó de texto que **parece frase**: tem espaço ou acento) | 1.599 | 367 | **23,0%** |
+| método                                                                  | denominador | `t()` | cobertura |
+| ----------------------------------------------------------------------- | ----------: | ----: | --------: |
+| do repo (`orfas.mjs:52`, literais com acento)                           |       3.145 |   373 | **11,9%** |
+| meu, Fase 0 (todo nó de texto JSX)                                      |       2.150 |   367 | **17,1%** |
+| meu, Fase 2 (só nó de texto que **parece frase**: tem espaço ou acento) |       1.599 |   367 | **23,0%** |
 
 O terceiro é o mais justo: descarta identificador, classe CSS, chave de união discriminada
 (`'trilha-sem-frase'`) e nome de ícone — exatamente as armadilhas que `i18n.md:141-148` lista.
@@ -25,17 +25,17 @@ O terceiro é o mais justo: descarta identificador, classe CSS, chave de união 
 
 ## 2. Onde a tradução está, e onde não está
 
-| área | arquivos | texto visível | `t()` | cobertura |
-|---|---:|---:|---:|---:|
-| `src/components/minigames` | 20 | 145 | 47 | **32,4%** |
-| `src/components/views` | 39 | 974 | 301 | **30,9%** |
-| `src/components/conta` | 5 | 14 | 5 | 35,7% |
-| `src/components/shell` | 9 | 13 | 2 | 15,4% |
-| `src/core/minigames` | 22 | 33 | 0 | **0%** |
-| `src/core/learning` | 23 | 28 | 0 | **0%** |
-| `src/components/auth` | 5 | 25 | 0 | **0%** |
-| `src/lib/exercicios` | 5 | 19 | 0 | **0%** |
-| todo o resto (60+ arquivos) | — | ~350 | ~12 | ~3% |
+| área                        | arquivos | texto visível | `t()` | cobertura |
+| --------------------------- | -------: | ------------: | ----: | --------: |
+| `src/components/minigames`  |       20 |           145 |    47 | **32,4%** |
+| `src/components/views`      |       39 |           974 |   301 | **30,9%** |
+| `src/components/conta`      |        5 |            14 |     5 |     35,7% |
+| `src/components/shell`      |        9 |            13 |     2 |     15,4% |
+| `src/core/minigames`        |       22 |            33 |     0 |    **0%** |
+| `src/core/learning`         |       23 |            28 |     0 |    **0%** |
+| `src/components/auth`       |        5 |            25 |     0 |    **0%** |
+| `src/lib/exercicios`        |        5 |            19 |     0 |    **0%** |
+| todo o resto (60+ arquivos) |        — |          ~350 |   ~12 |       ~3% |
 
 Duas áreas concentram 95% do trabalho feito. Tudo fora de `views/` e `minigames/` está
 praticamente intocado.
@@ -49,17 +49,17 @@ envolver em `t()`.
 
 ## 3. O achado da fase: a tradução foi feita onde não está o dinheiro
 
-| tela | texto visível | `t()` | cobertura |
-|---|---:|---:|---:|
-| `Onboarding.tsx` | 49 | 0 | **0%** |
-| `Loja.tsx` | 30 | 0 | **0%** |
-| `Planos.tsx` | 16 | 1 | 6% |
-| `PasseDeTemporada.tsx` | 15 | 0 | **0%** |
-| `Login.tsx` | 13 | 0 | **0%** |
-| `OnboardingLeve.tsx` | 11 | 1 | 9% |
-| `Conquistas.tsx` | 9 | 0 | **0%** |
-| `CardDePlanos.tsx` | 5 | 0 | **0%** |
-| **soma** | **148** | **2** | **1,4%** |
+| tela                   | texto visível | `t()` | cobertura |
+| ---------------------- | ------------: | ----: | --------: |
+| `Onboarding.tsx`       |            49 |     0 |    **0%** |
+| `Loja.tsx`             |            30 |     0 |    **0%** |
+| `Planos.tsx`           |            16 |     1 |        6% |
+| `PasseDeTemporada.tsx` |            15 |     0 |    **0%** |
+| `Login.tsx`            |            13 |     0 |    **0%** |
+| `OnboardingLeve.tsx`   |            11 |     1 |        9% |
+| `Conquistas.tsx`       |             9 |     0 |    **0%** |
+| `CardDePlanos.tsx`     |             5 |     0 |    **0%** |
+| **soma**               |       **148** | **2** |  **1,4%** |
 
 `src/core/planos.ts`, `src/core/creditos.ts` e `src/lib/entitlements.ts`: **zero** chamadas de
 `t()`.
@@ -78,13 +78,13 @@ A porta de entrada e a porta de pagamento são as duas menos traduzidas do app.
 
 ## 4. Superfícies esquecidas
 
-| superfície | literal cravado | via `t()` | cobertura | risco |
-|---|---:|---:|---:|---|
-| `title=` (tooltip) | 136 | 0 | **0,0%** | descoberta de função |
-| `aria-label` | 118 | 8 | **6,3%** | acessibilidade |
-| `placeholder` | 34 | 0 | **0,0%** | formulário |
-| `alt` | 4 | 0 | **0,0%** | acessibilidade |
-| **total** | **292** | **8** | **2,7%** | |
+| superfície         | literal cravado | via `t()` | cobertura | risco                |
+| ------------------ | --------------: | --------: | --------: | -------------------- |
+| `title=` (tooltip) |             136 |         0 |  **0,0%** | descoberta de função |
+| `aria-label`       |             118 |         8 |  **6,3%** | acessibilidade       |
+| `placeholder`      |              34 |         0 |  **0,0%** | formulário           |
+| `alt`              |               4 |         0 |  **0,0%** | acessibilidade       |
+| **total**          |         **292** |     **8** |  **2,7%** |                      |
 
 Exemplos medidos:
 
@@ -110,11 +110,11 @@ para o escopo da tradução.
 
 ## 5. Strings vindas do servidor — não há caminho de tradução
 
-| medida | valor |
-|---|---|
-| mensagens de erro/motivo literais em `server/` | **98** |
-| o servidor importa `lib/i18n`? | **NÃO** |
-| arquivos `.ts` em `server/` | 75 |
+| medida                                         | valor   |
+| ---------------------------------------------- | ------- |
+| mensagens de erro/motivo literais em `server/` | **98**  |
+| o servidor importa `lib/i18n`?                 | **NÃO** |
+| arquivos `.ts` em `server/`                    | 75      |
 
 Amostra, toda ela visível ao usuário:
 
@@ -140,10 +140,10 @@ carregar catálogo. Nenhuma das duas existe hoje. Recomendação quantificada na
 
 ```html
 <title>Babel Play — Ouça, entenda e fale outro idioma</title>
-<meta name="description"     content="Capture qualquer áudio — vídeos, reuniões, podcasts…">
-<meta property="og:title"    content="Babel Play — Ouça, entenda e fale outro idioma">
-<meta property="og:description" content="Vídeos, reuniões, podcasts: cada conversa vira prática…">
-<meta name="twitter:title"   content="Babel Play — Ouça, entenda e fale outro idioma">
+<meta name="description" content="Capture qualquer áudio — vídeos, reuniões, podcasts…" />
+<meta property="og:title" content="Babel Play — Ouça, entenda e fale outro idioma" />
+<meta property="og:description" content="Vídeos, reuniões, podcasts: cada conversa vira prática…" />
+<meta name="twitter:title" content="Babel Play — Ouça, entenda e fale outro idioma" />
 ```
 
 Estáticas no HTML, servidas iguais para todo idioma. Consequências: a aba do navegador fica em
@@ -170,17 +170,17 @@ cravado — o achado N1 da Fase 1.
 
 ## 8. O gap, classificado por esforço e risco
 
-| # | superfície | strings | esforço | risco | por quê |
-|---|---|---:|---|---|---|
-| G1 | erros do servidor | 98 | **alto** (precisa de arquitetura) | **alto** | inclui paywall; não há caminho nenhum |
-| G2 | onboarding + login | 73 | baixo (mecânico) | **alto** | é a porta de entrada do estrangeiro |
-| G3 | loja, planos, passe, conquistas | 75 | baixo | **alto** | é onde se cobra |
-| G4 | `aria-label`/`title`/`placeholder`/`alt` | 292 | baixo, mas volumoso | **médio-alto** | acessibilidade; invisível para o teste atual |
-| G5 | `<title>` e meta tags | 11 | baixo | médio | SEO e compartilhamento |
-| G6 | `motivo` dos estados vazios | 23 | baixo | médio | o padrão de honestidade fala português |
-| G7 | resto de `views/` | ~670 | médio | médio | volume |
-| G8 | tabelas de `src/core` | 61 | médio (um helper por tabela) | baixo | decisão arquitetural declarada |
-| G9 | `src/components/auth` | 25 | baixo | médio | segurança/2FA em português |
+| #   | superfície                               | strings | esforço                           | risco          | por quê                                      |
+| --- | ---------------------------------------- | ------: | --------------------------------- | -------------- | -------------------------------------------- |
+| G1  | erros do servidor                        |      98 | **alto** (precisa de arquitetura) | **alto**       | inclui paywall; não há caminho nenhum        |
+| G2  | onboarding + login                       |      73 | baixo (mecânico)                  | **alto**       | é a porta de entrada do estrangeiro          |
+| G3  | loja, planos, passe, conquistas          |      75 | baixo                             | **alto**       | é onde se cobra                              |
+| G4  | `aria-label`/`title`/`placeholder`/`alt` |     292 | baixo, mas volumoso               | **médio-alto** | acessibilidade; invisível para o teste atual |
+| G5  | `<title>` e meta tags                    |      11 | baixo                             | médio          | SEO e compartilhamento                       |
+| G6  | `motivo` dos estados vazios              |      23 | baixo                             | médio          | o padrão de honestidade fala português       |
+| G7  | resto de `views/`                        |    ~670 | médio                             | médio          | volume                                       |
+| G8  | tabelas de `src/core`                    |      61 | médio (um helper por tabela)      | baixo          | decisão arquitetural declarada               |
+| G9  | `src/components/auth`                    |      25 | baixo                             | médio          | segurança/2FA em português                   |
 
 **G1 é o único que não se resolve traduzindo.** Todos os outros são trabalho mecânico com o
 motor que já existe.

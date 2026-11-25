@@ -13,7 +13,9 @@ const resposta = vi.hoisted(() => ({ atual: null as unknown }))
 vi.mock('../src/data/api', () => ({ reembolsarSeeds: vi.fn(async () => resposta.atual) }))
 vi.mock('../src/lib/flagsCache', () => ({ flagLigada: () => true }))
 
-const { _reiniciarReembolsoDaSessao, CHAVE_DO_AVISO_DE_REEMBOLSO, reembolsarUmaVez } = await import('../src/lib/recompensasV2')
+const { _reiniciarReembolsoDaSessao, CHAVE_DO_AVISO_DE_REEMBOLSO, reembolsarUmaVez } = await import(
+  '../src/lib/recompensasV2'
+)
 
 beforeEach(() => {
   localStorage.clear()

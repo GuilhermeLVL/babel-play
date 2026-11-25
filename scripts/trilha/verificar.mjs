@@ -24,34 +24,43 @@ function chave(palavra) {
  * tela não teria como explicar. Os cortes são frouxos de propósito: barram o inaceitável, não o
  * imperfeito.
  */
-const MINIMO_DE_GLOSA = 0.05;
-const MAXIMO_FORA_DA_ESCRITA = 0.10;
+const MINIMO_DE_GLOSA = 0.05
+const MAXIMO_FORA_DA_ESCRITA = 0.1
 
 const ESCRITA_DO_IDIOMA = {
-  ar: /\p{Script=Arabic}/u, he: /\p{Script=Hebrew}/u, hi: /\p{Script=Devanagari}/u,
-  ja: /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u, zh: /\p{Script=Han}/u,
-  ko: /\p{Script=Hangul}/u, ru: /\p{Script=Cyrillic}/u, th: /\p{Script=Thai}/u,
-};
+  ar: /\p{Script=Arabic}/u,
+  he: /\p{Script=Hebrew}/u,
+  hi: /\p{Script=Devanagari}/u,
+  ja: /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u,
+  zh: /\p{Script=Han}/u,
+  ko: /\p{Script=Hangul}/u,
+  ru: /\p{Script=Cyrillic}/u,
+  th: /\p{Script=Thai}/u,
+}
 
 function auditarPublicacao(lang, trilha, glosas) {
-  const problemas = [];
-  const palavras = Object.values(trilha.niveis ?? {}).flat().map((p) => p[0]);
-  if (!palavras.length) return ['sem palavras'];
+  const problemas = []
+  const palavras = Object.values(trilha.niveis ?? {})
+    .flat()
+    .map((p) => p[0])
+  if (!palavras.length) return ['sem palavras']
 
-  const comGlosa = palavras.filter((p) => glosas?.[p]).length;
-  const taxa = comGlosa / palavras.length;
+  const comGlosa = palavras.filter((p) => glosas?.[p]).length
+  const taxa = comGlosa / palavras.length
   if (taxa < MINIMO_DE_GLOSA) {
-    problemas.push(`só ${Math.round(taxa * 100)}% das palavras têm tradução (mínimo ${MINIMO_DE_GLOSA * 100}%)`);
+    problemas.push(`só ${Math.round(taxa * 100)}% das palavras têm tradução (mínimo ${MINIMO_DE_GLOSA * 100}%)`)
   }
 
-  const escrita = ESCRITA_DO_IDIOMA[lang];
+  const escrita = ESCRITA_DO_IDIOMA[lang]
   if (escrita) {
-    const fora = palavras.filter((p) => !escrita.test(p)).length / palavras.length;
+    const fora = palavras.filter((p) => !escrita.test(p)).length / palavras.length
     if (fora > MAXIMO_FORA_DA_ESCRITA) {
-      problemas.push(`${Math.round(fora * 100)}% das palavras não estão na escrita do idioma (máximo ${MAXIMO_FORA_DA_ESCRITA * 100}%)`);
+      problemas.push(
+        `${Math.round(fora * 100)}% das palavras não estão na escrita do idioma (máximo ${MAXIMO_FORA_DA_ESCRITA * 100}%)`,
+      )
     }
   }
-  return problemas;
+  return problemas
 }
 
 const indice = JSON.parse(readFileSync(join(DIR_DERIVADOS, 'indice.json'), 'utf8'))
@@ -59,8 +68,14 @@ const indice = JSON.parse(readFileSync(join(DIR_DERIVADOS, 'indice.json'), 'utf8
 for (const [lang, entrada] of Object.entries(indice)) {
   const origem = join(DIR, `${lang}.json`)
   const derivado = join(DIR_DERIVADOS, 'niveis', `${lang}.json`)
-  if (!existsSync(origem)) { erros.push(`${lang}: falta ${lang}.json`); continue }
-  if (!existsSync(derivado)) { erros.push(`${lang}: falta niveis/${lang}.json`); continue }
+  if (!existsSync(origem)) {
+    erros.push(`${lang}: falta ${lang}.json`)
+    continue
+  }
+  if (!existsSync(derivado)) {
+    erros.push(`${lang}: falta niveis/${lang}.json`)
+    continue
+  }
 
   const dado = JSON.parse(readFileSync(origem, 'utf8'))
   const niveis = JSON.parse(readFileSync(derivado, 'utf8'))

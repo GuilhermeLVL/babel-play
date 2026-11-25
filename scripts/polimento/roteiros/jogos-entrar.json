@@ -82,9 +82,7 @@
     ],
     "depois": 800
   },
-  "seletores": [
-    ".q-tile[data-jogo='tenis']"
-  ],
+  "seletores": [".q-tile[data-jogo='tenis']"],
   "gravar": {
     "app": [
       {

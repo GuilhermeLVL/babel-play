@@ -10,12 +10,12 @@ não estimado por analogia.
 
 ## 1. Os preços, verificados
 
-| Item | Preço | Fonte |
-|---|---|---|
-| STT `whisper-large-v3-turbo` | **US$ 0,04 / hora de áudio** | documentação da Groq |
-| — mínimo faturado | **10 s por requisição** | *"you will still be billed for 10 seconds"* |
-| LLM `openai/gpt-oss-120b` | **US$ 0,15 / M entrada · US$ 0,60 / M saída** | documentação da Groq |
-| `llama-3.3-70b-versatile` (o padrão antigo) | **não existe mais** — enterprise | testado contra a API |
+| Item                                        | Preço                                         | Fonte                                       |
+| ------------------------------------------- | --------------------------------------------- | ------------------------------------------- |
+| STT `whisper-large-v3-turbo`                | **US$ 0,04 / hora de áudio**                  | documentação da Groq                        |
+| — mínimo faturado                           | **10 s por requisição**                       | _"you will still be billed for 10 seconds"_ |
+| LLM `openai/gpt-oss-120b`                   | **US$ 0,15 / M entrada · US$ 0,60 / M saída** | documentação da Groq                        |
+| `llama-3.3-70b-versatile` (o padrão antigo) | **não existe mais** — enterprise              | testado contra a API                        |
 
 Consumo **medido** no gold set com o prompt de produção: **329 tokens de entrada + 96 de saída por
 fala** → **US$ 0,107 por mil falas traduzidas**.
@@ -27,11 +27,11 @@ cobrado como 10**. A conta real é ~1,7× a duração falada.
 
 Um enunciado ≈ 6 s de fala e gera **duas** chamadas (1 STT + 1 tradução).
 
-| Perfil | Fala/mês | Enunciados | STT | Tradução | **Total** |
-|---|---|---|---|---|---|
-| Leve | 2 h | 1.200 | US$ 0,13 | US$ 0,13 | **US$ 0,26** |
-| Médio | 5 h | 3.000 | US$ 0,33 | US$ 0,32 | **US$ 0,65** |
-| Pesado | 10 h | 6.000 | US$ 0,67 | US$ 0,64 | **US$ 1,31** |
+| Perfil | Fala/mês | Enunciados | STT      | Tradução | **Total**    |
+| ------ | -------- | ---------- | -------- | -------- | ------------ |
+| Leve   | 2 h      | 1.200      | US$ 0,13 | US$ 0,13 | **US$ 0,26** |
+| Médio  | 5 h      | 3.000      | US$ 0,33 | US$ 0,32 | **US$ 0,65** |
+| Pesado | 10 h     | 6.000      | US$ 0,67 | US$ 0,64 | **US$ 1,31** |
 
 **≈ R$ 7 por mês no perfil pesado.** Vender a IA de nuvem é viável com folga larga.
 
@@ -51,23 +51,23 @@ não conhece duração: 1.000 chamadas podem ser 3 h ou 7 h de áudio conforme o
 
 **Recomendação, com orçamento explícito de US$ 1,50/mês por assinante:**
 
-| Variável | Hoje | Proposto | O que isso compra |
-|---|---|---|---|
-| `PRO_MONTHLY_MANAGED_CALLS` | 1.000 | **12.000** | ~6.000 falas ≈ 10 h de conversa |
-| `PRO_MONTHLY_STT_SECONDS` | (não existia) | **36.000** | teto de gasto: 10 h faturadas = US$ 0,40 |
+| Variável                    | Hoje          | Proposto   | O que isso compra                        |
+| --------------------------- | ------------- | ---------- | ---------------------------------------- |
+| `PRO_MONTHLY_MANAGED_CALLS` | 1.000         | **12.000** | ~6.000 falas ≈ 10 h de conversa          |
+| `PRO_MONTHLY_STT_SECONDS`   | (não existia) | **36.000** | teto de gasto: 10 h faturadas = US$ 0,40 |
 
 O teto em segundos é o que fecha o risco de verdade — é ele que impede que uma captura esquecida
 aberta 24 h/dia (US$ 28,80/mês só de STT) vire prejuízo.
 
 ## 4. O que o plano pago tem para vender — medido
 
-| | Grátis (no navegador) | Pro (nuvem) |
-|---|---|---|
-| Transcrição | WER **57,2%** (`whisper-base` local) | Groq `whisper-large-v3-turbo` — melhor, ainda não medido |
-| Tradução, geral | chrF++ **56,6%** | chrF++ **85,2%** |
-| **Tradução idiomática** | **27,4%** | **83,1%** |
-| Registro informal | 32,1% | 87,3% |
-| Download inicial | ~230–413 MB | **nada** |
+|                         | Grátis (no navegador)                | Pro (nuvem)                                              |
+| ----------------------- | ------------------------------------ | -------------------------------------------------------- |
+| Transcrição             | WER **57,2%** (`whisper-base` local) | Groq `whisper-large-v3-turbo` — melhor, ainda não medido |
+| Tradução, geral         | chrF++ **56,6%**                     | chrF++ **85,2%**                                         |
+| **Tradução idiomática** | **27,4%**                            | **83,1%**                                                |
+| Registro informal       | 32,1%                                | 87,3%                                                    |
+| Download inicial        | ~230–413 MB                          | **nada**                                                 |
 
 **A diferença é real e é justamente a queixa de origem.** "Traduz ao pé da letra" era o idiomático a
 27,4%; na nuvem vai a 83,1%. E o Pro poupa o usuário de baixar centenas de megabytes — que para
@@ -75,11 +75,11 @@ celular é o argumento mais forte dos dois.
 
 ## 5. Preço e margem
 
-| Preço/mês | Custo IA (pesado) | Taxa (~4,99% + R$ 0,50) | **Margem** |
-|---|---|---|---|
-| R$ 14,90 | R$ 7,10 | R$ 1,24 | R$ 6,56 (44%) |
-| **R$ 19,90** | R$ 7,10 | R$ 1,49 | **R$ 11,31 (57%)** |
-| R$ 29,90 | R$ 7,10 | R$ 1,99 | R$ 20,81 (70%) |
+| Preço/mês    | Custo IA (pesado) | Taxa (~4,99% + R$ 0,50) | **Margem**         |
+| ------------ | ----------------- | ----------------------- | ------------------ |
+| R$ 14,90     | R$ 7,10           | R$ 1,24                 | R$ 6,56 (44%)      |
+| **R$ 19,90** | R$ 7,10           | R$ 1,49                 | **R$ 11,31 (57%)** |
+| R$ 29,90     | R$ 7,10           | R$ 1,99                 | R$ 20,81 (70%)     |
 
 A coluna de custo usa o perfil **pesado**; o assinante médio custa metade disso. R$ 19,90 é o ponto
 em que a margem aguenta um usuário pesado sem depender da média.

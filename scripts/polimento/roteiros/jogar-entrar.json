@@ -76,9 +76,7 @@
     ],
     "depois": 1200
   },
-  "seletores": [
-    ".q-trilho .q-item"
-  ],
+  "seletores": [".q-trilho .q-item"],
   "gravar": {
     "app": [
       {

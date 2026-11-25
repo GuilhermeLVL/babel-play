@@ -76,10 +76,7 @@
     ],
     "depois": 1200
   },
-  "seletores": [
-    ".qj-ferramentas .q-abas",
-    ".qj-ferramentas .q-abas .px-pilula"
-  ],
+  "seletores": [".qj-ferramentas .q-abas", ".qj-ferramentas .q-abas .px-pilula"],
   "gravar": {
     "app": [
       {

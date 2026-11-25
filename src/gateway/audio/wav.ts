@@ -55,7 +55,7 @@ export function encodeWav(pcm: Float32Array, sampleRate: number): Blob {
     // Clamp to [-1, 1]
     const clamped = Math.max(-1, Math.min(1, sample));
     // Convert to 16-bit PCM
-    const int16 = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+    const int16 = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
     view.setInt16(offset, int16, true);
     offset += 2;
   }

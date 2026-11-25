@@ -2,10 +2,10 @@
  * SaaS Fatia 2 — usersRepo (RBAC). Provisão idempotente da conta, fail-safe de menor privilégio
  * (role 'user' quando não provisionada), e ops admin (setRole/setStatus) isoladas por usuário.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let repo: any
@@ -14,7 +14,9 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ usersRepo: repo } = (await h.load('../../server/db/repositories/users')) as any)
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('SaaS Fatia 2 — usersRepo (RBAC)', () => {
   it('ensure provisiona com role=user/status=active e é idempotente', async () => {
@@ -36,8 +38,10 @@ describe('SaaS Fatia 2 — usersRepo (RBAC)', () => {
   })
 
   it('setRole/setStatus alteram só o alvo (isolado)', async () => {
-    const A = asUserId('u-a'), B = asUserId('u-b')
-    await repo.ensure(A); await repo.ensure(B)
+    const A = asUserId('u-a'),
+      B = asUserId('u-b')
+    await repo.ensure(A)
+    await repo.ensure(B)
     await repo.setRole(A, 'admin')
     await repo.setStatus(A, 'suspended')
     expect(await repo.getRole(A)).toBe('admin')

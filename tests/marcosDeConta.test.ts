@@ -9,12 +9,14 @@
  * A regra nova é a do padrão de 2026: pedir a conta no momento em que a pessoa TEM ALGO A PERDER,
  * uma vez por marco, dispensável, e sem bloquear nada.
  */
-import { beforeEach,describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { TETO_ANONIMO } from '../src/core/tetoAnonimo'
-import { avisoPendente, jaViu,marcarVisto } from '../src/lib/marcosDeConta'
+import { avisoPendente, jaViu, marcarVisto } from '../src/lib/marcosDeConta'
 
-beforeEach(() => { localStorage.removeItem('babel.marcos_vistos') })
+beforeEach(() => {
+  localStorage.removeItem('babel.marcos_vistos')
+})
 
 describe('quando avisar', () => {
   it('com conta, nunca — o aviso é sobre perder o que está só no navegador', () => {
@@ -63,7 +65,9 @@ describe('dispensar lembra', () => {
 
   it('sem storage, o aviso volta — melhor repetir do que sumir', () => {
     const original = Storage.prototype.setItem
-    Storage.prototype.setItem = () => { throw new Error('sem storage') }
+    Storage.prototype.setItem = () => {
+      throw new Error('sem storage')
+    }
     try {
       marcarVisto('segunda-sessao')
       expect(avisoPendente({ sessoes: 2, palavras: 0, semConta: true })?.marco).toBe('segunda-sessao')

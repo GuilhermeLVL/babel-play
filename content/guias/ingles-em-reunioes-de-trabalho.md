@@ -1,10 +1,16 @@
 ---
-titulo: "Inglês em reuniões de trabalho: como acompanhar e participar"
-descricao: "Prepare-se para reuniões em inglês: frases úteis, como pedir repetição, como ensaiar sua fala e como estudar o vocabulário depois de cada reunião."
-slug: "ingles-em-reunioes-de-trabalho"
-publicado: "2026-10-25"
+titulo: 'Inglês em reuniões de trabalho: como acompanhar e participar'
+descricao: 'Prepare-se para reuniões em inglês: frases úteis, como pedir repetição, como ensaiar sua fala e como estudar o vocabulário depois de cada reunião.'
+slug: 'ingles-em-reunioes-de-trabalho'
+publicado: '2026-10-25'
 revisado: false
-palavrasChave: ["inglês em reuniões", "inglês para o trabalho", "frases para reunião em inglês", "listening profissional"]
+palavrasChave:
+  [
+    'inglês em reuniões',
+    'inglês para o trabalho',
+    'frases para reunião em inglês',
+    'listening profissional',
+  ]
 ---
 
 Entrar numa reunião em inglês dá frio na barriga em muita gente, inclusive em quem estuda a língua há anos. A fala é rápida, as pessoas têm sotaques diferentes, o áudio às vezes falha e, no meio disso tudo, você precisa pensar no assunto do trabalho.

@@ -8,10 +8,10 @@
  * podiam ser carimbadas. Ela foi removida na migração 0026 (órfã, zero linhas, zero operações), e
  * com ela a exceção: hoje toda tabela desta varredura tem dono.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let backfillNullOwner: (id: ReturnType<typeof asUserId>) => Promise<number>
@@ -33,7 +33,9 @@ beforeAll(async () => {
   await db.insert(schema.settings).values({ id: 'app', createdAt: now, updatedAt: now })
   await db.insert(schema.providerCredentials).values({ id: 'c1', createdAt: now, updatedAt: now })
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('Marco 1 — backfill de tenancy', () => {
   it('carimba as linhas NULL com o dono e conta quantas tocou', async () => {

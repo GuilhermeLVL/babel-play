@@ -96,9 +96,5 @@
     ".pj-palavras span.ok",
     ".pj-link"
   ],
-  "props": [
-    "textDecorationLine",
-    "borderTopStyle",
-    "animationDelay"
-  ]
+  "props": ["textDecorationLine", "borderTopStyle", "animationDelay"]
 }

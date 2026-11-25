@@ -63,7 +63,9 @@ for (const f of nomes) {
   const c = composicao[f]
   const itens = Object.entries(c.modulos).sort((a, b) => b[1] - a[1])
   const soma = itens.reduce((a, [, n]) => a + n, 0)
-  console.log(`\n${f}${c.entrada ? ' (ENTRADA)' : ''}: ${(c.total / 1024).toFixed(1)} KB minificado; módulos (pré-minificação) ${(soma / 1024).toFixed(1)} KB em ${itens.length}`)
+  console.log(
+    `\n${f}${c.entrada ? ' (ENTRADA)' : ''}: ${(c.total / 1024).toFixed(1)} KB minificado; módulos (pré-minificação) ${(soma / 1024).toFixed(1)} KB em ${itens.length}`,
+  )
   for (const [nome, n] of itens.slice(0, top)) console.log(`  ${(n / 1024).toFixed(1).padStart(7)} KB  ${nome}`)
 }
 if (saida) writeFileSync(path.resolve(saida), JSON.stringify(composicao, null, 1))

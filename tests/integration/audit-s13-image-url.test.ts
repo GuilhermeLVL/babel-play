@@ -16,7 +16,7 @@
  * caso que ele autorizava passou a ser o caso que o F11-03 proíbe.
  * ─────────────────────────────────────────────────────────────────────────────────────────
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { isSafeImageUrl } from '../../server/validation'
 

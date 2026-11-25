@@ -8,7 +8,9 @@ const build = process.argv[2] || 'antes';
 const fonte = process.argv[3] || 'trilha';
 const guardado = JSON.parse(fs.readFileSync(new URL('./storage.json', import.meta.url), 'utf8'));
 const amb = await subir(build, +new URL(URL0).port);
-const s = await abrir('desktop', { storage: { ...guardado, 'babel.fonte_da_pratica': JSON.stringify({ origem: fonte, escopo: 'todas' }) } });
+const s = await abrir('desktop', {
+  storage: { ...guardado, 'babel.fonte_da_pratica': JSON.stringify({ origem: fonte, escopo: 'todas' }) },
+});
 const { page } = s;
 await s.ctx.addInitScript(() => {
   window.__MEDIR_PASSADAS__ = true;
@@ -24,7 +26,13 @@ const passadas = async (rot) => {
   });
   const por = {};
   for (const p of l) por[p.nome] = (por[p.nome] ?? 0) + 1;
-  console.log(build, fonte, rot.padEnd(28), JSON.stringify(por), l.map((p) => p.nome[0] + p.ms + ':' + (p.detalhe.cartas ?? p.detalhe.cartoes)).join(' '));
+  console.log(
+    build,
+    fonte,
+    rot.padEnd(28),
+    JSON.stringify(por),
+    l.map((p) => p.nome[0] + p.ms + ':' + (p.detalhe.cartas ?? p.detalhe.cartoes)).join(' '),
+  );
 };
 try {
   await page.goto(URL0 + '/', { waitUntil: 'load', timeout: 90000 });

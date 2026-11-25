@@ -15,7 +15,13 @@ function montar() {
     chamadas[n] = (chamadas[n] ?? 0) + 1
   }
   const ctx = new Proxy(
-    { globalAlpha: 1, shadowBlur: 0, fillStyle: '', globalCompositeOperation: 'source-over', shadowColor: '' } as Record<string, unknown>,
+    {
+      globalAlpha: 1,
+      shadowBlur: 0,
+      fillStyle: '',
+      globalCompositeOperation: 'source-over',
+      shadowColor: '',
+    } as Record<string, unknown>,
     {
       get: (alvo, p: string) => (p in alvo ? alvo[p] : conta(p)),
       set: (alvo, p: string, v) => {

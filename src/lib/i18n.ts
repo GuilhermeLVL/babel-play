@@ -29,12 +29,12 @@
  * coreano têm uma só. Quem traduz preenche o que o idioma dele pede — não há forma "errada",
  * há forma ausente, e essa cai no `other`.
  */
-export type Plural = Partial<Record<Intl.LDMLPluralRule, string>>
-export type Catalogo = Record<string, string | Plural>
+export type Plural = Partial<Record<Intl.LDMLPluralRule, string>>;
+export type Catalogo = Record<string, string | Plural>;
 
 /* Gerado por `scripts/i18n/cobertura.mjs` e versionado, no mesmo molde do índice da trilha: medir
    em tempo de execução exigiria baixar todos os catálogos só para montar um seletor. */
-import COBERTURA from '../data/i18n/cobertura.json'
+import COBERTURA from '../data/i18n/cobertura.json';
 
 /**
  * OS IDIOMAS QUE A INTERFACE OFERECE — derivados da COBERTURA MEDIDA, não escritos à mão.
@@ -48,11 +48,11 @@ import COBERTURA from '../data/i18n/cobertura.json'
 export const IDIOMAS_DA_INTERFACE: readonly string[] = Object.entries(COBERTURA.idiomas)
   .filter(([, m]) => m.cobertura >= COBERTURA.piso)
   .map(([lang]) => lang)
-  .sort((a, b) => (a === 'pt' ? -1 : b === 'pt' ? 1 : a.localeCompare(b)))
+  .sort((a, b) => (a === 'pt' ? -1 : b === 'pt' ? 1 : a.localeCompare(b)));
 
 /** A cobertura medida de um idioma (0..1). A tela usa para explicar por que um idioma não está lá. */
 export function coberturaDaInterface(lang: string): number {
-  return COBERTURA.idiomas[base(lang) as keyof typeof COBERTURA.idiomas]?.cobertura ?? 0
+  return COBERTURA.idiomas[base(lang) as keyof typeof COBERTURA.idiomas]?.cobertura ?? 0;
 }
 
 /**
@@ -65,24 +65,23 @@ export function coberturaDaInterface(lang: string): number {
 export function idiomasAbaixoDoPiso(): Array<{ lang: string; cobertura: number }> {
   return Object.entries(COBERTURA.idiomas)
     .filter(([, m]) => m.cobertura < COBERTURA.piso)
-    .map(([lang, m]) => ({ lang, cobertura: m.cobertura }))
+    .map(([lang, m]) => ({ lang, cobertura: m.cobertura }));
 }
 
-
-const catalogos = new Map<string, Catalogo>()
-let atual = 'pt'
+const catalogos = new Map<string, Catalogo>();
+let atual = 'pt';
 
 /* Quem está na tela precisa saber que o idioma mudou. `t()` é função pura sobre estado de módulo,
    então nada re-renderiza sozinho: os assinantes são avisados na troca, e `useIdiomaDaInterface`
    (em `useI18n.ts`) liga isso ao React sem um provider a mais na árvore. */
-const assinantes = new Set<() => void>()
+const assinantes = new Set<() => void>();
 
 export function assinarIdioma(aviso: () => void): () => void {
-  assinantes.add(aviso)
-  return () => assinantes.delete(aviso)
+  assinantes.add(aviso);
+  return () => assinantes.delete(aviso);
 }
 
-const base = (lang: string) => (lang || '').toLowerCase().split('-')[0]
+const base = (lang: string) => (lang || '').toLowerCase().split('-')[0];
 
 /**
  * Traduz. Sem catálogo carregado, ou sem a frase nele, devolve o próprio português — que é a
@@ -100,29 +99,28 @@ const base = (lang: string) => (lang || '').toLowerCase().split('-')[0]
  * e as duas portas leem o mesmo catálogo, na mesma chave.
  */
 export function bruto(texto: string): string {
-  const v = catalogos.get(atual)?.[texto]
-  return typeof v === 'string' ? v : (v?.other ?? texto)
+  const v = catalogos.get(atual)?.[texto];
+  return typeof v === 'string' ? v : (v?.other ?? texto);
 }
 
 /** Idem para plural: escolhe a forma pelo CLDR e devolve sem interpolar. */
 export function brutoPlural(n: number, umaCoisa: string, muitasCoisas: string): string {
-  const v = catalogos.get(atual)?.[muitasCoisas]
+  const v = catalogos.get(atual)?.[muitasCoisas];
   if (v && typeof v !== 'string') {
     // `other` é a única categoria que todo idioma tem — por isso é o fallback dentro do catálogo.
-    return v[regraDePlural(atual).select(n)] ?? v.other ?? muitasCoisas
+    return v[regraDePlural(atual).select(n)] ?? v.other ?? muitasCoisas;
   }
-  if (typeof v === 'string') return v
-  return regraDePlural('pt').select(n) === 'one' ? umaCoisa : muitasCoisas
+  if (typeof v === 'string') return v;
+  return regraDePlural('pt').select(n) === 'one' ? umaCoisa : muitasCoisas;
 }
 
 export function t(texto: string, valores?: Record<string, string | number>): string {
-  return interpolar(bruto(texto), valores)
+  return interpolar(bruto(texto), valores);
 }
 
 function interpolar(texto: string, valores?: Record<string, string | number>): string {
-  if (!valores) return texto
-  return texto.replace(/\{(\w+)\}/g, (inteiro, chave) =>
-    chave in valores ? String(valores[chave]) : inteiro)
+  if (!valores) return texto;
+  return texto.replace(/\{(\w+)\}/g, (inteiro, chave) => (chave in valores ? String(valores[chave]) : inteiro));
 }
 
 /**
@@ -145,18 +143,22 @@ export function tp(
   muitasCoisas: string,
   valores?: Record<string, string | number>,
 ): string {
-  return interpolar(brutoPlural(n, umaCoisa, muitasCoisas), { n, ...valores })
+  return interpolar(brutoPlural(n, umaCoisa, muitasCoisas), { n, ...valores });
 }
 
-const regras = new Map<string, Intl.PluralRules>()
+const regras = new Map<string, Intl.PluralRules>();
 
 function regraDePlural(lang: string): Intl.PluralRules {
-  let r = regras.get(lang)
+  let r = regras.get(lang);
   if (!r) {
-    try { r = new Intl.PluralRules(lang) } catch { r = new Intl.PluralRules('pt') }
-    regras.set(lang, r)
+    try {
+      r = new Intl.PluralRules(lang);
+    } catch {
+      r = new Intl.PluralRules('pt');
+    }
+    regras.set(lang, r);
   }
-  return r
+  return r;
 }
 
 /**
@@ -168,18 +170,18 @@ function regraDePlural(lang: string): Intl.PluralRules {
  * fato traduzida. Sem isto, a escolha era feita por `idiomaDaInterface() === 'pt'` cravado.
  */
 export function temTraducao(texto: string): boolean {
-  if (atual === 'pt') return true // o português É a chave
-  return catalogos.get(atual)?.[texto] !== undefined
+  if (atual === 'pt') return true; // o português É a chave
+  return catalogos.get(atual)?.[texto] !== undefined;
 }
 
 /** O idioma em que a interface está agora. */
 export function idiomaDaInterface(): string {
-  return atual
+  return atual;
 }
 
 /** Registra um catálogo já lido. Mantém o núcleo/teste independentes de rede. */
 export function registrarCatalogo(lang: string, catalogo: Catalogo): void {
-  catalogos.set(base(lang), catalogo)
+  catalogos.set(base(lang), catalogo);
 }
 
 /**
@@ -189,17 +191,25 @@ export function registrarCatalogo(lang: string, catalogo: Catalogo): void {
  * que é o que a pessoa já estava vendo.
  */
 export async function usarIdioma(lang: string): Promise<void> {
-  const idioma = base(lang)
-  const anunciar = () => { for (const a of assinantes) a() }
-  if (idioma === 'pt') { atual = 'pt'; anunciar(); return }
+  const idioma = base(lang);
+  const anunciar = () => {
+    for (const a of assinantes) a();
+  };
+  if (idioma === 'pt') {
+    atual = 'pt';
+    anunciar();
+    return;
+  }
   if (!catalogos.has(idioma)) {
     try {
-      const r = await fetch(`/i18n/${idioma}.json`)
-      if (r.ok) catalogos.set(idioma, (await r.json()) as Catalogo)
-    } catch { /* offline: segue em português */ }
+      const r = await fetch(`/i18n/${idioma}.json`);
+      if (r.ok) catalogos.set(idioma, (await r.json()) as Catalogo);
+    } catch {
+      /* offline: segue em português */
+    }
   }
-  atual = catalogos.has(idioma) ? idioma : 'pt'
-  anunciar()
+  atual = catalogos.has(idioma) ? idioma : 'pt';
+  anunciar();
 }
 
 /* ── O QUE MUDA JUNTO COM O IDIOMA, além das palavras ────────────────────────────────────── */
@@ -211,9 +221,9 @@ export async function usarIdioma(lang: string): Promise<void> {
  * modulo, o contrario faria ciclo. `direcaoDoTexto` (para o conteudo do usuario) e `ehRTL` (para o
  * layout da interface) respondem perguntas diferentes sobre o mesmo fato, e leem a mesma lista.
  */
-const RTL = new Set(['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'sd', 'dv'])
+const RTL = new Set(['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'sd', 'dv']);
 
-export const ehRTL = (lang: string): boolean => RTL.has(base(lang))
+export const ehRTL = (lang: string): boolean => RTL.has(base(lang));
 
 /**
  * Número no idioma da interface.
@@ -222,21 +232,21 @@ export const ehRTL = (lang: string): boolean => RTL.has(base(lang))
  * 2,733 — um erro de três ordens de grandeza numa contagem de palavras, dito com toda a confiança.
  */
 export function numero(n: number): string {
-  return n.toLocaleString(atual)
+  return n.toLocaleString(atual);
 }
 
 /** Número com opções (casas decimais, unidade) — mesma regra de locale, controle mais fino. */
 export function numeroCom(n: number, opcoes: Intl.NumberFormatOptions): string {
-  return n.toLocaleString(atual, opcoes)
+  return n.toLocaleString(atual, opcoes);
 }
 
 /** Data no idioma da interface. Mesma razão: 03/09 e 09/03 são dias diferentes. */
 export function data(d: Date | string | number, opcoes?: Intl.DateTimeFormatOptions): string {
-  return new Date(d).toLocaleDateString(atual, opcoes)
+  return new Date(d).toLocaleDateString(atual, opcoes);
 }
 
 export function dataHora(d: Date | string | number, opcoes?: Intl.DateTimeFormatOptions): string {
-  return new Date(d).toLocaleString(atual, opcoes)
+  return new Date(d).toLocaleString(atual, opcoes);
 }
 
 /**
@@ -245,7 +255,7 @@ export function dataHora(d: Date | string | number, opcoes?: Intl.DateTimeFormat
  * pelo locale converteria valor sem taxa de câmbio, que é o erro caro.
  */
 export function moeda(valor: number, codigo = 'BRL'): string {
-  return valor.toLocaleString(atual, { style: 'currency', currency: codigo })
+  return valor.toLocaleString(atual, { style: 'currency', currency: codigo });
 }
 
 /**
@@ -258,5 +268,5 @@ export function moeda(valor: number, codigo = 'BRL'): string {
  * O core entrega os centavos; quem os escreve é a camada que sabe em que idioma a tela está.
  */
 export function precoEmReais(centavos: number): string {
-  return moeda(Math.round(centavos) / 100, 'BRL')
+  return moeda(Math.round(centavos) / 100, 'BRL');
 }

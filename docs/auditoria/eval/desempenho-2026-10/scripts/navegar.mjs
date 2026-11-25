@@ -33,7 +33,14 @@ function roteiro(celular) {
 }
 const runs = [];
 for (let i = 0; i < N; i++) {
-  const s = await abrir(nome, { ...extra, storage: { ...(extra.storage ?? {}), 'babel.praticar': 'play', 'babel.fonte_da_pratica': '{"origem":"trilha","escopo":"todas"}' } });
+  const s = await abrir(nome, {
+    ...extra,
+    storage: {
+      ...(extra.storage ?? {}),
+      'babel.praticar': 'play',
+      'babel.fonte_da_pratica': '{"origem":"trilha","escopo":"todas"}',
+    },
+  });
   const voltas = [];
   try {
     await s.page.goto(URL0 + '/', { waitUntil: 'load', timeout: 90000 });
@@ -43,7 +50,10 @@ for (let i = 0; i < N; i++) {
       for (const [rot, alvo, opc] of roteiro(s.P.toque)) {
         try {
           if (!s.P.toque && !(await s.page.locator(MAIS).isVisible())) {
-            await s.page.locator('button[aria-label="Sair do modo intérprete"]').click({ timeout: 5000 }).catch(() => {});
+            await s.page
+              .locator('button[aria-label="Sair do modo intérprete"]')
+              .click({ timeout: 5000 })
+              .catch(() => {});
             await s.page.waitForTimeout(2500);
           }
           const x = await interagir(s, rot, alvo, opc);
@@ -58,7 +68,12 @@ for (let i = 0; i < N; i++) {
         await s.page.waitForTimeout(700);
         if (rot === 'Jogar') {
           const fechar = s.page.locator('.q-mais-fundo button:has-text("Fechar sem mudar nada")').first();
-          if (await fechar.waitFor({ state: 'visible', timeout: 3000 }).then(() => true, () => false)) {
+          if (
+            await fechar.waitFor({ state: 'visible', timeout: 3000 }).then(
+              () => true,
+              () => false,
+            )
+          ) {
             await s.page.waitForTimeout(1200);
             await fechar.click({ force: true }).catch(() => {});
             await s.page.waitForTimeout(1800);

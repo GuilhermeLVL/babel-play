@@ -24,7 +24,9 @@ for (let i = 0; i < N; i++) {
           t += 0.016;
           const beta = 45 + Math.sin(t * 1.3) * 1.5 + (Math.random() - 0.5) * 0.3;
           const gamma = Math.sin(t * 0.9) * 2 + (Math.random() - 0.5) * 0.3;
-          window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma, absolute: false }));
+          window.dispatchEvent(
+            new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma, absolute: false }),
+          );
         }, 16);
       });
     }
@@ -34,7 +36,9 @@ for (let i = 0; i < N; i++) {
         window.__giro = setInterval(() => {
           const beta = 45 + (Math.random() - 0.5) * 0.06;
           const gamma = (Math.random() - 0.5) * 0.06;
-          window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma, absolute: false }));
+          window.dispatchEvent(
+            new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma, absolute: false }),
+          );
         }, 16);
       });
     }
@@ -47,7 +51,10 @@ for (let i = 0; i < N; i++) {
         let k = 0;
         while (Date.now() - t0 < DUR) {
           k++;
-          await s.page.mouse.move(width * (0.3 + 0.4 * (0.5 + 0.5 * Math.sin(k / 9))), height * (0.25 + 0.5 * (0.5 + 0.5 * Math.cos(k / 13))));
+          await s.page.mouse.move(
+            width * (0.3 + 0.4 * (0.5 + 0.5 * Math.sin(k / 9))),
+            height * (0.25 + 0.5 * (0.5 + 0.5 * Math.cos(k / 13))),
+          );
           await s.page.waitForTimeout(12);
         }
       } else await s.page.waitForTimeout(DUR);
@@ -70,17 +77,32 @@ for (let i = 0; i < N; i++) {
       painel: !!document.querySelector('.q-mais-fundo'),
       canvas: [...document.querySelectorAll('canvas')].map((c) => c.width + 'x' + c.height),
     }));
-    r.metricas_por_s = { script: r1((m1.ScriptDuration - m0.ScriptDuration) * 100), estilo: r1((m1.RecalcStyleDuration - m0.RecalcStyleDuration) * 100), layout: r1((m1.LayoutDuration - m0.LayoutDuration) * 100), tarefa: r1((m1.TaskDuration - m0.TaskDuration) * 100), nEstilo: r1((m1.RecalcStyleCount - m0.RecalcStyleCount) / 10), nLayout: r1((m1.LayoutCount - m0.LayoutCount) / 10) };
+    r.metricas_por_s = {
+      script: r1((m1.ScriptDuration - m0.ScriptDuration) * 100),
+      estilo: r1((m1.RecalcStyleDuration - m0.RecalcStyleDuration) * 100),
+      layout: r1((m1.LayoutDuration - m0.LayoutDuration) * 100),
+      tarefa: r1((m1.TaskDuration - m0.TaskDuration) * 100),
+      nEstilo: r1((m1.RecalcStyleCount - m0.RecalcStyleCount) / 10),
+      nLayout: r1((m1.LayoutCount - m0.LayoutCount) / 10),
+    };
     r.estado = estado;
     r.aplicadas = s.aplicadas;
     runs.push(r);
-    console.log(`${nome}${suf} ${estimulo} r${i} ocup=${r.principal.ocupacao_pct}% por_s=${JSON.stringify(r.principal.por_s)} estilo/s=${r.estilo.por_s} els=${r.estilo.elementos_medio} quadros/s=${r.quadros.por_s} rAF=${r.quadros.rAF} pinturas=${r.quadros.pinturas} anims=${estado.anims.length} rodando=${estado.rodando} pausadas=${estado.pausadas} cartoes=${estado.cartoes} fora=${estado.cartoesFora} painel=${estado.painel}`);
+    console.log(
+      `${nome}${suf} ${estimulo} r${i} ocup=${r.principal.ocupacao_pct}% por_s=${JSON.stringify(r.principal.por_s)} estilo/s=${r.estilo.por_s} els=${r.estilo.elementos_medio} quadros/s=${r.quadros.por_s} rAF=${r.quadros.rAF} pinturas=${r.quadros.pinturas} anims=${estado.anims.length} rodando=${estado.rodando} pausadas=${estado.pausadas} cartoes=${estado.cartoes} fora=${estado.cartoesFora} painel=${estado.painel}`,
+    );
     console.log('   fios', JSON.stringify(r.fios));
     if (i === 0) {
       console.log('   funcoes', r.funcoes.slice(0, 8).join(' | '));
       console.log('   eventos', r.eventos.slice(0, 12).join(' | '));
       console.log('   anims', [...new Set(estado.anims)].slice(0, 30).join(' | '));
-      console.log('   estiloForcado', r.estilo.forcadoPor.slice(0, 5).join(' | '), ' layoutForcado', r.layout.forcados, r.layout.forcadoPor.slice(0, 5).join(' | '));
+      console.log(
+        '   estiloForcado',
+        r.estilo.forcadoPor.slice(0, 5).join(' | '),
+        ' layoutForcado',
+        r.layout.forcados,
+        r.layout.forcadoPor.slice(0, 5).join(' | '),
+      );
     }
   } catch (e) {
     console.log(nome, i, 'ERRO', String(e).slice(0, 300));
@@ -88,7 +110,10 @@ for (let i = 0; i < N; i++) {
   await s.browser.close();
 }
 const m = (f) => mediana(runs.map(f));
-const gpuDe = (r) => Object.entries(r.fios).filter(([k]) => /GPU|Gpu/.test(k)).reduce((a, [, v]) => a + v.cpu_por_s, 0);
+const gpuDe = (r) =>
+  Object.entries(r.fios)
+    .filter(([k]) => /GPU|Gpu/.test(k))
+    .reduce((a, [, v]) => a + v.cpu_por_s, 0);
 const med = {
   ocupacao_pct: m((r) => r.principal.ocupacao_pct),
   principal_cpu_ms_por_s: r1(m((r) => r.principal.tarefas_cpu_ms / (r.janela_ms / 1000))),

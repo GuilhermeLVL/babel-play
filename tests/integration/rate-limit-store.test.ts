@@ -6,9 +6,9 @@
  *        usuário que dispara 70 chamadas faz OUTRO, que não consumiu nada, levar 429.
  *  P1-3: o contador vive no heap do processo, então o teto efetivo vira 60/min × réplicas.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let makeStore: any
@@ -18,7 +18,9 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ createDbRateLimitStore: makeStore, chaveDoRequest } = await h.load('../../server/lib/rateLimitStore'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 const store = (windowMs = 60_000) => {
   const s = makeStore()
@@ -35,8 +37,9 @@ describe('chaveDoRequest — P1-2 (isolamento entre tenants)', () => {
   })
 
   it('o MESMO tenant vindo de IPs diferentes tem a mesma chave', () => {
-    expect(chaveDoRequest({ userId: 'user-a', ip: '10.0.0.1' } as any))
-      .toBe(chaveDoRequest({ userId: 'user-a', ip: '203.0.113.9' } as any))
+    expect(chaveDoRequest({ userId: 'user-a', ip: '10.0.0.1' } as any)).toBe(
+      chaveDoRequest({ userId: 'user-a', ip: '203.0.113.9' } as any),
+    )
   })
 
   it('sem userId (rota fora do auth) cai no IP, sem quebrar', () => {

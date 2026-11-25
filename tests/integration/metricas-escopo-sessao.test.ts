@@ -13,10 +13,10 @@
  *   `FonteDeItens` (src/core/minigames/source.ts:23-33)
  *   `GET /api/vocab/para-jogo?fonte=sessao&fonteRef=<id>` (server/routes/vocab.ts:19-34)
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const OWNER = asUserId('f4-owner')
 const SESSAO_A = 'sess-a'
@@ -29,7 +29,9 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   const schema = await h.load<Record<string, any>>('../../server/db/schema')
   const { db } = await h.load<Record<string, any>>('../../server/db/db')
-  ;({ computeProfile } = await h.load<{ computeProfile: typeof computeProfile }>('../../server/db/repositories/metrics'))
+  ;({ computeProfile } = await h.load<{ computeProfile: typeof computeProfile }>(
+    '../../server/db/repositories/metrics',
+  ))
 
   const agora = Date.now()
   const meta = { userId: OWNER, createdAt: agora, updatedAt: agora, deletedAt: null }
@@ -41,23 +43,92 @@ beforeAll(async () => {
 
   // 3 cartões da sessão A, 1 da B — números propositalmente diferentes.
   await db.insert(schema.vocabCards).values([
-    { id: 'c1', ...meta, sessionId: SESSAO_A, word: 'alpha', back: 'alfa', normKey: 'alpha', inDeck: 1, addedAt: agora, dueAt: agora },
-    { id: 'c2', ...meta, sessionId: SESSAO_A, word: 'bravo', back: 'bravo', normKey: 'bravo', inDeck: 1, addedAt: agora, dueAt: agora },
-    { id: 'c3', ...meta, sessionId: SESSAO_A, word: 'charlie', back: 'charlie', normKey: 'charlie', inDeck: 1, addedAt: agora, dueAt: agora },
-    { id: 'c4', ...meta, sessionId: SESSAO_B, word: 'delta', back: 'delta', normKey: 'delta', inDeck: 1, addedAt: agora, dueAt: agora },
+    {
+      id: 'c1',
+      ...meta,
+      sessionId: SESSAO_A,
+      word: 'alpha',
+      back: 'alfa',
+      normKey: 'alpha',
+      inDeck: 1,
+      addedAt: agora,
+      dueAt: agora,
+    },
+    {
+      id: 'c2',
+      ...meta,
+      sessionId: SESSAO_A,
+      word: 'bravo',
+      back: 'bravo',
+      normKey: 'bravo',
+      inDeck: 1,
+      addedAt: agora,
+      dueAt: agora,
+    },
+    {
+      id: 'c3',
+      ...meta,
+      sessionId: SESSAO_A,
+      word: 'charlie',
+      back: 'charlie',
+      normKey: 'charlie',
+      inDeck: 1,
+      addedAt: agora,
+      dueAt: agora,
+    },
+    {
+      id: 'c4',
+      ...meta,
+      sessionId: SESSAO_B,
+      word: 'delta',
+      back: 'delta',
+      normKey: 'delta',
+      inDeck: 1,
+      addedAt: agora,
+      dueAt: agora,
+    },
   ])
 
   await db.insert(schema.utterances).values([
     // `source: 'mic'` explícito: desde a spec progresso-de-idioma, speakingMs é SÓ a voz do
     // usuário; fala sem source cai em listeningMs (inflar o ativo seria o erro pior).
-    { id: 'u1', ...meta, sessionId: SESSAO_A, idx: 0, tStartMs: 0, tEndMs: 10_000, source: 'mic', sourceText: 'one two three four five' },
-    { id: 'u2', ...meta, sessionId: SESSAO_B, idx: 0, tStartMs: 0, tEndMs: 10_000, source: 'mic', sourceText: 'six seven' },
+    {
+      id: 'u1',
+      ...meta,
+      sessionId: SESSAO_A,
+      idx: 0,
+      tStartMs: 0,
+      tEndMs: 10_000,
+      source: 'mic',
+      sourceText: 'one two three four five',
+    },
+    {
+      id: 'u2',
+      ...meta,
+      sessionId: SESSAO_B,
+      idx: 0,
+      tStartMs: 0,
+      tEndMs: 10_000,
+      source: 'mic',
+      sourceText: 'six seven',
+    },
     // Áudio de terceiro ('tab') na sessão A: NÃO pode entrar no speakingMs.
-    { id: 'u3', ...meta, sessionId: SESSAO_A, idx: 1, tStartMs: 0, tEndMs: 5_000, source: 'tab', sourceText: 'video audio words' },
+    {
+      id: 'u3',
+      ...meta,
+      sessionId: SESSAO_A,
+      idx: 1,
+      tStartMs: 0,
+      tEndMs: 5_000,
+      source: 'tab',
+      sourceText: 'video audio words',
+    },
   ])
 })
 
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('computeProfile aceita escopo de sessão', () => {
   it('o escopo global continua vendo tudo — nenhuma regressão para a tela Vocabulário', async () => {

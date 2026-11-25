@@ -5,11 +5,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import {
-  type EntradaDoInicio,
-  motorPrevistoDoMic,
-  planejarInicio,
-} from '../src/lib/captura/inicioDaCaptura'
+import { type EntradaDoInicio, motorPrevistoDoMic, planejarInicio } from '../src/lib/captura/inicioDaCaptura'
 
 const motor = (o: Partial<EntradaDoInicio['motor']> = {}): EntradaDoInicio['motor'] => ({
   preferido: 'browser',
@@ -80,15 +76,19 @@ describe('planejarInicio', () => {
   })
 
   it('desktop com o áudio do sistema: o Whisper do sistema conta nas DUAS opções', () => {
-    const p = planejarInicio(
-      celular({ systemEnabled: true, mbStt: 209, mbTradutor: 113, limiteDeDownloadMb: null }),
-    )
+    const p = planejarInicio(celular({ systemEnabled: true, mbStt: 209, mbTradutor: 113, limiteDeDownloadMb: null }))
     expect(p).toMatchObject({ tipo: 'folha', perguntarMotor: true, mbSePrivado: 322, mbSeRapido: 322 })
   })
 
   it('desktop sem limite e escolha feita: começa já (o comportamento de hoje)', () => {
     const p = planejarInicio(
-      celular({ systemEnabled: true, mbStt: 209, mbTradutor: 113, limiteDeDownloadMb: null, motor: motor({ escolha: 'rapido' }) }),
+      celular({
+        systemEnabled: true,
+        mbStt: 209,
+        mbTradutor: 113,
+        limiteDeDownloadMb: null,
+        motor: motor({ escolha: 'rapido' }),
+      }),
     )
     expect(p).toEqual({ tipo: 'iniciar' })
   })
@@ -104,9 +104,11 @@ describe('planejarInicio', () => {
   })
 
   it('modo nuvem: nada baixa para começar', () => {
-    expect(planejarInicio(celular({ modoNuvem: true, motor: motor({ escolha: 'privado' }), mbTradutor: 113 }))).toEqual({
-      tipo: 'iniciar',
-    })
+    expect(planejarInicio(celular({ modoNuvem: true, motor: motor({ escolha: 'privado' }), mbTradutor: 113 }))).toEqual(
+      {
+        tipo: 'iniciar',
+      },
+    )
   })
 })
 
@@ -114,9 +116,9 @@ describe('motorPrevistoDoMic', () => {
   it('Rápido → navegador; Privado → whisper; Privado com pacote instalável → pacote', () => {
     expect(motorPrevistoDoMic(motor({ escolha: 'rapido' }))).toBe('navegador')
     expect(motorPrevistoDoMic(motor({ escolha: 'privado' }))).toBe('whisper')
-    expect(motorPrevistoDoMic(motor({ escolha: 'privado', noAparelho: 'downloadable', podeInstalarPacote: true }))).toBe(
-      'pacote',
-    )
+    expect(
+      motorPrevistoDoMic(motor({ escolha: 'privado', noAparelho: 'downloadable', podeInstalarPacote: true })),
+    ).toBe('pacote')
   })
 })
 

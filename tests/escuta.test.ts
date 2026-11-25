@@ -1,10 +1,15 @@
-import { describe, expect,it } from 'vitest';
+import { describe, expect, it } from 'vitest'
 
 import {
-  buildRodadasConectores, buildRodadasDitado,   buildRodadasEscuta, conferirDitado,
+  buildRodadasConectores,
+  buildRodadasDitado,
+  buildRodadasEscuta,
+  conferirDitado,
   type FalaComAudio,
-falasAudiveis,
-notaConectores, temConectores, } from '../src/core/minigames/escuta';
+  falasAudiveis,
+  notaConectores,
+  temConectores,
+} from '../src/core/minigames/escuta'
 
 /**
  * OS TRÊS SUBSTITUTOS DOS EXERCÍCIOS LEGADOS.
@@ -14,10 +19,10 @@ notaConectores, temConectores, } from '../src/core/minigames/escuta';
  * premia quem clica em tudo.
  */
 
-const semSorte = <T,>(xs: T[]) => [...xs];
+const semSorte = <T>(xs: T[]) => [...xs]
 
 function fala(over: Partial<FalaComAudio> & { text: string }): FalaComAudio {
-  return { id: over.text, startMs: 0, endMs: 3000, lang: 'en', ...over };
+  return { id: over.text, startMs: 0, endMs: 3000, lang: 'en', ...over }
 }
 
 const FALAS: FalaComAudio[] = [
@@ -25,29 +30,29 @@ const FALAS: FalaComAudio[] = [
   fala({ id: 'b', text: 'The fame is from the American singer.' }),
   fala({ id: 'c', text: 'However, the other countries know that.' }),
   fala({ id: 'd', text: 'She stayed because the weather was bad.' }),
-  fala({ id: 'e', text: 'Yes.' }),                                  // curta demais
+  fala({ id: 'e', text: 'Yes.' }), // curta demais
   fala({ id: 'f', text: 'and it can not belong to', endMs: 3000 }), // cortada no meio
-];
+]
 
 describe('quais falas dá para escutar', () => {
   it('descarta fala curta, cortada e sem áudio de verdade', () => {
-    const uteis = falasAudiveis(FALAS).map(f => f.id);
-    expect(uteis).toEqual(['a', 'b', 'c', 'd']);
-  });
+    const uteis = falasAudiveis(FALAS).map((f) => f.id)
+    expect(uteis).toEqual(['a', 'b', 'c', 'd'])
+  })
 
   it('trecho de áudio curtíssimo não vira rodada — não há o que ouvir', () => {
-    const piscada = [fala({ id: 'x', text: 'This is a full sentence here.', startMs: 0, endMs: 300 })];
-    expect(falasAudiveis(piscada)).toEqual([]);
-  });
-});
+    const piscada = [fala({ id: 'x', text: 'This is a full sentence here.', startMs: 0, endMs: 300 })]
+    expect(falasAudiveis(piscada)).toEqual([])
+  })
+})
 
 describe('Qual foi? — escuta', () => {
   it('a resposta certa está entre as opções', () => {
-    const r = buildRodadasEscuta(FALAS, { quantidade: 2, alternativas: 3, shuffle: semSorte });
+    const r = buildRodadasEscuta(FALAS, { quantidade: 2, alternativas: 3, shuffle: semSorte })
     for (const rodada of r) {
-      expect(rodada.opcoes.map(o => o.id)).toContain(rodada.correta.id);
+      expect(rodada.opcoes.map((o) => o.id)).toContain(rodada.correta.id)
     }
-  });
+  })
 
   it('as alternativas têm comprimento PARECIDO — senão a duração do áudio entrega a resposta', () => {
     const variadas = [
@@ -55,27 +60,27 @@ describe('Qual foi? — escuta', () => {
       fala({ id: 'media', text: 'He came home early today after work.' }),
       fala({ id: 'longa', text: 'He came home early today after a very long and tiring day at the office downtown.' }),
       fala({ id: 'media2', text: 'She left the house late this morning.' }),
-    ];
-    const [r] = buildRodadasEscuta(variadas, { quantidade: 1, alternativas: 3, shuffle: semSorte });
+    ]
+    const [r] = buildRodadasEscuta(variadas, { quantidade: 1, alternativas: 3, shuffle: semSorte })
     // A alternativa mais desproporcional fica de fora quando há opção melhor.
-    expect(r.opcoes.map(o => o.id)).not.toContain('longa');
-  });
+    expect(r.opcoes.map((o) => o.id)).not.toContain('longa')
+  })
 
   it('não oferece a mesma frase duas vezes como alternativa', () => {
     const repetidas = [
       fala({ id: '1', text: 'The same sentence here.' }),
-      fala({ id: '2', text: 'The same sentence here.' }),   // texto idêntico, id diferente
+      fala({ id: '2', text: 'The same sentence here.' }), // texto idêntico, id diferente
       fala({ id: '3', text: 'A different sentence here.' }),
       fala({ id: '4', text: 'Another different one here.' }),
-    ];
-    const [r] = buildRodadasEscuta(repetidas, { quantidade: 1, alternativas: 4, shuffle: semSorte });
-    const textos = r.opcoes.map(o => o.text);
-    expect(new Set(textos).size).toBe(textos.length);
-  });
+    ]
+    const [r] = buildRodadasEscuta(repetidas, { quantidade: 1, alternativas: 4, shuffle: semSorte })
+    const textos = r.opcoes.map((o) => o.text)
+    expect(new Set(textos).size).toBe(textos.length)
+  })
 
   it('sem falas suficientes, não monta rodada meia-boca', () => {
-    expect(buildRodadasEscuta([FALAS[0]], { alternativas: 4 })).toEqual([]);
-  });
+    expect(buildRodadasEscuta([FALAS[0]], { alternativas: 4 })).toEqual([])
+  })
 
   /* S12: `normalizarPalavra` só mantém A–Z, então em escrita não-latina TODAS as falas normalizam
      para '' — o filtro de duplicata as via como "iguais entre si" e eliminava as alternativas,
@@ -89,132 +94,132 @@ describe('Qual foi? — escuta', () => {
       fala({ id: 'j2', text: '猫 は 窓 の 外 を 見ています。', lang: 'ja' }),
       fala({ id: 'j3', text: '今日 は 天気 が いいですね。', lang: 'ja' }),
       fala({ id: 'j4', text: '彼 は 毎日 日本語 を 勉強する。', lang: 'ja' }),
-    ];
-    const [r] = buildRodadasEscuta(japonesas, { quantidade: 1, alternativas: 4, shuffle: semSorte });
-    expect(r.opcoes).toHaveLength(4);
-  });
+    ]
+    const [r] = buildRodadasEscuta(japonesas, { quantidade: 1, alternativas: 4, shuffle: semSorte })
+    expect(r.opcoes).toHaveLength(4)
+  })
 
   it('duas falas japonesas iguais a menos de caixa/acento são deduplicadas', () => {
     const comDuplicata = [
       fala({ id: 'j1', text: 'これ は 日本語 の 文章 です。', lang: 'ja' }),
-      fala({ id: 'j2', text: 'これ は 日本語 の 文章 です。', lang: 'ja' }),   // idêntica a j1
+      fala({ id: 'j2', text: 'これ は 日本語 の 文章 です。', lang: 'ja' }), // idêntica a j1
       fala({ id: 'j3', text: '今日 は 天気 が いいですね。', lang: 'ja' }),
       fala({ id: 'j4', text: '彼 は 毎日 日本語 を 勉強する。', lang: 'ja' }),
-    ];
-    const [r] = buildRodadasEscuta(comDuplicata, { quantidade: 1, alternativas: 4, shuffle: semSorte });
-    const ids = r.opcoes.map(o => o.id);
-    expect(ids).not.toContain('j2');
-    expect(new Set(r.opcoes.map(o => o.text)).size).toBe(r.opcoes.length);
-  });
-});
+    ]
+    const [r] = buildRodadasEscuta(comDuplicata, { quantidade: 1, alternativas: 4, shuffle: semSorte })
+    const ids = r.opcoes.map((o) => o.id)
+    expect(ids).not.toContain('j2')
+    expect(new Set(r.opcoes.map((o) => o.text)).size).toBe(r.opcoes.length)
+  })
+})
 
 describe('Ditado', () => {
   it('só usa falas na janela de 4 a 12 palavras', () => {
-    const r = buildRodadasDitado(FALAS, { quantidade: 9, shuffle: semSorte });
+    const r = buildRodadasDitado(FALAS, { quantidade: 9, shuffle: semSorte })
     for (const x of r) {
-      expect(x.palavras).toBeGreaterThanOrEqual(4);
-      expect(x.palavras).toBeLessThanOrEqual(12);
+      expect(x.palavras).toBeGreaterThanOrEqual(4)
+      expect(x.palavras).toBeLessThanOrEqual(12)
     }
-  });
+  })
 
   it('acerto total', () => {
-    const r = conferirDitado('the fame is from', 'the fame is from');
-    expect(r.precisao).toBe(100);
-    expect(r.palavras.every(p => p.certa)).toBe(true);
-  });
+    const r = conferirDitado('the fame is from', 'the fame is from')
+    expect(r.precisao).toBe(100)
+    expect(r.palavras.every((p) => p.certa)).toBe(true)
+  })
 
   it('ignora pontuação, acento e caixa — o jogo é de ESCUTA, não de digitação', () => {
     // Punir a vírgula aqui ensinaria a coisa errada: quem ouviu certo ouviu certo.
-    expect(conferirDitado('However, she stayed.', 'however she stayed').precisao).toBe(100);
-    expect(conferirDitado('É água', 'e agua').precisao).toBe(100);
-  });
+    expect(conferirDitado('However, she stayed.', 'however she stayed').precisao).toBe(100)
+    expect(conferirDitado('É água', 'e agua').precisao).toBe(100)
+  })
 
   it('palavra ENGOLIDA não vira "ouvimos X" com a palavra seguinte', () => {
     // Quando se pula uma palavra, a seguinte desliza para aquele índice. A versão anterior lia
     // `dito[i]` direto e dizia "esperava 'blue', ouvimos 'sky'" — mas "sky" foi falado certo e
     // casou com o próprio lugar. Trocar e engolir pedem correções diferentes.
-    const r = conferirDitado('the blue sky is clear', 'the sky is clear');
-    const errada = r.palavras.find(p => !p.certa);
-    expect(errada).toMatchObject({ esperada: 'blue', escrita: null });
-    expect(r.palavras.filter(p => p.certa).map(p => p.esperada)).toEqual(['the', 'sky', 'is', 'clear']);
-  });
+    const r = conferirDitado('the blue sky is clear', 'the sky is clear')
+    const errada = r.palavras.find((p) => !p.certa)
+    expect(errada).toMatchObject({ esperada: 'blue', escrita: null })
+    expect(r.palavras.filter((p) => p.certa).map((p) => p.esperada)).toEqual(['the', 'sky', 'is', 'clear'])
+  })
 
   it('troca de verdade continua mostrando o que foi dito no lugar', () => {
-    const r = conferirDitado('the blue sky', 'the green sky');
-    expect(r.palavras.find(p => !p.certa)).toMatchObject({ esperada: 'blue', escrita: 'green' });
-  });
+    const r = conferirDitado('the blue sky', 'the green sky')
+    expect(r.palavras.find((p) => !p.certa)).toMatchObject({ esperada: 'blue', escrita: 'green' })
+  })
 
   it('número errado NÃO passa por certo', () => {
     // `normalizarPalavra` só mantém A–Z, então "2" e "5" viravam ambos string vazia — e duas
     // vazias são iguais. O jogo dava acerto onde a pessoa errou.
-    const r = conferirDitado('I have 2 cats', 'I have 5 cats');
-    expect(r.precisao).toBe(75);
-    expect(r.palavras.find(p => !p.certa)).toMatchObject({ esperada: '2', escrita: '5' });
-  });
+    const r = conferirDitado('I have 2 cats', 'I have 5 cats')
+    expect(r.precisao).toBe(75)
+    expect(r.palavras.find((p) => !p.certa)).toMatchObject({ esperada: '2', escrita: '5' })
+  })
 
   it('número certo continua contando como acerto', () => {
-    expect(conferirDitado('I have 2 cats', 'I have 2 cats').precisao).toBe(100);
-  });
+    expect(conferirDitado('I have 2 cats', 'I have 2 cats').precisao).toBe(100)
+  })
 
   it('mostra ONDE errou, não só um percentual', () => {
-    const r = conferirDitado('the fame is from', 'the game is from');
-    expect(r.precisao).toBe(75);
-    const errada = r.palavras.find(p => !p.certa);
-    expect(errada).toMatchObject({ esperada: 'fame', escrita: 'game' });
-  });
+    const r = conferirDitado('the fame is from', 'the game is from')
+    expect(r.precisao).toBe(75)
+    const errada = r.palavras.find((p) => !p.certa)
+    expect(errada).toMatchObject({ esperada: 'fame', escrita: 'game' })
+  })
 
   it('palavra pulada não estraga o resto da frase', () => {
     // Sem a janela de tolerância, faltar uma palavra no começo marcaria TODAS as seguintes como
     // erradas — e um deslize apagaria o mérito da frase inteira.
-    const r = conferirDitado('the fame is from the american', 'fame is from the american');
-    expect(r.acertos).toBe(5);
-    expect(r.palavras[0].certa).toBe(false);
-  });
+    const r = conferirDitado('the fame is from the american', 'fame is from the american')
+    expect(r.acertos).toBe(5)
+    expect(r.palavras[0].certa).toBe(false)
+  })
 
   it('resposta vazia é zero, sem estourar', () => {
-    expect(conferirDitado('uma frase qualquer', '')).toMatchObject({ acertos: 0, precisao: 0 });
-  });
-});
+    expect(conferirDitado('uma frase qualquer', '')).toMatchObject({ acertos: 0, precisao: 0 })
+  })
+})
 
 describe('Caça-conectores', () => {
   it('só oferece o jogo em idioma com lista — não aplica a régua inglesa ao japonês', () => {
-    expect(temConectores('en')).toBe(true);
-    expect(temConectores('pt-BR')).toBe(true);
-    expect(temConectores('fr')).toBe(true);
-    expect(temConectores('ja')).toBe(false);
-    expect(buildRodadasConectores(FALAS, { lang: 'ja' })).toEqual([]);
-  });
+    expect(temConectores('en')).toBe(true)
+    expect(temConectores('pt-BR')).toBe(true)
+    expect(temConectores('fr')).toBe(true)
+    expect(temConectores('ja')).toBe(false)
+    expect(buildRodadasConectores(FALAS, { lang: 'ja' })).toEqual([])
+  })
 
   it('acha os conectores na fala real', () => {
-    const r = buildRodadasConectores(FALAS, { lang: 'en', quantidade: 9, shuffle: semSorte });
-    const comHowever = r.find(x => x.fala.id === 'c');
-    expect(comHowever?.tokens[comHowever.alvos[0]].toLowerCase()).toContain('however');
-  });
+    const r = buildRodadasConectores(FALAS, { lang: 'en', quantidade: 9, shuffle: semSorte })
+    const comHowever = r.find((x) => x.fala.id === 'c')
+    expect(comHowever?.tokens[comHowever.alvos[0]].toLowerCase()).toContain('however')
+  })
 
   it('frase SEM conector nenhum não vira rodada', () => {
     // Seria uma tela em que a resposta certa é não clicar em nada.
-    const sem = [fala({ id: 'z', text: 'My brother bought a red car yesterday.' })];
-    expect(buildRodadasConectores(sem, { lang: 'en' })).toEqual([]);
-  });
+    const sem = [fala({ id: 'z', text: 'My brother bought a red car yesterday.' })]
+    expect(buildRodadasConectores(sem, { lang: 'en' })).toEqual([])
+  })
 
   it('a nota é F1: clicar em tudo NÃO garante nota boa', () => {
-    const alvos = [0, 5];
-    const soCertos = notaConectores([0, 5], alvos);
-    const clicouTudo = notaConectores([0, 1, 2, 3, 4, 5, 6, 7], alvos);
-    expect(soCertos.f1).toBe(100);
-    expect(clicouTudo.f1).toBeLessThan(50);
-    expect(clicouTudo.falsos).toBe(6);
-  });
+    const alvos = [0, 5]
+    const soCertos = notaConectores([0, 5], alvos)
+    const clicouTudo = notaConectores([0, 1, 2, 3, 4, 5, 6, 7], alvos)
+    expect(soCertos.f1).toBe(100)
+    expect(clicouTudo.f1).toBeLessThan(50)
+    expect(clicouTudo.falsos).toBe(6)
+  })
 
   it('deixar passar pesa tanto quanto marcar errado', () => {
-    const deixouPassar = notaConectores([0], [0, 5]);      // 1 de 2
-    const marcouAMais = notaConectores([0, 5, 9], [0, 5]);  // 2 certos + 1 falso
-    expect(deixouPassar.perdidos).toBe(1);
-    expect(marcouAMais.falsos).toBe(1);
-    expect(Math.abs(deixouPassar.f1 - marcouAMais.f1)).toBeLessThanOrEqual(15);
-  });
+    const deixouPassar = notaConectores([0], [0, 5]) // 1 de 2
+    const marcouAMais = notaConectores([0, 5, 9], [0, 5]) // 2 certos + 1 falso
+    expect(deixouPassar.perdidos).toBe(1)
+    expect(marcouAMais.falsos).toBe(1)
+    expect(Math.abs(deixouPassar.f1 - marcouAMais.f1)).toBeLessThanOrEqual(15)
+  })
 
   it('não marcar nada é zero, sem dividir por zero', () => {
-    expect(notaConectores([], [0, 3]).f1).toBe(0);
-  });
-});
+    expect(notaConectores([], [0, 3]).f1).toBe(0)
+  })
+})

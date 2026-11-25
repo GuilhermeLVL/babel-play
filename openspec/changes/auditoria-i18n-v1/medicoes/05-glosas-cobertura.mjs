@@ -38,7 +38,9 @@ for (const arq of andar(DIR_GLOSAS, (p) => p.endsWith('.json'))) {
   const frases = d.frases ?? {};
   const chaves = Object.keys(glosas);
 
-  const identicas = chaves.filter((k) => typeof glosas[k] === 'string' && glosas[k].normalize('NFC') === k.normalize('NFC'));
+  const identicas = chaves.filter(
+    (k) => typeof glosas[k] === 'string' && glosas[k].normalize('NFC') === k.normalize('NFC'),
+  );
   const vazias = chaves.filter((k) => typeof glosas[k] !== 'string' || glosas[k].trim() === '');
 
   const trilha = palavrasDaTrilha.get(d.praticado);
@@ -48,8 +50,11 @@ for (const arq of andar(DIR_GLOSAS, (p) => p.endsWith('.json'))) {
   const uteis = chaves.length - identicas.length - vazias.length;
 
   resultados.push({
-    par, arquivo: relativo(arq), bytes: tamanho(arq),
-    praticado: d.praticado, nativo: d.nativo,
+    par,
+    arquivo: relativo(arq),
+    bytes: tamanho(arq),
+    praticado: d.praticado,
+    nativo: d.nativo,
     totalTrilha,
     glosas: chaves.length,
     glosasUteis: uteis,
@@ -64,13 +69,33 @@ for (const arq of andar(DIR_GLOSAS, (p) => p.endsWith('.json'))) {
 }
 
 const linhas = resultados.map((r) => [
-  r.par, r.totalTrilha, r.glosas, pct(r.glosas, r.totalTrilha),
-  r.glosasUteis, pct(r.glosasUteis, r.totalTrilha),
-  r.identicas, r.vazias, r.orfas, r.frases, `${(r.bytes / 1024).toFixed(0)} kB`,
+  r.par,
+  r.totalTrilha,
+  r.glosas,
+  pct(r.glosas, r.totalTrilha),
+  r.glosasUteis,
+  pct(r.glosasUteis, r.totalTrilha),
+  r.identicas,
+  r.vazias,
+  r.orfas,
+  r.frases,
+  `${(r.bytes / 1024).toFixed(0)} kB`,
 ]);
 
 let texto = tabela(
-  ['par', 'palavras', 'glosas', '% bruta', 'glosas úteis', '% útil', 'iguais à palavra', 'vazias', 'órfãs', 'frases trad.', 'tamanho'],
+  [
+    'par',
+    'palavras',
+    'glosas',
+    '% bruta',
+    'glosas úteis',
+    '% útil',
+    'iguais à palavra',
+    'vazias',
+    'órfãs',
+    'frases trad.',
+    'tamanho',
+  ],
   linhas,
 );
 
@@ -88,7 +113,8 @@ texto += `\nCobertura global bruta: ${pct(somaGlosas, somaTrilha)} · útil: ${p
 // O inglês é v1 e carrega a glosa embutida na própria trilha, sem arquivo em public/glosas.
 const comArquivo = new Set(resultados.map((r) => r.praticado));
 const semArquivo = [...palavrasDaTrilha.keys()].filter((l) => !comArquivo.has(l));
-if (semArquivo.length) texto += `\n\nIdiomas com trilha e SEM arquivo de glosa: ${semArquivo.join(', ')} (glosa embutida na trilha v1).`;
+if (semArquivo.length)
+  texto += `\n\nIdiomas com trilha e SEM arquivo de glosa: ${semArquivo.join(', ')} (glosa embutida na trilha v1).`;
 
 texto += '\n\nExemplos de glosa idêntica à palavra (não ensina nada):';
 let houve = false;
@@ -109,5 +135,10 @@ for (const r of resultados) {
 if (!houveOrfa) texto += ' nenhuma.';
 
 export default publicar('05 — glosas e frases, por par', texto, {
-  pares: resultados.length, somaGlosas, somaUteis, somaFrases, nativos: [...nativos], resultados,
+  pares: resultados.length,
+  somaGlosas,
+  somaUteis,
+  somaFrases,
+  nativos: [...nativos],
+  resultados,
 });

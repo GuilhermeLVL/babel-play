@@ -5,9 +5,9 @@
  * uso local/self-host (sem login) não há token e o servidor não o exige. Usado pelo apiFetch e
  * pelos poucos fetches que não passam por ele.
  */
-import { getAccessToken } from './supabase'
+import { getAccessToken } from './supabase';
 
 export async function authHeaders(): Promise<Record<string, string>> {
-  const token = await getAccessToken()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  const token = await getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }

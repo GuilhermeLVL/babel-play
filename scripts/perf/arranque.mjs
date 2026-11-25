@@ -25,18 +25,32 @@ const dormir = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function umaVez() {
   const t0 = performance.now()
-  const filho = spawn(cmd[0], cmd.slice(1), { env: { ...process.env, PORT: porta, HOST: '127.0.0.1' }, stdio: 'ignore' })
+  const filho = spawn(cmd[0], cmd.slice(1), {
+    env: { ...process.env, PORT: porta, HOST: '127.0.0.1' },
+    stdio: 'ignore',
+  })
   let ms = -1
   const teto = 60_000
   while (performance.now() - t0 < teto) {
     try {
       const r = await fetch(`http://127.0.0.1:${porta}/api/health`)
-      if (r.status === 200) { ms = Math.round(performance.now() - t0); break }
-    } catch { /* ainda não escuta */ }
+      if (r.status === 200) {
+        ms = Math.round(performance.now() - t0)
+        break
+      }
+    } catch {
+      /* ainda não escuta */
+    }
     await dormir(25)
   }
   filho.kill('SIGTERM')
-  await new Promise((r) => { filho.on('exit', r); setTimeout(() => { filho.kill('SIGKILL'); r() }, 5000) })
+  await new Promise((r) => {
+    filho.on('exit', r)
+    setTimeout(() => {
+      filho.kill('SIGKILL')
+      r()
+    }, 5000)
+  })
   await dormir(300)
   return ms
 }
@@ -49,4 +63,6 @@ for (let i = 0; i < execucoes; i++) {
 }
 const ordenados = [...tempos].sort((a, b) => a - b)
 console.log(`\n# arranque — ${cmd.join(' ')} — ${execucoes} execuções — ${process.version}`)
-console.log(`mediana: ${ordenados[Math.floor(ordenados.length / 2)]} ms | mínimo: ${ordenados[0]} ms | máximo: ${ordenados[ordenados.length - 1]} ms`)
+console.log(
+  `mediana: ${ordenados[Math.floor(ordenados.length / 2)]} ms | mínimo: ${ordenados[0]} ms | máximo: ${ordenados[ordenados.length - 1]} ms`,
+)

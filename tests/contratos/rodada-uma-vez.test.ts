@@ -89,7 +89,10 @@ describe('rodada gravada duas vezes', () => {
 
   it('dois envios SIMULTÂNEOS da mesma rodada gravam uma vez só (Express)', async () => {
     const rodada = { ...RODADA, roundId: 'blitz-simultanea-1' }
-    const [a, b] = await Promise.all([exerciseResultsRepo.addRodada(U, rodada), exerciseResultsRepo.addRodada(U, rodada)])
+    const [a, b] = await Promise.all([
+      exerciseResultsRepo.addRodada(U, rodada),
+      exerciseResultsRepo.addRodada(U, rodada),
+    ])
     expect([a.jaExistia, b.jaExistia].sort()).toEqual([false, true])
     expect(await exerciseResultsRepo.listarPorRodada(U, rodada.roundId)).toHaveLength(10)
   })

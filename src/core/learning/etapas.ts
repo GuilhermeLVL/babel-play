@@ -1,5 +1,5 @@
 import type { CefrLevel } from './contract';
-import { chaveDaPalavra, type DadoTrilha,NIVEIS_CEFR, rotuloDaEtapa } from './trilha';
+import { chaveDaPalavra, type DadoTrilha, NIVEIS_CEFR, rotuloDaEtapa } from './trilha';
 
 /**
  * ETAPAS DA TRILHA — um caminho com começo, meio e fim, em vez de um nível de 807 palavras.
@@ -103,7 +103,7 @@ export function etapasDoNivel(
     }));
   }
 
-  const lista = (dado.niveis[nivel] ?? []).map(par => par[0]);
+  const lista = (dado.niveis[nivel] ?? []).map((par) => par[0]);
   if (!lista.length) return [];
 
   const tamanho = Math.max(1, opts.tamanho ?? TAMANHO_PADRAO);
@@ -143,7 +143,7 @@ export function progressoDasEtapas(
   jaTem: ReadonlySet<string>,
   acertos?: ReadonlySet<string>,
 ): ProgressoDaEtapa[] {
-  const brutos = etapas.map(etapa => {
+  const brutos = etapas.map((etapa) => {
     const total = etapa.palavras.length;
     let tem = 0;
     let acertou = 0;
@@ -169,7 +169,7 @@ export function progressoDasEtapas(
    * coisa que um caminho precisa dizer. As posteriores ficam `futura` mesmo que já tenham progresso
    * parcial: o progresso delas continua visível no número, sem competir pelo marcador.
    */
-  const iAtual = brutos.findIndex(b => !b.feita);
+  const iAtual = brutos.findIndex((b) => !b.feita);
 
   return brutos.map(({ feita, ...resto }, i) => ({
     ...resto,
@@ -179,7 +179,7 @@ export function progressoDasEtapas(
 
 /** A etapa em que a pessoa está agora, ou `null` quando o nível inteiro está fechado. */
 export function etapaAtual(progresso: readonly ProgressoDaEtapa[]): EtapaDaTrilha | null {
-  return progresso.find(p => p.estado === 'atual')?.etapa ?? null;
+  return progresso.find((p) => p.estado === 'atual')?.etapa ?? null;
 }
 
 /**
@@ -187,15 +187,13 @@ export function etapaAtual(progresso: readonly ProgressoDaEtapa[]): EtapaDaTrilh
  *
  * Devolve `null` num nível sem etapas, para a tela não desenhar "etapa 0 de 0".
  */
-export function posicaoNaTrilha(
-  progresso: readonly ProgressoDaEtapa[],
-): { atual: number; total: number } | null {
+export function posicaoNaTrilha(progresso: readonly ProgressoDaEtapa[]): { atual: number; total: number } | null {
   if (!progresso.length) return null;
-  const atual = progresso.find(p => p.estado === 'atual')?.etapa.ordem ?? progresso.length;
+  const atual = progresso.find((p) => p.estado === 'atual')?.etapa.ordem ?? progresso.length;
   return { atual, total: progresso.length };
 }
 
 /** Os níveis que o dado realmente traz, na ordem CEFR. Evita desenhar um C2 vazio. */
 export function niveisComEtapas(dado: DadoTrilhaComEtapas): CefrLevel[] {
-  return NIVEIS_CEFR.filter(n => (dado.niveis[n] ?? []).length > 0);
+  return NIVEIS_CEFR.filter((n) => (dado.niveis[n] ?? []).length > 0);
 }

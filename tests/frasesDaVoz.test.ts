@@ -23,11 +23,9 @@ describe('partirEmFrases', () => {
 
   it('sem Intl.Segmenter cai na regex e dá o mesmo resultado', () => {
     vi.stubGlobal('Intl', { ...Intl, Segmenter: undefined })
-    expect(partirEmFrases('Cheguei tarde hoje. O trem estava lotado! Pode me ajudar a achar um táxi?', 'pt-BR')).toEqual([
-      'Cheguei tarde hoje.',
-      'O trem estava lotado!',
-      'Pode me ajudar a achar um táxi?',
-    ])
+    expect(
+      partirEmFrases('Cheguei tarde hoje. O trem estava lotado! Pode me ajudar a achar um táxi?', 'pt-BR'),
+    ).toEqual(['Cheguei tarde hoje.', 'O trem estava lotado!', 'Pode me ajudar a achar um táxi?'])
   })
 
   it('fragmento curto cola na frase seguinte (um pedido a menos, prosódia melhor)', () => {

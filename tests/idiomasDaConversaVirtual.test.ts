@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL } from '../src/lib/captura/idiomasDaConversaVirtual'
 
 const par = { meu: 'pt-BR', outro: 'en' }
-const pistas = (p: Partial<{ idiomaDoMotor: string; idiomaDoTexto: string; confianca: number; audioMs: number }> = {}) => ({
+const pistas = (
+  p: Partial<{ idiomaDoMotor: string; idiomaDoTexto: string; confianca: number; audioMs: number }> = {},
+) => ({
   idiomaDoMotor: '',
   idiomaDoTexto: '',
   audioMs: 2500,
@@ -38,7 +40,12 @@ describe('conversa virtual: idioma de "Eles" fala a fala', () => {
 
   it('o motor trocou idioma vizinho, mas o texto aponta um já ouvido: vale o texto', () => {
     const antes = decidirNaVirtual('eles', pistas({ idiomaDoMotor: 'es', idiomaDoTexto: 'es' }), par, ESTADO_DA_VIRTUAL)
-    const d = decidirNaVirtual('eles', pistas({ idiomaDoMotor: 'ca', idiomaDoTexto: 'es', audioMs: 1500 }), par, antes.estado)
+    const d = decidirNaVirtual(
+      'eles',
+      pistas({ idiomaDoMotor: 'ca', idiomaDoTexto: 'es', audioMs: 1500 }),
+      par,
+      antes.estado,
+    )
     expect(d.de).toBe('es')
   })
 

@@ -25,7 +25,7 @@ Ordem por risco crescente. As fases 0–1 não mudam comportamento nenhum.
 ## Fase 3 — schema (risco médio)
 
 - [~] 3.1 O `es` nasceu em v2; o `en` **não foi migrado** — o carregador aceita as duas versões, e
-      converter o inglês agora seria risco sem ganho (ver "o que sobrou", abaixo)
+  converter o inglês agora seria risco sem ganho (ver "o que sobrou", abaixo)
 - [x] 3.2 Join trilha+glosa no carregador (o seam) — `trilha.ts`, `etapas.ts` e `PainelTrilha.tsx`
       não mudaram de forma. 7 testes em `tests/trilha-carregar.test.ts`
 - [x] 3.3 `DadoTrilha` ganha `escala` e `procedencia`
@@ -46,8 +46,8 @@ Ordem por risco crescente. As fases 0–1 não mudam comportamento nenhum.
 - [x] 5.2 Trilha piloto `es`: 5.727 palavras lematizadas, 955 por faixa, 41% com glosa (59% na A1).
       Wikidata (CC0) 732 pares + Wikcionário/Wiktextract (CC BY-SA) 13.740
 - [~] 5.3 Amostra de 60 revisada — **por modelo, não por falante nativo humano**, e o `FONTES.md`
-      diz isso. Taxa: 70% antes das correções de glosa, **90% depois**. A revisão humana continua
-      pendente e é o que fecha esta tarefa
+  diz isso. Taxa: 70% antes das correções de glosa, **90% depois**. A revisão humana continua
+  pendente e é o que fecha esta tarefa
 - [x] 5.4 Tabela de cobertura por idioma na tela — `CoberturaDosIdiomas`, recolhida na gaveta do
       seletor e na Sala, com trilha, palavras, voz do navegador e o que é do usuário
 
@@ -95,8 +95,8 @@ pela dificuldade de escrita e passa a ser decidida por **onde há dado bom**:
 - [x] 8.5 Gate de publicação no `verificar.mjs`: recusa trilha com menos de 5% de glosa ou mais de
       10% fora da escrita do idioma
 - [~] 8.6 `th` NÃO foi publicado: a fonte não segmenta o tailandês em palavras (o idioma não usa
-      espaço, e o corpus foi cortado por espaço), dando 2% de glosa e frases inteiras no lugar de
-      palavras. Precisa de outra fonte, não de outro ajuste
+  espaço, e o corpus foi cortado por espaço), dando 2% de glosa e frases inteiras no lugar de
+  palavras. Precisa de outra fonte, não de outro ajuste
 
 ## Fase 9 — dados fora do bundle (feita)
 

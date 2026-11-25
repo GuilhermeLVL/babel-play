@@ -171,8 +171,8 @@ export function fonteDominante(f: FiltroDaPratica): FonteDeItens {
     if (unica === 'trilha') return { id: 'trilha', lang, nivel: f.nivelTrilha };
     if (unica === 'sessao') return { id: 'sessao', lang, sessionId: f.sessoes[0] };
     // unica === 'baralho'
-    const soRecorteEDificeis = f.recorte.dificeis
-      && !f.recorte.nuncaVistas && !f.recorte.pedindoRevisao && !f.recorte.niveis?.length;
+    const soRecorteEDificeis =
+      f.recorte.dificeis && !f.recorte.nuncaVistas && !f.recorte.pedindoRevisao && !f.recorte.niveis?.length;
     if (soRecorteEDificeis) return { id: 'dificeis', lang };
     return { id: 'baralho', lang };
   }

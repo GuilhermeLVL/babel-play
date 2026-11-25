@@ -10,7 +10,7 @@
  * Quanto mais lento o tradutor, mais provável a inversão. Ou seja: falha exatamente quando o
  * usuário mais depende da legenda.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { OrdemDasTraducoes } from '../src/lib/ordemDaTraducao'
 
@@ -23,8 +23,8 @@ describe('ordem das traduções', () => {
 
   it('O CASO DO BUG: a resposta atrasada do parcial NÃO sobrescreve a do final', () => {
     const o = new OrdemDasTraducoes()
-    const parcial = o.abrir('sys-1')   // "Hola qué"
-    const final = o.abrir('sys-1')     // "Hola qué tal, amigos"
+    const parcial = o.abrir('sys-1') // "Hola qué"
+    const final = o.abrir('sys-1') // "Hola qué tal, amigos"
 
     // O final volta primeiro (o tradutor demorou mais no parcial) — ele escreve.
     expect(o.encerrar('sys-1', final)).toBe(true)
@@ -88,7 +88,8 @@ describe('limpeza', () => {
 
   it('limpar zera tudo — sessão nova não herda selos da anterior', () => {
     const o = new OrdemDasTraducoes()
-    o.abrir('sys-1'); o.abrir('sys-2')
+    o.abrir('sys-1')
+    o.abrir('sys-2')
     o.limpar()
     expect(o.tamanho).toBe(0)
     expect(o.ocupado('sys-1')).toBe(false)

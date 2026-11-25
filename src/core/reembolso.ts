@@ -236,7 +236,8 @@ export function resolverPremium(compras: readonly CompraPremium[]): {
     if (!(c.itemId in EQUIVALENTES)) continue;
     const livre = [equivalenteDe(c.itemId), ...vitrine].find((id) => naVitrine.has(id) && !posse.has(id));
     if (livre) posse.add(livre);
-    else if (c.creditos > 0) reembolsos.push({ concessaoId: `${PREFIXO_DO_REEMBOLSO_DE_CREDITOS}${c.id}`, creditos: Math.round(c.creditos) });
+    else if (c.creditos > 0)
+      reembolsos.push({ concessaoId: `${PREFIXO_DO_REEMBOLSO_DE_CREDITOS}${c.id}`, creditos: Math.round(c.creditos) });
   }
   return { posse: [...posse], reembolsos };
 }

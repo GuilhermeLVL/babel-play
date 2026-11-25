@@ -9,23 +9,23 @@
  * Tema e fonte moram no React (props de App) e são devolvidos ao chamador em vez de setados
  * aqui — o mesmo contrato de `equiparItem`, que também não é dono do estado do tema.
  */
-import type { FonteType,ThemeType } from '../appearance'
-import { setParticulas } from '../particulas'
-import { setRastro } from '../rastroDoMouse'
-import { DEFAULT_FONTE,DEFAULT_THEME } from '../theme'
-import { gravarPaletaAtiva } from './paletas'
+import type { FonteType, ThemeType } from '../appearance';
+import { setParticulas } from '../particulas';
+import { setRastro } from '../rastroDoMouse';
+import { DEFAULT_FONTE, DEFAULT_THEME } from '../theme';
+import { gravarPaletaAtiva } from './paletas';
 
 export const VISUAL_PADRAO = {
   tema: DEFAULT_THEME as ThemeType,
   fonte: DEFAULT_FONTE as FonteType,
   particulas: 'tema' as const,
   rastro: 'off',
-} as const
+} as const;
 
 export function restaurarVisualPadrao(): { tema: ThemeType; fonte: FonteType } {
-  setParticulas(VISUAL_PADRAO.particulas)
-  setRastro(VISUAL_PADRAO.rastro)
+  setParticulas(VISUAL_PADRAO.particulas);
+  setRastro(VISUAL_PADRAO.rastro);
   // A paleta ativa é um apontador para o tema `custom`; sem ela, o tema padrão volta limpo.
-  gravarPaletaAtiva(null)
-  return { tema: VISUAL_PADRAO.tema, fonte: VISUAL_PADRAO.fonte }
+  gravarPaletaAtiva(null);
+  return { tema: VISUAL_PADRAO.tema, fonte: VISUAL_PADRAO.fonte };
 }

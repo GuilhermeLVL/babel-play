@@ -11,17 +11,25 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { similarityPercentage } from '../../src/lib/exercicios/diff'
 
 const THRESHOLD = 0.8 // handleVerifyLocal: isPass = score >= 0.8 (activeProduction.tsx:105)
 const F1_FLOOR = 0.85 // baseline determinístico medido = 0,857 (eval-baseline-v1.md)
 
-interface GoldCase { id: string; cat: string; word: string; attempt: string; gold: 'aceita' | 'rejeita' }
+interface GoldCase {
+  id: string
+  cat: string
+  word: string
+  attempt: string
+  gold: 'aceita' | 'rejeita'
+}
 
 const gold: GoldCase[] = readFileSync(join(__dirname, 'fixtures/gold-corretor-v0.jsonl'), 'utf8')
-  .trim().split('\n').map((l) => JSON.parse(l))
+  .trim()
+  .split('\n')
+  .map((l) => JSON.parse(l))
 
 describe('gate de regressão do corretor (heurística determinística real)', () => {
   it(`o gold set tem casos suficientes (${gold.length})`, () => {
@@ -29,7 +37,9 @@ describe('gate de regressão do corretor (heurística determinística real)', ()
   })
 
   it(`F1 da heurística de produção não regride abaixo de ${F1_FLOOR}`, () => {
-    let tp = 0, fp = 0, fn = 0
+    let tp = 0,
+      fp = 0,
+      fn = 0
     for (const c of gold) {
       const localAceita = similarityPercentage(c.word, c.attempt) >= THRESHOLD
       const goldAceita = c.gold === 'aceita'
@@ -44,7 +54,8 @@ describe('gate de regressão do corretor (heurística determinística real)', ()
   })
 
   it('a heurística mantém precision alta (não aceita resposta errada) — piso 0,95', () => {
-    let tp = 0, fp = 0
+    let tp = 0,
+      fp = 0
     for (const c of gold) {
       const localAceita = similarityPercentage(c.word, c.attempt) >= THRESHOLD
       const goldAceita = c.gold === 'aceita'

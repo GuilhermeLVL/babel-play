@@ -1,10 +1,11 @@
 ---
-titulo: "Gírias do inglês americano que você ouve todo dia"
-descricao: "Gírias e expressões informais do inglês americano com significado, exemplos e tradução, e dicas para usá-las sem soar forçado."
-slug: "girias-do-ingles-americano"
-publicado: "2026-10-25"
+titulo: 'Gírias do inglês americano que você ouve todo dia'
+descricao: 'Gírias e expressões informais do inglês americano com significado, exemplos e tradução, e dicas para usá-las sem soar forçado.'
+slug: 'girias-do-ingles-americano'
+publicado: '2026-10-25'
 revisado: false
-palavrasChave: ["gírias em inglês", "inglês americano", "expressões informais", "inglês do dia a dia"]
+palavrasChave:
+  ['gírias em inglês', 'inglês americano', 'expressões informais', 'inglês do dia a dia']
 ---
 
 Se você já assistiu a uma série ou a um vídeo de um jovem americano e pensou "isso não é o inglês que eu aprendi", saiba que não é só você. A língua falada no dia a dia tem atalhos, expressões e gírias que raramente aparecem em livros didáticos.

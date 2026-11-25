@@ -6,8 +6,7 @@
 
 ## 2. Servidor deriva da matriz
 
-- [x] 2.1 `server/lib/entitlements.ts`: `getEntitlements` lê a matriz; plano desconhecido → `free`
-      + log `plano_desconhecido`
+- [x] 2.1 `server/lib/entitlements.ts`: `getEntitlements` lê a matriz; plano desconhecido → `free` + log `plano_desconhecido`
 - [x] 2.2 `server/lib/usageQuota.ts`: `capForPlan` e `capSegundosParaPlano` leem a matriz, com
       override por env (`PRO_*`, `ESSENCIAL_*`)
 - [x] 2.3 `server/lib/storageQuota.ts`: idem para armazenamento

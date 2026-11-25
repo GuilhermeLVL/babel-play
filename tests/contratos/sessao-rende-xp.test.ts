@@ -73,7 +73,9 @@ describe('sessão só rende XP com palavra salva', () => {
     expect(local.sessoesComPalavraSalva).toBe(1)
     expect(economiaDeMetricas(local).xp).toBe(economiaDeMetricas(express).xp)
 
-    const salvasExpress = (await linhasDoHistoricoDeXp(U)).sessoes.map((s: { palavrasSalvas: number }) => s.palavrasSalvas)
+    const salvasExpress = (await linhasDoHistoricoDeXp(U)).sessoes.map(
+      (s: { palavrasSalvas: number }) => s.palavrasSalvas,
+    )
     const salvasLocal = (await linhasDoHistoricoLocal()).sessoes.map((s) => s.palavrasSalvas)
     expect(salvasExpress.sort()).toEqual([0, 0, 1])
     expect(salvasLocal.sort()).toEqual([0, 0, 1])

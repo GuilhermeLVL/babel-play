@@ -33,9 +33,9 @@
  */
 
 export interface DeteccaoDeSaida {
-  lang: string
+  lang: string;
   /** 0..1 — confiança do detector. */
-  confidence: number
+  confidence: number;
 }
 
 /**
@@ -45,18 +45,18 @@ export interface DeteccaoDeSaida {
  */
 export type VeredictoDaTraducao =
   | { ok: true; motivo?: undefined; detectado?: undefined; esperado?: undefined }
-  | { ok: false; motivo: 'idioma-errado' | 'nao-traduziu'; detectado: string; esperado: string }
+  | { ok: false; motivo: 'idioma-errado' | 'nao-traduziu'; detectado: string; esperado: string };
 
 /**
  * Abaixo disto a detecção de idioma é ruído: "Vale", "Yeah.", "好" não têm sinal suficiente.
  * Medido no caso real — as falas problemáticas tinham 30+ caracteres.
  */
-export const MINIMO_DE_CARACTERES = 24
+export const MINIMO_DE_CARACTERES = 24;
 
 /** Só rejeitamos quando o detector está confiante. Abaixo disso, damos o benefício da dúvida. */
-export const MINIMO_DE_CONFIANCA = 0.7
+export const MINIMO_DE_CONFIANCA = 0.7;
 
-const base = (l: string) => (l || '').trim().toLowerCase().split('-')[0]
+const base = (l: string) => (l || '').trim().toLowerCase().split('-')[0];
 
 /**
  * A CONFERÊNCIA VALE A PENA NESTE CASO?
@@ -70,7 +70,7 @@ const base = (l: string) => (l || '').trim().toLowerCase().split('-')[0]
  * aqui, junto do que a usa, para as duas não saírem de sincronia.
  */
 export function precisaConferir(traduzido: string, esperado: string): boolean {
-  return !!base(esperado) && (traduzido || '').trim().length >= MINIMO_DE_CARACTERES
+  return !!base(esperado) && (traduzido || '').trim().length >= MINIMO_DE_CARACTERES;
 }
 
 /**
@@ -86,34 +86,34 @@ export function validarTraducao(
   deteccao: DeteccaoDeSaida | null,
   textoOriginal?: string,
 ): VeredictoDaTraducao {
-  const texto = (traduzido || '').trim()
-  const alvo = base(esperado)
+  const texto = (traduzido || '').trim();
+  const alvo = base(esperado);
 
   /* REGRA BARATA, ANTES DO DETECTOR: se a "tradução" é o texto original de volta (só caixa/espaço
      diferentes) e os idiomas pedidos são distintos, o tradutor não traduziu, vale para frases
      curtas também, onde o detector de idioma não tem sinal. Era o caso das legendas "traduzidas"
      idênticas ao que foi dito. */
-  const original = (textoOriginal || '').trim()
-  const de = base(origem || '')
-  const norm = (t: string) => t.toLowerCase().replace(/\s+/g, ' ')
+  const original = (textoOriginal || '').trim();
+  const de = base(origem || '');
+  const norm = (t: string) => t.toLowerCase().replace(/\s+/g, ' ');
   if (original && de && alvo && de !== alvo && original.length >= 4 && norm(original) === norm(texto)) {
-    return { ok: false, motivo: 'nao-traduziu', detectado: de, esperado: alvo }
+    return { ok: false, motivo: 'nao-traduziu', detectado: de, esperado: alvo };
   }
 
   // Sem alvo declarado não há o que conferir; e texto curto não sustenta detecção.
-  if (!precisaConferir(texto, esperado)) return { ok: true }
-  if (!deteccao || !deteccao.lang) return { ok: true }
-  if (deteccao.confidence < MINIMO_DE_CONFIANCA) return { ok: true }
+  if (!precisaConferir(texto, esperado)) return { ok: true };
+  if (!deteccao || !deteccao.lang) return { ok: true };
+  if (deteccao.confidence < MINIMO_DE_CONFIANCA) return { ok: true };
 
-  const detectado = base(deteccao.lang)
-  if (!detectado || detectado === alvo) return { ok: true }
+  const detectado = base(deteccao.lang);
+  if (!detectado || detectado === alvo) return { ok: true };
 
   // Saída no idioma de ENTRADA: o tradutor devolveu o texto sem traduzir.
   if (de && detectado === de) {
-    return { ok: false, motivo: 'nao-traduziu', detectado, esperado: alvo }
+    return { ok: false, motivo: 'nao-traduziu', detectado, esperado: alvo };
   }
   // Saída num terceiro idioma: foi o caso do tcheco.
-  return { ok: false, motivo: 'idioma-errado', detectado, esperado: alvo }
+  return { ok: false, motivo: 'idioma-errado', detectado, esperado: alvo };
 }
 
 /**
@@ -123,8 +123,8 @@ export function validarTraducao(
  * chamador a fazer ginástica é um tipo mal desenhado.
  */
 export function explicarRejeicao(v: VeredictoDaTraducao, adaptador: string): string {
-  if (v.ok) return ''
+  if (v.ok) return '';
   return v.motivo === 'nao-traduziu'
     ? `${adaptador} devolveu o texto SEM traduzir (continua em ${v.detectado}, pedimos ${v.esperado})`
-    : `${adaptador} respondeu em ${v.detectado} quando pedimos ${v.esperado}`
+    : `${adaptador} respondeu em ${v.detectado} quando pedimos ${v.esperado}`;
 }

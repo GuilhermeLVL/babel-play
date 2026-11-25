@@ -27,7 +27,10 @@ function instalarWebCodecs(o: { suportado?: boolean; falhar?: boolean } = {}) {
     close() {}
   }
   class EncoderFalso {
-    static isConfigSupported = vi.fn(async (c: Record<string, unknown>) => ({ supported: o.suportado ?? true, config: c }))
+    static isConfigSupported = vi.fn(async (c: Record<string, unknown>) => ({
+      supported: o.suportado ?? true,
+      config: c,
+    }))
     encodeQueueSize = 0
     private pendente = 0
     private porPacote = 320

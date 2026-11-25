@@ -50,22 +50,45 @@ for (const [caminho, f] of Object.entries(dados)) {
   const rel = relative(raiz, caminho).split(sep)
   const chave = rel.length > nivel ? rel.slice(0, nivel).join('/') : rel.slice(0, -1).join('/') || rel[0]
   const c = contar(f)
-  const g = grupos.get(chave) || { arquivos: 0, semTeste: 0, linhasTotal: 0, linhasCobertas: 0, ramosTotal: 0, ramosCobertos: 0, funcsTotal: 0, funcsCobertas: 0 }
+  const g = grupos.get(chave) || {
+    arquivos: 0,
+    semTeste: 0,
+    linhasTotal: 0,
+    linhasCobertas: 0,
+    ramosTotal: 0,
+    ramosCobertos: 0,
+    funcsTotal: 0,
+    funcsCobertas: 0,
+  }
   g.arquivos++
   if (c.linhasCobertas === 0) g.semTeste++
-  for (const k of ['linhasTotal', 'linhasCobertas', 'ramosTotal', 'ramosCobertos', 'funcsTotal', 'funcsCobertas']) g[k] += c[k]
+  for (const k of ['linhasTotal', 'linhasCobertas', 'ramosTotal', 'ramosCobertos', 'funcsTotal', 'funcsCobertas'])
+    g[k] += c[k]
   grupos.set(chave, g)
 }
 const pct = (a, b) => (b ? ((100 * a) / b).toFixed(1) : '—')
 const linhas = [...grupos.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-const total = linhas.reduce((t, [, g]) => { for (const k of Object.keys(g)) t[k] = (t[k] || 0) + g[k]; return t }, {})
+const total = linhas.reduce((t, [, g]) => {
+  for (const k of Object.keys(g)) t[k] = (t[k] || 0) + g[k]
+  return t
+}, {})
 
 if (md) {
   console.log('| módulo | arquivos | sem teste | linhas % | ramos % | funções % |')
   console.log('|---|---:|---:|---:|---:|---:|')
-  for (const [k, g] of linhas) console.log(`| ${k} | ${g.arquivos} | ${g.semTeste} | ${pct(g.linhasCobertas, g.linhasTotal)} | ${pct(g.ramosCobertos, g.ramosTotal)} | ${pct(g.funcsCobertas, g.funcsTotal)} |`)
-  console.log(`| **total** | ${total.arquivos} | ${total.semTeste} | ${pct(total.linhasCobertas, total.linhasTotal)} | ${pct(total.ramosCobertos, total.ramosTotal)} | ${pct(total.funcsCobertas, total.funcsTotal)} |`)
+  for (const [k, g] of linhas)
+    console.log(
+      `| ${k} | ${g.arquivos} | ${g.semTeste} | ${pct(g.linhasCobertas, g.linhasTotal)} | ${pct(g.ramosCobertos, g.ramosTotal)} | ${pct(g.funcsCobertas, g.funcsTotal)} |`,
+    )
+  console.log(
+    `| **total** | ${total.arquivos} | ${total.semTeste} | ${pct(total.linhasCobertas, total.linhasTotal)} | ${pct(total.ramosCobertos, total.ramosTotal)} | ${pct(total.funcsCobertas, total.funcsTotal)} |`,
+  )
 } else {
-  for (const [k, g] of linhas) console.log(`${k.padEnd(40)} ${String(g.arquivos).padStart(4)} arq ${String(g.semTeste).padStart(4)} sem teste  linhas ${pct(g.linhasCobertas, g.linhasTotal).padStart(5)}%  ramos ${pct(g.ramosCobertos, g.ramosTotal).padStart(5)}%`)
-  console.log(`${'TOTAL'.padEnd(40)} ${String(total.arquivos).padStart(4)} arq ${String(total.semTeste).padStart(4)} sem teste  linhas ${pct(total.linhasCobertas, total.linhasTotal).padStart(5)}%  ramos ${pct(total.ramosCobertos, total.ramosTotal).padStart(5)}%`)
+  for (const [k, g] of linhas)
+    console.log(
+      `${k.padEnd(40)} ${String(g.arquivos).padStart(4)} arq ${String(g.semTeste).padStart(4)} sem teste  linhas ${pct(g.linhasCobertas, g.linhasTotal).padStart(5)}%  ramos ${pct(g.ramosCobertos, g.ramosTotal).padStart(5)}%`,
+    )
+  console.log(
+    `${'TOTAL'.padEnd(40)} ${String(total.arquivos).padStart(4)} arq ${String(total.semTeste).padStart(4)} sem teste  linhas ${pct(total.linhasCobertas, total.linhasTotal).padStart(5)}%  ramos ${pct(total.ramosCobertos, total.ramosTotal).padStart(5)}%`,
+  )
 }

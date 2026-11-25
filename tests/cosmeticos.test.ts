@@ -41,7 +41,9 @@ describe('cosméticos (rastro, partículas) — recompensas v2', () => {
   })
 
   it('letra e posição do menu são livres no nível 1: fora do catálogo = livre', () => {
-    for (const alvo of ['padrao', 'pixel', 'serif', 'display']) expect(estadoPorAlvo('fonte', alvo, 1, 0).estado).toBe('equipavel')
-    for (const alvo of ['top', 'left', 'right', 'bottom']) expect(estadoPorAlvo('posicao', alvo, 1, 0).estado).toBe('equipavel')
+    for (const alvo of ['padrao', 'pixel', 'serif', 'display'])
+      expect(estadoPorAlvo('fonte', alvo, 1, 0).estado).toBe('equipavel')
+    for (const alvo of ['top', 'left', 'right', 'bottom'])
+      expect(estadoPorAlvo('posicao', alvo, 1, 0).estado).toBe('equipavel')
   })
 })

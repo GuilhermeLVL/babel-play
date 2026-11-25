@@ -27,7 +27,11 @@ export class LoopbackExclusion {
     const prev = this.active
     this.active = null
     if (prev) {
-      try { prev.stop() } catch { /* já morta */ }
+      try {
+        prev.stop()
+      } catch {
+        /* já morta */
+      }
     }
     return { gen, superseded: prev !== null }
   }

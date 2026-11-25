@@ -196,24 +196,17 @@
       "indexes": {
         "idx_exercise_results_item_ref": {
           "name": "idx_exercise_results_item_ref",
-          "columns": [
-            "item_ref"
-          ],
+          "columns": ["item_ref"],
           "isUnique": false
         },
         "idx_exercise_results_round_id": {
           "name": "idx_exercise_results_round_id",
-          "columns": [
-            "round_id"
-          ],
+          "columns": ["round_id"],
           "isUnique": false
         },
         "idx_exercise_results_kind_round": {
           "name": "idx_exercise_results_kind_round",
-          "columns": [
-            "exercise_kind",
-            "round_id"
-          ],
+          "columns": ["exercise_kind", "round_id"],
           "isUnique": false
         }
       },
@@ -678,17 +671,12 @@
       "indexes": {
         "idx_seed_spends_spend_id": {
           "name": "idx_seed_spends_spend_id",
-          "columns": [
-            "spend_id"
-          ],
+          "columns": ["spend_id"],
           "isUnique": false
         },
         "uq_seed_spends_user_spend": {
           "name": "uq_seed_spends_user_spend",
-          "columns": [
-            "user_id",
-            "spend_id"
-          ],
+          "columns": ["user_id", "spend_id"],
           "isUnique": true,
           "where": "\"seed_spends\".\"deleted_at\" is null"
         }
@@ -876,9 +864,7 @@
       "indexes": {
         "uq_settings_user": {
           "name": "uq_settings_user",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": true,
           "where": "\"settings\".\"deleted_at\" is null"
         }
@@ -981,9 +967,7 @@
       "indexes": {
         "uq_subscriptions_user": {
           "name": "uq_subscriptions_user",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": true
         }
       },
@@ -1056,11 +1040,7 @@
       "indexes": {
         "uq_usage_user_metric_window": {
           "name": "uq_usage_user_metric_window",
-          "columns": [
-            "user_id",
-            "metric",
-            "window"
-          ],
+          "columns": ["user_id", "metric", "window"],
           "isUnique": true
         }
       },

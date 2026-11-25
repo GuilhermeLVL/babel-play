@@ -90,13 +90,39 @@ RESTRIÇÕES DURAS:
   com o assistente ligado) CABE se for até ~US$ 0,30/mês; entre 0,30 e 1,00 só com cota própria apertada; acima disso não cabe.`
 
 const CRITERIOS = [
-  { id: 'valor', pergunta: 'Resolve um problema real e sentido por quem usa (aprendiz de idioma ou profissional), não um "legal de ter"?' },
-  { id: 'frequencia', pergunta: 'Seria usada com frequência (em quase toda sessão do contexto dela), não uma vez por mês?' },
-  { id: 'viavel', pergunta: 'É viável hoje no navegador com o que o app tem (transcrição pronta, LLM barato, regras locais), sem extensão nem acesso a outros apps?' },
-  { id: 'custo', pergunta: 'O custo estimado no uso cheio cabe na margem do plano, pela régua dada (até ~US$ 0,30/mês por pessoa)?' },
-  { id: 'privacidade', pergunta: 'O risco de privacidade e para menores é BAIXO (sem perfilamento, sem inferir emoção, sem expor terceiros, sem busca não-ZDR com dado pessoal, sem conteúdo impróprio)? true = risco baixo.' },
-  { id: 'diferencial', pergunta: 'É um diferencial claro para o plano pago (alguém pagaria por isso; os concorrentes de idioma não fazem igual)?' },
-  { id: 'naoAtrapalha', pergunta: 'NÃO atrapalha o jogo ou o vídeo (cabe numa janela pequena, sem pedir atenção ou cliques no momento errado)? true = não atrapalha.' },
+  {
+    id: 'valor',
+    pergunta:
+      'Resolve um problema real e sentido por quem usa (aprendiz de idioma ou profissional), não um "legal de ter"?',
+  },
+  {
+    id: 'frequencia',
+    pergunta: 'Seria usada com frequência (em quase toda sessão do contexto dela), não uma vez por mês?',
+  },
+  {
+    id: 'viavel',
+    pergunta:
+      'É viável hoje no navegador com o que o app tem (transcrição pronta, LLM barato, regras locais), sem extensão nem acesso a outros apps?',
+  },
+  {
+    id: 'custo',
+    pergunta: 'O custo estimado no uso cheio cabe na margem do plano, pela régua dada (até ~US$ 0,30/mês por pessoa)?',
+  },
+  {
+    id: 'privacidade',
+    pergunta:
+      'O risco de privacidade e para menores é BAIXO (sem perfilamento, sem inferir emoção, sem expor terceiros, sem busca não-ZDR com dado pessoal, sem conteúdo impróprio)? true = risco baixo.',
+  },
+  {
+    id: 'diferencial',
+    pergunta:
+      'É um diferencial claro para o plano pago (alguém pagaria por isso; os concorrentes de idioma não fazem igual)?',
+  },
+  {
+    id: 'naoAtrapalha',
+    pergunta:
+      'NÃO atrapalha o jogo ou o vídeo (cabe numa janela pequena, sem pedir atenção ou cliques no momento errado)? true = não atrapalha.',
+  },
 ]
 
 function cartao(ideia, custo) {
@@ -167,7 +193,8 @@ export function lerRubricaDaIdeia(bruto) {
   const porId = new Map(o.criterios.filter((c) => c && typeof c.id === 'string').map((c) => [c.id.trim(), c]))
   const criterios = {}
   for (const [i, { id }] of CRITERIOS.entries()) {
-    const c = porId.get(id) ?? porId.get(String(i + 1)) ?? (o.criterios.length === CRITERIOS.length ? o.criterios[i] : null)
+    const c =
+      porId.get(id) ?? porId.get(String(i + 1)) ?? (o.criterios.length === CRITERIOS.length ? o.criterios[i] : null)
     const v = booleano(c?.veredito)
     if (v === null) return null
     criterios[id] = { veredito: v, raciocinio: String(c.raciocinio ?? '').slice(0, 300) }
@@ -244,7 +271,9 @@ async function main() {
     if (!preco) throw new Error(`${spec}: sem endpoint ZDR`)
     return { ...sis, preco }
   })
-  console.log(`teto US$ ${TETO_USD} · já gasto US$ ${livro.totalUsd.toFixed(4)} · ${ideias.length} ideias · juízes ${juizes.map((j) => j.id).join(', ')}`)
+  console.log(
+    `teto US$ ${TETO_USD} · já gasto US$ ${livro.totalUsd.toFixed(4)} · ${ideias.length} ideias · juízes ${juizes.map((j) => j.id).join(', ')}`,
+  )
 
   async function julgar(juiz, mensagens, maxTokens, rotulo) {
     const { corpo } = montarCorpo({ sis: juiz, mensagens, temperatura: 0, maxTokens, respostaJson: true })
@@ -269,7 +298,12 @@ async function main() {
       let lido = lerRubricaDaIdeia(res.texto)
       if (!lido && !res.doCache) {
         // Uma nova tentativa com outro texto de cache (a resposta ilegível não conta como nota).
-        res = await julgar(juiz, [...mensagensDaRubrica(ideia, custos[ideia.id]), { role: 'user', content: 'Responda só o JSON pedido.' }], MAX_TOKENS.rubrica, 'rubrica')
+        res = await julgar(
+          juiz,
+          [...mensagensDaRubrica(ideia, custos[ideia.id]), { role: 'user', content: 'Responda só o JSON pedido.' }],
+          MAX_TOKENS.rubrica,
+          'rubrica',
+        )
         lido = lerRubricaDaIdeia(res.texto)
       }
       ;(rubrica[ideia.id] ??= {})[juiz.id] = lido
@@ -336,13 +370,26 @@ async function main() {
     const trabalhos = pares.flatMap(([x, y]) => juizes.map((juiz) => ({ x, y, juiz })))
     try {
       await emParalelo(trabalhos, 4, async ({ x, y, juiz }) => {
-        const r1 = await julgar(juiz, mensagensDoPareado(porId[x], custos[x], porId[y], custos[y]), MAX_TOKENS.pareado, 'pareado')
-        const r2 = await julgar(juiz, mensagensDoPareado(porId[y], custos[y], porId[x], custos[x]), MAX_TOKENS.pareado, 'pareado')
+        const r1 = await julgar(
+          juiz,
+          mensagensDoPareado(porId[x], custos[x], porId[y], custos[y]),
+          MAX_TOKENS.pareado,
+          'pareado',
+        )
+        const r2 = await julgar(
+          juiz,
+          mensagensDoPareado(porId[y], custos[y], porId[x], custos[x]),
+          MAX_TOKENS.pareado,
+          'pareado',
+        )
         const v1 = lerPareado(r1.texto) // x na posição A
         const v2 = lerPareado(r2.texto) // x na posição B
         const comb = combinarOrdens(v1, v2) // +1 = x venceu nas duas
         ;(pareado[`${x}|${y}`] ??= {})[juiz.id] = comb
-        for (const [ordem, res, v] of [['x=A', r1, v1], ['x=B', r2, v2]])
+        for (const [ordem, res, v] of [
+          ['x=A', r1, v1],
+          ['x=B', r2, v2],
+        ])
           appendFileSync(
             arqPareado,
             `${JSON.stringify({ x, y, juiz: juiz.id, ordem, vencedor: v, raciocinio: objetoJson(res.texto)?.raciocinio ?? null, bruto: res.texto, usd: res.usd })}\n`,
@@ -410,7 +457,9 @@ async function main() {
     },
   }
   gravarJson(path.join(DIR, 'resumo.json'), resumo)
-  console.log(`gasto: US$ ${livro.totalUsd.toFixed(4)} de US$ ${TETO_USD}${parada ? ` · PARADO: ${parada.message}` : ''}`)
+  console.log(
+    `gasto: US$ ${livro.totalUsd.toFixed(4)} de US$ ${TETO_USD}${parada ? ` · PARADO: ${parada.message}` : ''}`,
+  )
   if (parada) process.exitCode = 2
 }
 

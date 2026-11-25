@@ -3,8 +3,10 @@ import fs from 'fs';
 const require = createRequire('C:/Users/Guilh/dev/ei-polimento/node_modules/');
 const { chromium } = require('playwright');
 export const URL0 = process.env.URL0 || 'https://babel-play.pages.dev';
-const UA_CEL = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36';
-const UA_QUEST = 'Mozilla/5.0 (X11; Linux x86_64; Quest 3) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrowser/40.0.0.0 Chrome/151.0.0.0 VR Safari/537.36';
+const UA_CEL =
+  'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36';
+const UA_QUEST =
+  'Mozilla/5.0 (X11; Linux x86_64; Quest 3) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrowser/40.0.0.0 Chrome/151.0.0.0 VR Safari/537.36';
 export const PERFIS = {
   'cel-medio': { viewport: { width: 390, height: 844 }, dsf: 3, toque: true, ua: UA_CEL, cpu: 4, rede: '4g' },
   'cel-fraco': { viewport: { width: 390, height: 844 }, dsf: 3, toque: true, ua: UA_CEL, cpu: 6, rede: '4g' },
@@ -31,15 +33,33 @@ const INSTR = () => {
   ob('longtask', (e) => p.lt.push({ s: e.startTime, d: e.duration }));
   ob(
     'event',
-    (e) => p.ev.push({ n: e.name, s: e.startTime, d: e.duration, ps: e.processingStart, pe: e.processingEnd, id: e.interactionId }),
+    (e) =>
+      p.ev.push({
+        n: e.name,
+        s: e.startTime,
+        d: e.duration,
+        ps: e.processingStart,
+        pe: e.processingEnd,
+        id: e.interactionId,
+      }),
     { durationThreshold: 16 },
   );
   ob('layout-shift', (e) => p.cls.push({ v: e.value, s: e.startTime, rec: e.hadRecentInput }));
   ob('largest-contentful-paint', (e) =>
-    p.lcp.push({ s: e.startTime, size: e.size, el: e.element ? e.element.tagName + '.' + String(e.element.className).slice(0, 40) : null, url: e.url }),
+    p.lcp.push({
+      s: e.startTime,
+      size: e.size,
+      el: e.element ? e.element.tagName + '.' + String(e.element.className).slice(0, 40) : null,
+      url: e.url,
+    }),
   );
   ob('paint', (e) => p.paint.push({ n: e.name, s: e.startTime }));
-  const SEL = { trilho: '.q-trilho', tela: '.px-tela > *', palco: '.px-tela .q-palco, .px-tela .tela', h1: '.px-tela h1' };
+  const SEL = {
+    trilho: '.q-trilho',
+    tela: '.px-tela > *',
+    palco: '.px-tela .q-palco, .px-tela .tela',
+    h1: '.px-tela h1',
+  };
   const olha = () => {
     for (const k in SEL) if (!(k in p.marcos) && document.querySelector(SEL[k])) p.marcos[k] = performance.now();
   };
@@ -63,7 +83,21 @@ const INSTR = () => {
   };
 };
 
-export async function abrir(nome, { reduz = false, desempenho = false, gpu = true, storage = null, cpu = undefined, semInstr = false, exp = [], giro = false, fonteTrilha = false, semOcioso = false } = {}) {
+export async function abrir(
+  nome,
+  {
+    reduz = false,
+    desempenho = false,
+    gpu = true,
+    storage = null,
+    cpu = undefined,
+    semInstr = false,
+    exp = [],
+    giro = false,
+    fonteTrilha = false,
+    semOcioso = false,
+  } = {},
+) {
   const P = PERFIS[nome];
   if (fonteTrilha) storage = { ...(storage ?? {}), 'babel.fonte_da_pratica': '{"origem":"trilha","escopo":"todas"}' };
   const args = gpu ? ['--enable-gpu', '--use-gl=angle', '--use-angle=d3d11', '--ignore-gpu-blocklist'] : [];
@@ -105,7 +139,9 @@ export async function abrir(nome, { reduz = false, desempenho = false, gpu = tru
           t += 0.016;
           const beta = 45 + Math.sin(t * 1.3) * 1.5 + (Math.random() - 0.5) * 0.3;
           const gamma = Math.sin(t * 0.9) * 2 + (Math.random() - 0.5) * 0.3;
-          window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma, absolute: false }));
+          window.dispatchEvent(
+            new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma, absolute: false }),
+          );
         }, 16);
       });
     });
@@ -138,7 +174,11 @@ export async function abrir(nome, { reduz = false, desempenho = false, gpu = tru
       if (exp.includes('aura-cache')) {
         const velho = 'const c=i.getBoundingClientRect();X(i)';
         aplicadas.push('aura-cache:' + js.includes(velho));
-        js = js.replace(velho, () => 'const c=(window.__mr&&performance.now()-window.__mrT<1000)?window.__mr:(window.__mrT=performance.now(),window.__mr=i.getBoundingClientRect());X(i)');
+        js = js.replace(
+          velho,
+          () =>
+            'const c=(window.__mr&&performance.now()-window.__mrT<1000)?window.__mr:(window.__mrT=performance.now(),window.__mr=i.getBoundingClientRect());X(i)',
+        );
       }
       if (!exp.includes('aura-para')) return route.fulfill({ response: resp, body: js });
       const a = 'px)`}document.hidden||requestAnimationFrame(k)}';
@@ -146,20 +186,31 @@ export async function abrir(nome, { reduz = false, desempenho = false, gpu = tru
       const c = 'G=(i,c)=>{w=[i,c]};';
       aplicadas.push('aura-para:' + (js.includes(a) && js.includes(b) && js.includes(c)));
       js = js
-        .replace(a, 'px)`}(Math.abs(w[0]-A[0])+Math.abs(w[1]-A[1])>0.05)?(document.hidden||requestAnimationFrame(k)):(window.__auraParada=1)}')
-        .replace(b, () => b + 'document.addEventListener("pointermove",()=>{if(window.__auraParada){window.__auraParada=0;requestAnimationFrame(k)}},{passive:!0});')
+        .replace(
+          a,
+          'px)`}(Math.abs(w[0]-A[0])+Math.abs(w[1]-A[1])>0.05)?(document.hidden||requestAnimationFrame(k)):(window.__auraParada=1)}',
+        )
+        .replace(
+          b,
+          () =>
+            b +
+            'document.addEventListener("pointermove",()=>{if(window.__auraParada){window.__auraParada=0;requestAnimationFrame(k)}},{passive:!0});',
+        )
         .replace(c, 'G=(i,c)=>{w=[i,c];if(window.__auraParada){window.__auraParada=0;requestAnimationFrame(k)}};');
       await route.fulfill({ response: resp, body: js });
     });
   /* As miniaturas dos jogos so animam com o cartao a vista (o que esta fora da tela pausa). */
   if (exp.includes('minis-visiveis'))
     await ctx.addInitScript(() => {
-      const io = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle('lab-fora', !e.isIntersecting)));
+      const io = new IntersectionObserver((es) =>
+        es.forEach((e) => e.target.classList.toggle('lab-fora', !e.isIntersecting)),
+      );
       const ligar = () => {
         if (!document.getElementById('lab-minis') && document.head) {
           const st = document.createElement('style');
           st.id = 'lab-minis';
-          st.textContent = '.q-tile.lab-fora .px-mini *, .q-tile.lab-fora .px-mini *::before, .q-tile.lab-fora .px-mini *::after{animation-play-state:paused!important}';
+          st.textContent =
+            '.q-tile.lab-fora .px-mini *, .q-tile.lab-fora .px-mini *::before, .q-tile.lab-fora .px-mini *::after{animation-play-state:paused!important}';
           document.head.append(st);
         }
         document.querySelectorAll('.q-tile.px-com-mini:not(.lab-obs)').forEach((t) => {
@@ -195,7 +246,8 @@ export async function abrir(nome, { reduz = false, desempenho = false, gpu = tru
     await ctx.addInitScript(() => {
       const por = () => {
         const st = document.createElement('style');
-        st.textContent = '*,*::before,*::after,::backdrop{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}';
+        st.textContent =
+          '*,*::before,*::after,::backdrop{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}';
         document.head.append(st);
       };
       if (document.head) por();
@@ -208,7 +260,12 @@ export async function abrir(nome, { reduz = false, desempenho = false, gpu = tru
   await cdp.send('Performance.enable');
   const rede = { reqs: new Map(), fim: [] };
   cdp.on('Network.responseReceived', (e) =>
-    rede.reqs.set(e.requestId, { url: e.response.url, tipo: e.type, cache: !!(e.response.fromDiskCache || e.response.fromPrefetchCache), t: Date.now() }),
+    rede.reqs.set(e.requestId, {
+      url: e.response.url,
+      tipo: e.type,
+      cache: !!(e.response.fromDiskCache || e.response.fromPrefetchCache),
+      t: Date.now(),
+    }),
   );
   cdp.on('Network.requestServedFromCache', (e) => {
     const r = rede.reqs.get(e.requestId);
@@ -222,7 +279,8 @@ export async function abrir(nome, { reduz = false, desempenho = false, gpu = tru
   if (P.rede) await cdp.send('Network.emulateNetworkConditions', REDES[P.rede]);
   const taxa = cpu ?? P.cpu;
   if (taxa > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: taxa });
-  const metricas = async () => Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map((m) => [m.name, m.value]));
+  const metricas = async () =>
+    Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map((m) => [m.name, m.value]));
   return { browser, ctx, page, cdp, rede, metricas, P, nome, aplicadas };
 }
 
@@ -239,7 +297,13 @@ export function resumoRede(fim, desde = 0) {
     total += r.bytes || 0;
     if ((r.bytes || 0) > 0) daRede++;
   }
-  return { pedidos: l.length, daRede, bytes: total, por, urls: l.map((r) => r.url.replace(URL0, '') + (r.cache ? ' (cache)' : '') + ' ' + (r.bytes || 0)) };
+  return {
+    pedidos: l.length,
+    daRede,
+    bytes: total,
+    por,
+    urls: l.map((r) => r.url.replace(URL0, '') + (r.cache ? ' (cache)' : '') + ' ' + (r.bytes || 0)),
+  };
 }
 
 /** Espera o fio principal e a rede sossegarem por `quieto` ms (relogio real), ate `teto` ms. */

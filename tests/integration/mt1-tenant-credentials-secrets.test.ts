@@ -6,10 +6,10 @@
  * referência). `secrets` não tem user_id, mas só é alcançável via provider_credentials — então
  * escopar a credencial isola o segredo.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')
@@ -22,9 +22,16 @@ let credA: any
 beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ credentialsRepo: repo } = await h.load('../../server/db/repositories/credentials'))
-  credA = await repo.create(A, { label: 'a', kind: 'openai', baseUrl: 'https://api.groq.com/openai/v1', secret: SECRET_A })
+  credA = await repo.create(A, {
+    label: 'a',
+    kind: 'openai',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    secret: SECRET_A,
+  })
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('Marco 1 — isolamento credentials/secrets', () => {
   it('list só devolve as credenciais do próprio usuário', async () => {

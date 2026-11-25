@@ -43,13 +43,14 @@ describe('GET /api/vocab/conteudo', () => {
     const { db } = await s.load('../../server/db/db')
     const t = await s.load('../../server/db/schema')
 
-    const sessoes: Array<[id: string, dono: string, titulo: string, tipo: string, quando: number, apagada?: boolean]> = [
-      ['s1', A, 'Reunião de produto', 'live', AGORA - 2 * DIA],
-      ['s2', A, 'Aula de espanhol', 'video', AGORA - 5 * DIA],
-      ['s3', A, 'Sessão apagada', 'live', AGORA - 9 * DIA, true],
-      ['s4', A, 'Sem cartão nenhum', 'document', AGORA - DIA],
-      ['sb', B, 'Sessão da outra conta', 'live', AGORA - DIA],
-    ]
+    const sessoes: Array<[id: string, dono: string, titulo: string, tipo: string, quando: number, apagada?: boolean]> =
+      [
+        ['s1', A, 'Reunião de produto', 'live', AGORA - 2 * DIA],
+        ['s2', A, 'Aula de espanhol', 'video', AGORA - 5 * DIA],
+        ['s3', A, 'Sessão apagada', 'live', AGORA - 9 * DIA, true],
+        ['s4', A, 'Sem cartão nenhum', 'document', AGORA - DIA],
+        ['sb', B, 'Sessão da outra conta', 'live', AGORA - DIA],
+      ]
     for (const [id, userId, title, kind, quando, apagada] of sessoes)
       await db.insert(t.sessions).values({
         id,
@@ -84,18 +85,45 @@ describe('GET /api/vocab/conteudo', () => {
       // frase curta (3 palavras): não serve aos jogos; nova nunca vista: não é "para hoje"
       { id: 'c3', sessionId: 's1', dueAt: null, sentence: 'Too short here' },
       // difícil (8 erros), vence exatamente agora; `en-US` conta como `en`; `in_deck` nulo conta
-      { id: 'c4', srcLang: 'en-US', inDeck: null, lapses: 8, dueAt: AGORA, sentence: 'Customers were complaining about it a lot.' },
+      {
+        id: 'c4',
+        srcLang: 'en-US',
+        inDeck: null,
+        lapses: 8,
+        dueAt: AGORA,
+        sentence: 'Customers were complaining about it a lot.',
+      },
       // de sessão APAGADA: continua em Tudo, mas a sessão não é fonte
       { id: 'c5', sessionId: 's3', dueAt: AGORA + DIA },
       // espanhol: outro idioma
-      { id: 'c6', srcLang: 'es', sessionId: 's2', dueAt: AGORA - DIA, sentence: 'Hemos hablado mucho de este tema hoy.' },
+      {
+        id: 'c6',
+        srcLang: 'es',
+        sessionId: 's2',
+        dueAt: AGORA - DIA,
+        sentence: 'Hemos hablado mucho de este tema hoy.',
+      },
       { id: 'c7', srcLang: 'es', lapses: 9, dueAt: AGORA + DIA },
       // SUSPENSA: difícil, vencida, de sessão e de baralho; não entra em nada
-      { id: 'c8', sessionId: 's1', inDeck: 0, lapses: 9, dueAt: AGORA - DIA, sentence: 'This one is suspended for now.' },
+      {
+        id: 'c8',
+        sessionId: 's1',
+        inDeck: 0,
+        lapses: 9,
+        dueAt: AGORA - DIA,
+        sentence: 'This one is suspended for now.',
+      },
       // APAGADA
       { id: 'c9', sessionId: 's1', dueAt: AGORA - 1000, deletedAt: AGORA - 5 },
       // OUTRA CONTA: mesma sessão no nome, mesmo baralho no id
-      { id: 'b1', userId: B, sessionId: 'sb', dueAt: AGORA - 1000, lapses: 20, sentence: 'This belongs to another account entirely.' },
+      {
+        id: 'b1',
+        userId: B,
+        sessionId: 'sb',
+        dueAt: AGORA - 1000,
+        lapses: 20,
+        sentence: 'This belongs to another account entirely.',
+      },
     ]
     for (const c of cartoes)
       await db.insert(t.vocabCards).values({
@@ -176,10 +204,28 @@ describe('GET /api/vocab/conteudo', () => {
     expect(k.tudo).toEqual({ palavras: 5, frases: 2, paraHoje: 2 })
     expect(k.dificeis).toEqual({ palavras: 1, frases: 1, paraHoje: 1 })
     expect(k.sessoes).toEqual([
-      { id: 's1', nome: 'Reunião de produto', tipo: 'live', quando: AGORA - 2 * DIA, duracaoMs: 600_000, palavras: 3, frases: 1, paraHoje: 1 },
+      {
+        id: 's1',
+        nome: 'Reunião de produto',
+        tipo: 'live',
+        quando: AGORA - 2 * DIA,
+        duracaoMs: 600_000,
+        palavras: 3,
+        frases: 1,
+        paraHoje: 1,
+      },
     ])
     expect(k.anki).toEqual([
-      { id: 'dA', nome: 'Phrasal Verbs', tipo: null, quando: AGORA - 20 * DIA, duracaoMs: null, palavras: 2, frases: 2, paraHoje: 1 },
+      {
+        id: 'dA',
+        nome: 'Phrasal Verbs',
+        tipo: null,
+        quando: AGORA - 20 * DIA,
+        duracaoMs: null,
+        palavras: 2,
+        frases: 2,
+        paraHoje: 1,
+      },
     ])
     expect(k.trilha).toEqual({ palavras: 1, frases: 1, paraHoje: 1 })
   })
@@ -230,8 +276,14 @@ describe('GET /api/vocab/conteudo', () => {
     expect(r2.status).toBe(304)
     expect(await r2.text()).toBe('')
     // o ETag de um idioma não vale no outro, nem o de uma conta na outra
-    expect((await s.chamar('GET', '/api/vocab/conteudo?idioma=es', { token: a, headers: { 'if-none-match': etag! } })).status).toBe(200)
-    expect((await s.chamar('GET', '/api/vocab/conteudo?idioma=en', { token: b, headers: { 'if-none-match': etag! } })).status).toBe(200)
+    expect(
+      (await s.chamar('GET', '/api/vocab/conteudo?idioma=es', { token: a, headers: { 'if-none-match': etag! } }))
+        .status,
+    ).toBe(200)
+    expect(
+      (await s.chamar('GET', '/api/vocab/conteudo?idioma=en', { token: b, headers: { 'if-none-match': etag! } }))
+        .status,
+    ).toBe(200)
 
     // suspender c1 pela rota de verdade: a versão sobe e a contagem muda
     expect((await s.patch('/api/vocab/c1', { inDeck: false }, a)).status).toBe(200)

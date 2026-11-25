@@ -124,7 +124,12 @@ export default function FolhaDoMais({
         >
           <ExternalLink aria-hidden /> {t('Abrir na sessão')}
         </button>
-        <button type="button" className="folha-acao" disabled={!aoOutraFrase} onClick={aoOutraFrase && fazer(aoOutraFrase)}>
+        <button
+          type="button"
+          className="folha-acao"
+          disabled={!aoOutraFrase}
+          onClick={aoOutraFrase && fazer(aoOutraFrase)}
+        >
           <Repeat aria-hidden /> {outraFrase ? t('Outra frase · {qual}', { qual: outraFrase }) : t('Outra frase')}
         </button>
         <button type="button" className="folha-acao" disabled={!aoMinhaVoz} onClick={aoMinhaVoz && fazer(aoMinhaVoz)}>

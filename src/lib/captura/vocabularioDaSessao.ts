@@ -51,7 +51,9 @@ export function idiomaDoVerso(s: FalaComIdioma, par: ParConfigurado): string {
  * O idioma DOMINANTE de um conjunto de falas, pesado pelo número de palavras (uma fala longa em
  * português pesa mais que um "ok" em inglês). `''` se nenhuma tem idioma.
  */
-export function idiomaDominante(falas: ReadonlyArray<{ sourceLang?: string | null; sourceText?: string | null }>): string {
+export function idiomaDominante(
+  falas: ReadonlyArray<{ sourceLang?: string | null; sourceText?: string | null }>,
+): string {
   const peso = new Map<string, { n: number; codigo: string }>();
   for (const f of falas) {
     const base = baseLang(f.sourceLang ?? '');

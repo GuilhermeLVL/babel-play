@@ -24,54 +24,18 @@
         "drizzle-orm": "^0.45.2"
       },
       "superficie": [
-        [
-          "src/**/*.ts,tsx",
-          317
-        ],
-        [
-          "src/components/views/*.tsx (telas de topo)",
-          23
-        ],
-        [
-          "tests/**/*.test.ts,tsx",
-          273
-        ],
-        [
-          "tests/e2e/*.e2e.ts",
-          5
-        ],
-        [
-          "scripts/i18n/*.mjs",
-          2
-        ],
-        [
-          "scripts/trilha/*.mjs",
-          9
-        ],
-        [
-          "audit/rules/ast-grep/*.yml",
-          6
-        ],
-        [
-          "public/i18n/*.json",
-          4
-        ],
-        [
-          "public/trilha/*.json",
-          16
-        ],
-        [
-          "public/glosas/*.json",
-          15
-        ],
-        [
-          ".github/workflows/*",
-          4
-        ],
-        [
-          "openspec/changes/*",
-          26
-        ]
+        ["src/**/*.ts,tsx", 317],
+        ["src/components/views/*.tsx (telas de topo)", 23],
+        ["tests/**/*.test.ts,tsx", 273],
+        ["tests/e2e/*.e2e.ts", 5],
+        ["scripts/i18n/*.mjs", 2],
+        ["scripts/trilha/*.mjs", 9],
+        ["audit/rules/ast-grep/*.yml", 6],
+        ["public/i18n/*.json", 4],
+        ["public/trilha/*.json", 16],
+        ["public/glosas/*.json", 15],
+        [".github/workflows/*", 4],
+        ["openspec/changes/*", 26]
       ],
       "semBibliotecaI18n": true
     },
@@ -88,14 +52,7 @@
           "identica": 0,
           "ausente": 0,
           "objetosDePlural": 0,
-          "categoriasCLDR": [
-            "zero",
-            "one",
-            "two",
-            "few",
-            "many",
-            "other"
-          ],
+          "categoriasCLDR": ["zero", "one", "two", "few", "many", "other"],
           "pluraisIncompletos": [],
           "identicasExemplos": [],
           "pseudo": false,
@@ -111,17 +68,9 @@
           "identica": 4,
           "ausente": 0,
           "objetosDePlural": 14,
-          "categoriasCLDR": [
-            "one",
-            "other"
-          ],
+          "categoriasCLDR": ["one", "other"],
           "pluraisIncompletos": [],
-          "identicasExemplos": [
-            "MyMemory (web)",
-            "seeds",
-            "· conf. {n}%",
-            "Tech / Developer"
-          ],
+          "identicasExemplos": ["MyMemory (web)", "seeds", "· conf. {n}%", "Tech / Developer"],
           "pseudo": false,
           "doUniverso": "99.4%"
         },
@@ -135,18 +84,9 @@
           "identica": 4,
           "ausente": 0,
           "objetosDePlural": 0,
-          "categoriasCLDR": [
-            "one",
-            "many",
-            "other"
-          ],
+          "categoriasCLDR": ["one", "many", "other"],
           "pluraisIncompletos": [],
-          "identicasExemplos": [
-            "Capturar",
-            "Biblioteca",
-            "Personalizar",
-            "Ajustes"
-          ],
+          "identicasExemplos": ["Capturar", "Biblioteca", "Personalizar", "Ajustes"],
           "pseudo": false,
           "doUniverso": "2.3%"
         },
@@ -160,95 +100,63 @@
           "identica": 0,
           "ausente": 0,
           "objetosDePlural": 14,
-          "categoriasCLDR": [
-            "one",
-            "many",
-            "other"
-          ],
+          "categoriasCLDR": ["one", "many", "other"],
           "pluraisIncompletos": [
             {
               "chave": "{n} palavras",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "{n} palavras estão na hora de rever",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "{n} palavras novas esperando",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "{n} palavras prontas para revisar",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "{n} sessões capturadas",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "cartões",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "dias",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "dias seguidos",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "falas",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "faltam {n} {unidade}",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "palavras",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "palavras pedindo revisão",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "palavras prontas",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             },
             {
               "chave": "sessões",
-              "faltando": [
-                "many"
-              ]
+              "faltando": ["many"]
             }
           ],
           "identicasExemplos": [],
@@ -2122,14 +2030,7 @@
             "C1": "54/965",
             "C2": "40/962"
           },
-          "exemplosForaDaEscrita": [
-            "چوق",
-            "آما",
-            "أوت",
-            "وار",
-            "دگل",
-            "خایر"
-          ]
+          "exemplosForaDaEscrita": ["چوق", "آما", "أوت", "وار", "دگل", "خایر"]
         },
         {
           "lang": "zh",
@@ -2160,9 +2061,7 @@
       "somaGlosas": 22296,
       "somaUteis": 22296,
       "somaFrases": 17871,
-      "nativos": [
-        "pt"
-      ],
+      "nativos": ["pt"],
       "resultados": [
         {
           "par": "ar-pt",
@@ -2515,24 +2414,14 @@
         "/sobre",
         "/vocabulario"
       ],
-      "visitadasPeloE2E": [
-        "/ajustes",
-        "/biblioteca",
-        "/jogar",
-        "/planos",
-        "/vocabulario"
-      ],
+      "visitadasPeloE2E": ["/ajustes", "/biblioteca", "/jogar", "/planos", "/vocabulario"],
       "detalhe": [
         {
           "arquivo": "src/components/views/Play.tsx",
           "nome": "Play",
           "t": 119,
           "compT": 3,
-          "importados": [
-            "numero",
-            "t",
-            "tp"
-          ],
+          "importados": ["numero", "t", "tp"],
           "soFormatador": false
         },
         {
@@ -2540,11 +2429,7 @@
           "nome": "Hub",
           "t": 103,
           "compT": 0,
-          "importados": [
-            "numero",
-            "t",
-            "tp"
-          ],
+          "importados": ["numero", "t", "tp"],
           "soFormatador": false
         },
         {
@@ -2552,9 +2437,7 @@
           "nome": "Settings",
           "t": 74,
           "compT": 2,
-          "importados": [
-            "t"
-          ],
+          "importados": ["t"],
           "soFormatador": false
         },
         {
@@ -2562,9 +2445,7 @@
           "nome": "BaralhoAnki",
           "t": 1,
           "compT": 0,
-          "importados": [
-            "t"
-          ],
+          "importados": ["t"],
           "soFormatador": false
         },
         {
@@ -2572,10 +2453,7 @@
           "nome": "MapaDoConteudo",
           "t": 1,
           "compT": 0,
-          "importados": [
-            "data",
-            "t"
-          ],
+          "importados": ["data", "t"],
           "soFormatador": false
         },
         {
@@ -2583,10 +2461,7 @@
           "nome": "Planos",
           "t": 1,
           "compT": 0,
-          "importados": [
-            "numero",
-            "t"
-          ],
+          "importados": ["numero", "t"],
           "soFormatador": false
         },
         {
@@ -2594,10 +2469,7 @@
           "nome": "Analysis",
           "t": 0,
           "compT": 0,
-          "importados": [
-            "data",
-            "numero"
-          ],
+          "importados": ["data", "numero"],
           "soFormatador": true
         },
         {
@@ -2605,9 +2477,7 @@
           "nome": "AnalysisExpandedKpi",
           "t": 0,
           "compT": 0,
-          "importados": [
-            "numero"
-          ],
+          "importados": ["numero"],
           "soFormatador": true
         },
         {
@@ -2615,9 +2485,7 @@
           "nome": "BaralhosAnki",
           "t": 0,
           "compT": 0,
-          "importados": [
-            "data"
-          ],
+          "importados": ["data"],
           "soFormatador": true
         },
         {
@@ -2625,9 +2493,7 @@
           "nome": "Conquistas",
           "t": 0,
           "compT": 0,
-          "importados": [
-            "data"
-          ],
+          "importados": ["data"],
           "soFormatador": true
         },
         {
@@ -2651,9 +2517,7 @@
           "nome": "Library",
           "t": 0,
           "compT": 0,
-          "importados": [
-            "numero"
-          ],
+          "importados": ["numero"],
           "soFormatador": true
         },
         {
@@ -2661,10 +2525,7 @@
           "nome": "LiveCapture",
           "t": 0,
           "compT": 0,
-          "importados": [
-            "dataHora",
-            "numero"
-          ],
+          "importados": ["dataHora", "numero"],
           "soFormatador": true
         },
         {
@@ -2680,9 +2541,7 @@
           "nome": "Metrics",
           "t": 0,
           "compT": 0,
-          "importados": [
-            "numero"
-          ],
+          "importados": ["numero"],
           "soFormatador": true
         },
         {
@@ -2690,9 +2549,7 @@
           "nome": "MetricsExpandedKpi",
           "t": 0,
           "compT": 0,
-          "importados": [
-            "numero"
-          ],
+          "importados": ["numero"],
           "soFormatador": true
         },
         {
@@ -2756,16 +2613,12 @@
         {
           "arquivo": "src/components/Honestidade.tsx",
           "toLocale": [],
-          "intl": [
-            "new Intl.NumberFormat('pt-BR'"
-          ]
+          "intl": ["new Intl.NumberFormat('pt-BR'"]
         },
         {
           "arquivo": "src/lib/i18n.ts",
           "toLocale": [],
-          "intl": [
-            "new Intl.PluralRules('pt'"
-          ]
+          "intl": ["new Intl.PluralRules('pt'"]
         }
       ],
       "caixaSemLocale": [
@@ -5012,30 +4865,9 @@
           "OK",
           "verdadeiro positivo — o caso que a regra existe para pegar"
         ],
-        [
-          "es",
-          "llamarla",
-          "llamar",
-          "llamar",
-          "OK",
-          "verdadeiro positivo"
-        ],
-        [
-          "es",
-          "hablarnos",
-          "hablar",
-          "hablar",
-          "OK",
-          "verdadeiro positivo"
-        ],
-        [
-          "es",
-          "enterarse",
-          "enterar",
-          "enterar",
-          "OK",
-          "verdadeiro positivo"
-        ],
+        ["es", "llamarla", "llamar", "llamar", "OK", "verdadeiro positivo"],
+        ["es", "hablarnos", "hablar", "hablar", "OK", "verdadeiro positivo"],
+        ["es", "enterarse", "enterar", "enterar", "OK", "verdadeiro positivo"],
         [
           "es",
           "carme",
@@ -5084,30 +4916,9 @@
           "OK",
           "FALSO POSITIVO se cortar — termina em \"nos\""
         ],
-        [
-          "es",
-          "alumnos",
-          "(não cortar)",
-          "(não cortou)",
-          "OK",
-          "FALSO POSITIVO se cortar"
-        ],
-        [
-          "es",
-          "hermanos",
-          "(não cortar)",
-          "(não cortou)",
-          "OK",
-          "FALSO POSITIVO se cortar"
-        ],
-        [
-          "it",
-          "parlarne",
-          "parlar",
-          "parlar",
-          "OK",
-          "verdadeiro positivo"
-        ],
+        ["es", "alumnos", "(não cortar)", "(não cortou)", "OK", "FALSO POSITIVO se cortar"],
+        ["es", "hermanos", "(não cortar)", "(não cortou)", "OK", "FALSO POSITIVO se cortar"],
+        ["it", "parlarne", "parlar", "parlar", "OK", "verdadeiro positivo"],
         [
           "it",
           "dormi",
@@ -5467,50 +5278,17 @@
       "motivosLiterais": 23,
       "titulo": "Babel Play — Ouça, entenda e fale outro idioma",
       "metas": [
-        [
-          "viewport",
-          "width=device-width, initial-scale=1.0"
-        ],
-        [
-          "description",
-          "Capture qualquer áudio — vídeos, reuniões, podcasts — veja"
-        ],
-        [
-          "og:site_name",
-          "Babel Play"
-        ],
-        [
-          "og:title",
-          "Babel Play — Ouça, entenda e fale outro idioma"
-        ],
-        [
-          "og:description",
-          "Vídeos, reuniões, podcasts: cada conversa vira prática de "
-        ],
-        [
-          "og:image",
-          "https://babel-play.pages.dev/og.png"
-        ],
-        [
-          "og:url",
-          "https://babel-play.pages.dev/"
-        ],
-        [
-          "twitter:card",
-          "summary_large_image"
-        ],
-        [
-          "twitter:title",
-          "Babel Play — Ouça, entenda e fale outro idioma"
-        ],
-        [
-          "twitter:description",
-          "Vídeos, reuniões, podcasts: cada conversa vira prática de "
-        ],
-        [
-          "twitter:image",
-          "https://babel-play.pages.dev/og.png"
-        ]
+        ["viewport", "width=device-width, initial-scale=1.0"],
+        ["description", "Capture qualquer áudio — vídeos, reuniões, podcasts — veja"],
+        ["og:site_name", "Babel Play"],
+        ["og:title", "Babel Play — Ouça, entenda e fale outro idioma"],
+        ["og:description", "Vídeos, reuniões, podcasts: cada conversa vira prática de "],
+        ["og:image", "https://babel-play.pages.dev/og.png"],
+        ["og:url", "https://babel-play.pages.dev/"],
+        ["twitter:card", "summary_large_image"],
+        ["twitter:title", "Babel Play — Ouça, entenda e fale outro idioma"],
+        ["twitter:description", "Vídeos, reuniões, podcasts: cada conversa vira prática de "],
+        ["twitter:image", "https://babel-play.pages.dev/og.png"]
       ],
       "porArea": [
         {
@@ -6030,10 +5808,7 @@
         "substrings": 4
       },
       "zh": {
-        "variantes": [
-          "zh-CN→zh",
-          "zh-TW→zh"
-        ],
+        "variantes": ["zh-CN→zh", "zh-TW→zh"],
         "comTrad": 75,
         "total": 5221
       },

@@ -110,8 +110,8 @@ desconhecidos (ex.: id de baralho apagado), sem derrubar o resto da leitura.
 
 ## Riscos e não-verificados
 
-| Item | Estado |
-|---|---|
-| `pistasDaTriagem` sem origem, corrigido | Não verificado linha a linha nesta auditoria — tarefa listada em `tasks.md`, Onda 1 |
+| Item                                                | Estado                                                                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `pistasDaTriagem` sem origem, corrigido             | Não verificado linha a linha nesta auditoria — tarefa listada em `tasks.md`, Onda 1            |
 | Distribuição multi-fonte proporcional (Q1 do plano) | Não implementada — nenhuma ocorrência de lógica de maior resto/proporcional em `composicao.ts` |
-| Re-escopo server-side do `dueToday` | Não implementado — `dueToday` não aparece em `server/db/repositories/vocab.ts` |
+| Re-escopo server-side do `dueToday`                 | Não implementado — `dueToday` não aparece em `server/db/repositories/vocab.ts`                 |

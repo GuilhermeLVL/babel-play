@@ -6,11 +6,11 @@ arquivos de código + extração semântica de 50 documentos.
 **Saída interativa: `graphify-out/graph.html`** — abre em qualquer navegador, sem servidor.
 (`graphify-out/` está no `.gitignore`: é reconstruível.)
 
-| | |
-|---|---|
-| Nós | 4.041 |
-| Arestas | 9.858 |
-| Comunidades | 258 (187 com massa) |
+|                         |                                              |
+| ----------------------- | -------------------------------------------- |
+| Nós                     | 4.041                                        |
+| Arestas                 | 9.858                                        |
+| Comunidades             | 258 (187 com massa)                          |
 | Procedência das arestas | **98% EXTRAÍDAS**, 2% inferidas, 0% ambíguas |
 
 A procedência importa: quase tudo aqui é fato tirado de `import`/`call` reais, não inferência de
@@ -27,7 +27,7 @@ Ou seja, **não há ilhas de código**. Mas isso não quer dizer que não haja p
 que eles não estão onde um grafo de AST consegue olhar.
 
 **O grafo não atravessa a fronteira HTTP.** O cliente chama `fetch('/api/metrics/presenca')` — uma
-*string*, não uma função. Para o AST, a chamada morre ali; do outro lado, a rota do servidor é um
+_string_, não uma função. Para o AST, a chamada morre ali; do outro lado, a rota do servidor é um
 nó sem ninguém apontando para ele. As duas metades ficam desconectadas no grafo mesmo quando
 funcionam, e conectadas na aparência mesmo quando não funcionam.
 
@@ -41,17 +41,17 @@ dois sozinho responde "o que está solto?".
 
 Dos 16 nós nunca referenciados, treze têm explicação legítima: `main.tsx` é a entrada do Vite
 (referenciada pelo `index.html`), `migrate.ts` roda por `npm run db:migrate`, os `.sql` são lidos
-pelo migrador, `env.d.ts` e `tsconfig.json` são configuração, e os três *workers*
+pelo migrador, `env.d.ts` e `tsconfig.json` são configuração, e os três _workers_
 (`mtWorker`, `whisperWorker`, `speakerIdWorker`) são carregados por `new Worker(new URL(…))` — que
 o AST não enxerga.
 
 Sobram três, verificados um a um por busca no código:
 
-| módulo | linhas | situação |
-|---|---|---|
-| `src/gateway/ocr.ts` | 128 | **OCR completo com Tesseract.js, nunca importado.** Nenhuma tela chama |
-| `src/gateway/adapters/streamingCloudStt.ts` | 67 | Stub de Deepgram/AssemblyAI, **não registrado em `resolveStt` nem em perfil nenhum** |
-| `server/db/repositories/index.ts` | 27 | Barril com 30 reexportações que ninguém importa (todos importam direto) |
+| módulo                                      | linhas | situação                                                                             |
+| ------------------------------------------- | ------ | ------------------------------------------------------------------------------------ |
+| `src/gateway/ocr.ts`                        | 128    | **OCR completo com Tesseract.js, nunca importado.** Nenhuma tela chama               |
+| `src/gateway/adapters/streamingCloudStt.ts` | 67     | Stub de Deepgram/AssemblyAI, **não registrado em `resolveStt` nem em perfil nenhum** |
+| `server/db/repositories/index.ts`           | 27     | Barril com 30 reexportações que ninguém importa (todos importam direto)              |
 
 O `ocr.ts` é o mais notável: é implementação real e funcional de reconhecimento de texto em imagem,
 com ciclo de vida de worker e caixas em pixels, **pronta e desligada**. Ou virou funcionalidade
@@ -61,18 +61,18 @@ esquecida, ou a tela que a usaria nunca foi feita.
 
 Os dez nós mais conectados dizem onde o peso arquitetural está:
 
-| nó | arestas |
-|---|---|
-| `Play()` | 86 |
-| **`apiFetch()`** | 77 |
-| `LiveCapture()` | 73 |
-| `AgeProfileType` | 73 |
-| `asUserId()` | 60 |
-| `App()` | 52 |
-| `setupEphemeralDb()` | 52 |
-| `EphemeralDb` | 51 |
-| `VocabCard` | 50 |
-| `Analysis()` | 42 |
+| nó                   | arestas |
+| -------------------- | ------- |
+| `Play()`             | 86      |
+| **`apiFetch()`**     | 77      |
+| `LiveCapture()`      | 73      |
+| `AgeProfileType`     | 73      |
+| `asUserId()`         | 60      |
+| `App()`              | 52      |
+| `setupEphemeralDb()` | 52      |
+| `EphemeralDb`        | 51      |
+| `VocabCard`          | 50      |
+| `Analysis()`         | 42      |
 
 Dois merecem comentário. **`apiFetch()` com 77 arestas confirma que o "funil único" é real** — é a
 invariante que a regra `fetch-fora-do-funil` guarda, e o grafo mostra que ela é obedecida em quase

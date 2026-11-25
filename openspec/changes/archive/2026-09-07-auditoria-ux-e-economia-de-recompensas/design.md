@@ -10,6 +10,7 @@ precisa achar as causas e a extensão.
 ### O problema central: liberdade × progressão
 
 Funções foram construídas em fases diferentes, cada uma coerente consigo mesma:
+
 - Fase "ferramenta" (até 08/2026): personalização era um AJUSTE — quanto mais liberdade, melhor.
 - Fase "gamificação" (28/08 em diante): personalização virou RECOMPENSA — liberdade é o prêmio.
 
@@ -23,6 +24,7 @@ Essa é a régua que a auditoria deve aplicar item a item.
 
 Hoje: 42 slots de Seeds espalhados, 10–50 por slot. O usuário passa vários níveis "sem ganhar
 nada de verdade". Direção a desenhar (números a validar):
+
 - **Blocos**: Seeds concentradas em poucos níveis, em quantidade que compra algo de fato.
 - **Todo nível entrega ALGO nomeável**: item, bloco de moeda, ou desbloqueio de capacidade —
   nunca um slot que o usuário não sabe dizer o que foi.

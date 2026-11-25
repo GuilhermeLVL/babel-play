@@ -9,6 +9,7 @@ data. **[R]** relato de terceiro, blog ou fórum. **[I]** inferência minha. "N�
 procurei e não encontrei; não é prova de que não existe.
 
 **Limites desta pesquisa (leia antes de confiar).**
+
 - A skill `last30days` está instalada, mas nunca foi configurada nesta máquina; a primeira execução
   pede consentimento do dono (leitura de cookies do navegador, instalação de ferramentas, gravação de
   configuração). Não rodei. A parte de fórum saiu de busca comum, e veio fraca: quase tudo que achei
@@ -34,6 +35,7 @@ segunda geração (02/2026) que mostra o texto enquanto a pessoa fala e erra men
 100). Também existe para espanhol e alemão. Não existe para português.
 
 **3. O que o navegador dá de graça ajuda menos do que parece em português.**
+
 - O tradutor embutido do Chrome (e agora do Edge) funciona em português, é no aparelho, e já usamos.
   Só existe no computador.
 - O reconhecimento de fala "no aparelho" do Chrome existe desde 08/2025, mas não achei lista oficial
@@ -95,16 +97,16 @@ Português, FLEURS teste, todos em Q8, notebook Ryzen 4750U (CPU e GPU integrada
 não navegador) **[R]** (models.handy.computer, sem data na página; lista modelos de 03/2026, então é
 de 2026):
 
-| Modelo | Erro em pt (%) | Velocidade CPU (× tempo real) | Tamanho |
-|---|---|---|---|
-| whisper-large-v3-turbo | 4,17 | 0,8 | 0,83 GB |
-| canary-1b-v2 | 4,50 | 6,7 | 1,10 GB |
-| **parakeet-tdt-0.6b-v3** | **4,96** | **7,5** | **0,72 GB** |
-| Qwen3-ASR-0.6B | 6,57 | 4,3 | 0,79 GB |
-| whisper-small | 7,65 | 3,4 | 0,25 GB |
-| nemotron-3.5-asr-streaming-0.6b | 8,52 | 7,5 | 0,70 GB |
-| whisper-base | 13,91 | 11,9 | 0,08 GB |
-| whisper-tiny | 24,07 | 24,8 | 0,04 GB |
+| Modelo                          | Erro em pt (%) | Velocidade CPU (× tempo real) | Tamanho     |
+| ------------------------------- | -------------- | ----------------------------- | ----------- |
+| whisper-large-v3-turbo          | 4,17           | 0,8                           | 0,83 GB     |
+| canary-1b-v2                    | 4,50           | 6,7                           | 1,10 GB     |
+| **parakeet-tdt-0.6b-v3**        | **4,96**       | **7,5**                       | **0,72 GB** |
+| Qwen3-ASR-0.6B                  | 6,57           | 4,3                           | 0,79 GB     |
+| whisper-small                   | 7,65           | 3,4                           | 0,25 GB     |
+| nemotron-3.5-asr-streaming-0.6b | 8,52           | 7,5                           | 0,70 GB     |
+| whisper-base                    | 13,91          | 11,9                          | 0,08 GB     |
+| whisper-tiny                    | 24,07          | 24,8                          | 0,04 GB     |
 
 Conferência cruzada: o artigo da NVIDIA dá Parakeet v3 em pt no FLEURS com 4,76% e Canary v2 com
 4,39% **[C]** (arXiv 2509.14128, 09/2025). As duas fontes concordam na ordem. A nossa bancada mediu
@@ -112,6 +114,7 @@ whisper-base em 18,2% (100 falas FLEURS pt): mais alto que os 13,9% de terceiros
 (normalização e dtype diferentes) e lembra que só a nossa medição vale para decidir.
 
 **Parakeet TDT 0.6b v3** (25 idiomas europeus, licença CC-BY-4.0, exige atribuição):
+
 - Roda em navegador em projetos de terceiros (parakeet.js, parakeet_web, Keet) via ONNX Runtime Web,
   WASM e WebGPU **[R]**.
 - Ressalvas reportadas pelos próprios empacotadores **[R]**: o export int8 dá resultado errado no
@@ -225,21 +228,22 @@ com `track.getSettings()` o que foi de fato aplicado e registrar na telemetria l
 
 ## 2. Recursos nativos grátis por plataforma (outubro/2026)
 
-| Recurso | Onde existe | pt-BR | Sai do aparelho? | Como detectar |
-|---|---|---|---|---|
-| `Translator` | Chrome 138+ e Edge 148+, só computador **[C]** | Sim (`pt`; Chrome lista 39 idiomas, Edge diz 145+) | Não | `'Translator' in self`, depois `Translator.availability({sourceLanguage, targetLanguage})` |
-| `LanguageDetector` | Idem **[C]** | Sim | Não | `'LanguageDetector' in self` |
-| `Summarizer` | Chrome 138+, computador **[C]** | Não (Gemini Nano: en, es, ja, de, fr desde o 149) | Não | `'Summarizer' in self` |
-| Prompt API (`LanguageModel`) | Chrome computador; página atualizada em 26/08/2026 **[C]**; um guia diz "ligada por padrão no 154" **[R]** | Não | Não | `'LanguageModel' in self` + `availability()` |
-| Proofreader, Writer, Rewriter | Teste de origem **[C]** | Não | Não | idem |
-| Fala no aparelho (`processLocally`) | Chrome 139+ computador (Windows, Mac, Linux) **[C]**; Edge só Canary/Dev 150+ atrás de flag **[C]** | Chrome: **não achei lista**. Edge: en-US, de-DE, it-IT, **pt-PT**, es-ES, ko-KR | Não | `SpeechRecognition.available({langs:['pt-BR'], processLocally:true})` |
-| Fala padrão (`webkitSpeechRecognition`) | Chrome computador e Android, Safari | Sim | **Sim** (servidor do Google no Chrome; Apple no Safari) | `'webkitSpeechRecognition' in window` |
-| `start(MediaStreamTrack)` | Chrome/Edge computador **[C]** (MDN e doc do Edge); versão exata não achei | n/a | conforme o modo | `try { rec.start(track) }` |
-| `phrases` (vocabulário) | Chrome, experimental **[C]**; versão não achei | n/a | n/a | `'phrases' in SpeechRecognition.prototype` |
-| WebGPU | Chrome/Edge; Safari 26 (inclui iOS 26) **[C]**; Firefox Windows 141, Mac 145/147, Linux e Android ainda não **[C]** (wiki gpuweb, 28/05/2026) | n/a | n/a | `navigator.gpu?.requestAdapter()` |
-| WebNN | Teste de origem/flag **[C]** | n/a | n/a | `'ml' in navigator` |
+| Recurso                                 | Onde existe                                                                                                                                   | pt-BR                                                                           | Sai do aparelho?                                        | Como detectar                                                                              |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `Translator`                            | Chrome 138+ e Edge 148+, só computador **[C]**                                                                                                | Sim (`pt`; Chrome lista 39 idiomas, Edge diz 145+)                              | Não                                                     | `'Translator' in self`, depois `Translator.availability({sourceLanguage, targetLanguage})` |
+| `LanguageDetector`                      | Idem **[C]**                                                                                                                                  | Sim                                                                             | Não                                                     | `'LanguageDetector' in self`                                                               |
+| `Summarizer`                            | Chrome 138+, computador **[C]**                                                                                                               | Não (Gemini Nano: en, es, ja, de, fr desde o 149)                               | Não                                                     | `'Summarizer' in self`                                                                     |
+| Prompt API (`LanguageModel`)            | Chrome computador; página atualizada em 26/08/2026 **[C]**; um guia diz "ligada por padrão no 154" **[R]**                                    | Não                                                                             | Não                                                     | `'LanguageModel' in self` + `availability()`                                               |
+| Proofreader, Writer, Rewriter           | Teste de origem **[C]**                                                                                                                       | Não                                                                             | Não                                                     | idem                                                                                       |
+| Fala no aparelho (`processLocally`)     | Chrome 139+ computador (Windows, Mac, Linux) **[C]**; Edge só Canary/Dev 150+ atrás de flag **[C]**                                           | Chrome: **não achei lista**. Edge: en-US, de-DE, it-IT, **pt-PT**, es-ES, ko-KR | Não                                                     | `SpeechRecognition.available({langs:['pt-BR'], processLocally:true})`                      |
+| Fala padrão (`webkitSpeechRecognition`) | Chrome computador e Android, Safari                                                                                                           | Sim                                                                             | **Sim** (servidor do Google no Chrome; Apple no Safari) | `'webkitSpeechRecognition' in window`                                                      |
+| `start(MediaStreamTrack)`               | Chrome/Edge computador **[C]** (MDN e doc do Edge); versão exata não achei                                                                    | n/a                                                                             | conforme o modo                                         | `try { rec.start(track) }`                                                                 |
+| `phrases` (vocabulário)                 | Chrome, experimental **[C]**; versão não achei                                                                                                | n/a                                                                             | n/a                                                     | `'phrases' in SpeechRecognition.prototype`                                                 |
+| WebGPU                                  | Chrome/Edge; Safari 26 (inclui iOS 26) **[C]**; Firefox Windows 141, Mac 145/147, Linux e Android ainda não **[C]** (wiki gpuweb, 28/05/2026) | n/a                                                                             | n/a                                                     | `navigator.gpu?.requestAdapter()`                                                          |
+| WebNN                                   | Teste de origem/flag **[C]**                                                                                                                  | n/a                                                                             | n/a                                                     | `'ml' in navigator`                                                                        |
 
 **Chrome e Edge no computador.**
+
 - Requisitos do Gemini Nano **[C]**: 22 GB livres no volume do perfil; GPU com mais de 4 GB de VRAM,
   ou CPU com 16 GB de RAM e 4 núcleos. A máquina do dono (16 GB, RX 6800) entra; o notebook típico do
   nosso usuário, não.
@@ -285,6 +289,7 @@ base 146+, vale repetir a página de diagnóstico no aparelho: pode ter mudado.
 ## 3. Corrigir e melhorar com modelo pequeno grátis
 
 **Pós-correção da transcrição por LLM.** O que a literatura diz **[C]/[R]**:
+
 - Sobrecorreção é o defeito central: o modelo puxa a fala para a língua escrita e mexe no que estava
   certo. Num estudo com GPT-4, os acertos eram pequenos e os erros eram frases longas inventadas (WER
   de 0,5 para 3,0 num exemplo) (arXiv 2506.16528).
@@ -308,6 +313,7 @@ a 71 tokens/s num M3 Max. No Safari de iPhone o limite por buffer vai de 256 MB 
 que barra quase tudo. Não achei número confiável em celular Android.
 
 **Tradução.**
+
 - TranslateGemma (01/2026, 55 idiomas, relatório técnico arXiv 2601.09012) **[C]**: o 4B reduz o erro
   MetricX em 23,6% sobre o Gemma 3 4B. Existe demo em WebGPU do `webml-community` **[C]**, que pede
   "VRAM suficiente". Não achei comparação direta com opus-mt, Bergamot ou o tradutor do Chrome em
@@ -328,17 +334,18 @@ que barra quase tudo. Não achei número confiável em celular Android.
 
 ## 4. Nuvem de custo zero de verdade
 
-| Serviço | Limite grátis vigente | Treina com os dados? | Menores / consumo | Veredito |
-|---|---|---|---|---|
-| **Groq** | Whisper v3 e turbo: 20 pedidos/min, 2.000/dia, 7.200 s de áudio/hora, 28.800 s/dia; gpt-oss-120b/20b: 30/min, 1.000/dia, 8 mil tokens/min, 200 mil/dia **[C]** (doc de limites, lida hoje; a página fala em "plano Developer" na base, conferir no console) | Não: contrato proíbe treinar com entradas e saídas; retenção só o necessário; há modo retenção zero **[C]** (Services Agreement, modificado em 22/06/2026) | Cliente tem que ter 18+; serviço "não é para uso de consumidor"; se o nosso app é acessado por menores, a responsabilidade é só nossa (6.3). Proíbe uso "com intenção de evitar tarifas" **[C]** | Serve como camada do NOSSO servidor em piloto. Não serve como amostra aberta |
-| **Cloudflare Workers AI** | 10.000 neurônios/dia por conta, zera 00:00 UTC, **falha ao estourar** (não cobra) **[C]**. Whisper turbo 46,63 neurônios/min ≈ 214 min/dia; MeloTTS 18,63/min **[R]** (cópias da doc; página atualizada em 24/08/2026, conferir) | Não achei cláusula lida hoje | Não li termos de menores | Único candidato a "amostra" com teto duro. Já é fornecedor nosso |
-| **Google AI Studio / Gemini** | Sem número fixo publicado; guias divergem (de ~20 a 1.500 pedidos/dia) **[R]** | **Sim** no grátis, com revisão humana **[C]** (termos arquivados; resumos de 2026 dizem que continua) | 18+ segundo resumo de terceiros **[R]** | **Não usar** com dado de usuário |
-| **OpenRouter `:free`** | 20/min; 50/dia, ou 1.000/dia com US$ 10 já comprados **[C]** (blog do OpenRouter) | Depende do provedor por trás; vários treinam | n/a | Só para teste interno sem dado de usuário |
-| **Mistral (plano Experiment)** | Grátis com telefone verificado; limites divergem **[R]** | **Pode treinar** **[C]** (central de ajuda) | n/a | Não usar com dado de usuário |
-| **Cerebras** | Fontes de 08 e 09/2026: sem camada grátis permanente, US$ 5 de crédito por 30 dias com cartão. Fontes mais antigas: 1 M tokens/dia **[R]** (contradição) | Não achei | n/a | Não contar com ela |
-| **Hugging Face Inference** | Não pesquisei a fundo | | | Não recomendo: cota pequena e variável **[I]** |
+| Serviço                        | Limite grátis vigente                                                                                                                                                                                                                                       | Treina com os dados?                                                                                                                                       | Menores / consumo                                                                                                                                                                                | Veredito                                                                     |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| **Groq**                       | Whisper v3 e turbo: 20 pedidos/min, 2.000/dia, 7.200 s de áudio/hora, 28.800 s/dia; gpt-oss-120b/20b: 30/min, 1.000/dia, 8 mil tokens/min, 200 mil/dia **[C]** (doc de limites, lida hoje; a página fala em "plano Developer" na base, conferir no console) | Não: contrato proíbe treinar com entradas e saídas; retenção só o necessário; há modo retenção zero **[C]** (Services Agreement, modificado em 22/06/2026) | Cliente tem que ter 18+; serviço "não é para uso de consumidor"; se o nosso app é acessado por menores, a responsabilidade é só nossa (6.3). Proíbe uso "com intenção de evitar tarifas" **[C]** | Serve como camada do NOSSO servidor em piloto. Não serve como amostra aberta |
+| **Cloudflare Workers AI**      | 10.000 neurônios/dia por conta, zera 00:00 UTC, **falha ao estourar** (não cobra) **[C]**. Whisper turbo 46,63 neurônios/min ≈ 214 min/dia; MeloTTS 18,63/min **[R]** (cópias da doc; página atualizada em 24/08/2026, conferir)                            | Não achei cláusula lida hoje                                                                                                                               | Não li termos de menores                                                                                                                                                                         | Único candidato a "amostra" com teto duro. Já é fornecedor nosso             |
+| **Google AI Studio / Gemini**  | Sem número fixo publicado; guias divergem (de ~20 a 1.500 pedidos/dia) **[R]**                                                                                                                                                                              | **Sim** no grátis, com revisão humana **[C]** (termos arquivados; resumos de 2026 dizem que continua)                                                      | 18+ segundo resumo de terceiros **[R]**                                                                                                                                                          | **Não usar** com dado de usuário                                             |
+| **OpenRouter `:free`**         | 20/min; 50/dia, ou 1.000/dia com US$ 10 já comprados **[C]** (blog do OpenRouter)                                                                                                                                                                           | Depende do provedor por trás; vários treinam                                                                                                               | n/a                                                                                                                                                                                              | Só para teste interno sem dado de usuário                                    |
+| **Mistral (plano Experiment)** | Grátis com telefone verificado; limites divergem **[R]**                                                                                                                                                                                                    | **Pode treinar** **[C]** (central de ajuda)                                                                                                                | n/a                                                                                                                                                                                              | Não usar com dado de usuário                                                 |
+| **Cerebras**                   | Fontes de 08 e 09/2026: sem camada grátis permanente, US$ 5 de crédito por 30 dias com cartão. Fontes mais antigas: 1 M tokens/dia **[R]** (contradição)                                                                                                    | Não achei                                                                                                                                                  | n/a                                                                                                                                                                                              | Não contar com ela                                                           |
+| **Hugging Face Inference**     | Não pesquisei a fundo                                                                                                                                                                                                                                       |                                                                                                                                                            |                                                                                                                                                                                                  | Não recomendo: cota pequena e variável **[I]**                               |
 
 **Dá para oferecer amostra diária por usuário sem pagar?** A conta:
+
 - Groq: o limite é da organização, não do usuário. Legenda ao vivo corta a fala em 10 a 15 trechos
   por minuto; 20 pedidos por minuto cobrem **uma** pessoa e meia ao mesmo tempo **[I]**. Há relato de
   cobrança mínima de 10 s por pedido **[R]**, o que faz trecho curto gastar a cota de segundos mais
@@ -348,6 +355,7 @@ que barra quase tudo. Não achei número confiável em celular Android.
   Quando acaba, o pedido falha e o app cai para o local sem custo. É o desenho mais seguro.
 
 **Riscos.**
+
 1. Estabilidade: camada grátis muda sem aviso (a da Cerebras encolheu em 2026; a do Gemini mudou
    várias vezes) **[R]**.
 2. Termos: usar camada grátis para atender usuário final em produção encosta na cláusula da Groq de
@@ -366,15 +374,16 @@ grátis antes de divulgar o app.
 
 ## 5. Voz (TTS) grátis de qualidade
 
-| Motor | pt-BR | Tamanho | Velocidade | Licença | Observações |
-|---|---|---|---|---|---|
-| Vozes do sistema (`speechSynthesis`) | Sim, varia | 0 | imediata | n/a | "Natural" do Edge são boas; Android e Chrome comuns são fracas; no Quest os relatos dizem que não há voz (relatos antigos) |
-| **Kokoro 82M** (`kokoro-js`) | Sim: 3 vozes (pf_dora, pm_alex, pm_santa) **[C]** | 86 MB (q8f16) a 326 MB (fp32) **[R]** | 1,5 a 2× tempo real em WebGPU num M4 **[R]**; README recomenda fp32 no WebGPU e q8 no WASM **[C]** | Apache-2.0 | Não funciona no Firefox segundo um projeto **[R]**. Não achei nota de qualidade das vozes pt |
-| **Supertonic 3** | Sim (31 idiomas) **[R]** (espelhos do HF) | ~99 M de parâmetros; MB não achei | Muito rápido em CPU segundo o fabricante **[R]** | Pesos em **OpenRAIL-M** (restrições de uso: sem imitação de pessoa, sem esconder que é sintético); código MIT. Um blog diz "MIT": contradição | Conferir a licença no repositório oficial antes de usar em produto pago |
-| **Piper** (pt_BR faber, medium) | Sim, 1 voz masculina | ~60 a 75 MB **[R]** | 3 a 5× tempo real em WASM/CPU **[R]** | MIT, mas o fonemizador espeak-ng é GPL | Qualidade "boa, robótica"; sem marcação de tempo por palavra |
-| KittenTTS 0.8 | **Não** (só inglês) **[R]** | 24 a 78 MB | rápido em CPU | Apache-2.0 | Só para voz em inglês em aparelho fraco |
+| Motor                                | pt-BR                                             | Tamanho                               | Velocidade                                                                                         | Licença                                                                                                                                       | Observações                                                                                                                |
+| ------------------------------------ | ------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Vozes do sistema (`speechSynthesis`) | Sim, varia                                        | 0                                     | imediata                                                                                           | n/a                                                                                                                                           | "Natural" do Edge são boas; Android e Chrome comuns são fracas; no Quest os relatos dizem que não há voz (relatos antigos) |
+| **Kokoro 82M** (`kokoro-js`)         | Sim: 3 vozes (pf_dora, pm_alex, pm_santa) **[C]** | 86 MB (q8f16) a 326 MB (fp32) **[R]** | 1,5 a 2× tempo real em WebGPU num M4 **[R]**; README recomenda fp32 no WebGPU e q8 no WASM **[C]** | Apache-2.0                                                                                                                                    | Não funciona no Firefox segundo um projeto **[R]**. Não achei nota de qualidade das vozes pt                               |
+| **Supertonic 3**                     | Sim (31 idiomas) **[R]** (espelhos do HF)         | ~99 M de parâmetros; MB não achei     | Muito rápido em CPU segundo o fabricante **[R]**                                                   | Pesos em **OpenRAIL-M** (restrições de uso: sem imitação de pessoa, sem esconder que é sintético); código MIT. Um blog diz "MIT": contradição | Conferir a licença no repositório oficial antes de usar em produto pago                                                    |
+| **Piper** (pt_BR faber, medium)      | Sim, 1 voz masculina                              | ~60 a 75 MB **[R]**                   | 3 a 5× tempo real em WASM/CPU **[R]**                                                              | MIT, mas o fonemizador espeak-ng é GPL                                                                                                        | Qualidade "boa, robótica"; sem marcação de tempo por palavra                                                               |
+| KittenTTS 0.8                        | **Não** (só inglês) **[R]**                       | 24 a 78 MB                            | rápido em CPU                                                                                      | Apache-2.0                                                                                                                                    | Só para voz em inglês em aparelho fraco                                                                                    |
 
 **Proposta [I].**
+
 - Computador com Edge: voz do sistema ("Natural"). Computador com Chrome/Firefox e GPU: Kokoro como
   "voz melhorada no aparelho" (download opcional, avisado). Sem GPU: voz do sistema.
 - Celular: voz do sistema. Kokoro em celular não tem medição pública; não ligar sem medir.
@@ -415,6 +424,7 @@ grátis antes de divulgar o app.
 ### 6.3 Medir qualidade em produção sem gabarito [I]
 
 Guardar só no aparelho, e enviar agregado apenas com consentimento:
+
 - fator de tempo real por trecho; atraso entre o fim da fala e o texto final;
 - parcela de trechos barrados pelo filtro de alucinação;
 - log-prob médio e razão de compressão por sessão;
@@ -431,17 +441,18 @@ confirmar.
 
 **Transcrever**
 
-| Aparelho | Grátis | Essencial (5 h de nuvem) | Premium (20 h) | Ao Vivo (parcial pela nuvem) |
-|---|---|---|---|---|
-| Computador com GPU, inglês | Moonshine (v2 se disponível). Etiqueta "No aparelho" | Igual ao Grátis. **Não gastar nuvem**: a diferença é de 1 a 2 palavras em 100 | Igual; botão "Refinar na nuvem" por trecho | Igual; nuvem só se o usuário pedir |
-| Computador com GPU, português e outros | Preciso local. Parcial: fala do navegador se `processLocally` existir para o idioma; senão concordância local | Local; nuvem quando a média de confiança da sessão cair ou o usuário pedir | Nuvem primeiro, local de reserva | Streaming da nuvem |
-| Computador sem GPU, inglês | Moonshine em CPU | Igual | Igual; nuvem se não acompanhar | Streaming da nuvem se não acompanhar |
-| Computador sem GPU, português | Whisper base (Parakeet int8 se medir bem). Se não acompanha: fala do navegador com etiqueta "Pelo navegador (sai do aparelho)" e escolha do usuário | Nuvem dentro da cota | Nuvem primeiro | Streaming da nuvem |
-| Android forte | Inglês: Moonshine tiny/base. Outros: base q8. Se não acompanha: fala do navegador, etiquetada | Nuvem dentro da cota | Nuvem primeiro | Streaming da nuvem |
-| Android fraco e iPhone | Inglês: Moonshine tiny. Outros: fala do navegador, etiquetada; sem ela, base q8 com aviso de atraso | Nuvem dentro da cota | Nuvem primeiro | Streaming da nuvem |
-| Quest 3 | Inglês: Moonshine tiny (medido, acompanha). Outros: base q8 com fim de fala em 500 ms e aviso; amostra de nuvem diária | Nuvem dentro da cota | Nuvem primeiro | Streaming da nuvem |
+| Aparelho                               | Grátis                                                                                                                                              | Essencial (5 h de nuvem)                                                      | Premium (20 h)                             | Ao Vivo (parcial pela nuvem)         |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------ |
+| Computador com GPU, inglês             | Moonshine (v2 se disponível). Etiqueta "No aparelho"                                                                                                | Igual ao Grátis. **Não gastar nuvem**: a diferença é de 1 a 2 palavras em 100 | Igual; botão "Refinar na nuvem" por trecho | Igual; nuvem só se o usuário pedir   |
+| Computador com GPU, português e outros | Preciso local. Parcial: fala do navegador se `processLocally` existir para o idioma; senão concordância local                                       | Local; nuvem quando a média de confiança da sessão cair ou o usuário pedir    | Nuvem primeiro, local de reserva           | Streaming da nuvem                   |
+| Computador sem GPU, inglês             | Moonshine em CPU                                                                                                                                    | Igual                                                                         | Igual; nuvem se não acompanhar             | Streaming da nuvem se não acompanhar |
+| Computador sem GPU, português          | Whisper base (Parakeet int8 se medir bem). Se não acompanha: fala do navegador com etiqueta "Pelo navegador (sai do aparelho)" e escolha do usuário | Nuvem dentro da cota                                                          | Nuvem primeiro                             | Streaming da nuvem                   |
+| Android forte                          | Inglês: Moonshine tiny/base. Outros: base q8. Se não acompanha: fala do navegador, etiquetada                                                       | Nuvem dentro da cota                                                          | Nuvem primeiro                             | Streaming da nuvem                   |
+| Android fraco e iPhone                 | Inglês: Moonshine tiny. Outros: fala do navegador, etiquetada; sem ela, base q8 com aviso de atraso                                                 | Nuvem dentro da cota                                                          | Nuvem primeiro                             | Streaming da nuvem                   |
+| Quest 3                                | Inglês: Moonshine tiny (medido, acompanha). Outros: base q8 com fim de fala em 500 ms e aviso; amostra de nuvem diária                              | Nuvem dentro da cota                                                          | Nuvem primeiro                             | Streaming da nuvem                   |
 
 Porquês:
+
 - **Inglês não vai à nuvem por padrão, nem para quem paga**, quando o aparelho acompanha. A nuvem
   acrescenta pouco e gasta a cota que faz falta em português. Muda o achado atual ("todo pagante vai à
   nuvem primeiro").
@@ -452,22 +463,22 @@ Porquês:
 
 **Traduzir**
 
-| Aparelho | Grátis | Essencial | Premium / Ao Vivo |
-|---|---|---|---|
-| Computador Chrome/Edge | Tradutor do navegador → Bergamot → opus-mt | Igual; LLM da nuvem em "explicar" e sob pedido | LLM da nuvem por padrão; local na queda de rede |
-| Computador Firefox/Safari | Bergamot → opus-mt | Idem | Idem |
-| Celular e Quest | Bergamot (31 MB) → opus-mt | Nuvem dentro da cota | Nuvem |
+| Aparelho                  | Grátis                                     | Essencial                                      | Premium / Ao Vivo                               |
+| ------------------------- | ------------------------------------------ | ---------------------------------------------- | ----------------------------------------------- |
+| Computador Chrome/Edge    | Tradutor do navegador → Bergamot → opus-mt | Igual; LLM da nuvem em "explicar" e sob pedido | LLM da nuvem por padrão; local na queda de rede |
+| Computador Firefox/Safari | Bergamot → opus-mt                         | Idem                                           | Idem                                            |
+| Celular e Quest           | Bergamot (31 MB) → opus-mt                 | Nuvem dentro da cota                           | Nuvem                                           |
 
 Porquê: tradução por LLM custa centavos por hora (estudo anterior), então para quem paga compensa
 sempre. No Grátis, o tradutor do navegador é o melhor custo zero no computador; no celular não existe.
 
 **Falar (voz)**
 
-| Aparelho | Grátis | Essencial | Premium | Ao Vivo |
-|---|---|---|---|---|
-| Computador | Voz do sistema; Kokoro opcional com GPU | Igual | Voz neural básica da nuvem | Voz neural boa |
-| Celular | Voz do sistema | Igual | Nuvem | Nuvem |
-| Quest | Voz do sistema se existir; senão Piper local | Igual | Nuvem | Nuvem |
+| Aparelho   | Grátis                                       | Essencial | Premium                    | Ao Vivo        |
+| ---------- | -------------------------------------------- | --------- | -------------------------- | -------------- |
+| Computador | Voz do sistema; Kokoro opcional com GPU      | Igual     | Voz neural básica da nuvem | Voz neural boa |
+| Celular    | Voz do sistema                               | Igual     | Nuvem                      | Nuvem          |
+| Quest      | Voz do sistema se existir; senão Piper local | Igual     | Nuvem                      | Nuvem          |
 
 **Nuance** (explicação por LLM): não há via local aceitável em português (Gemini Nano não fala pt;
 modelos de 0,5 a 2 B erram registro e gíria) **[I]**. Grátis: sem Nuance, ou poucas por dia como
@@ -484,6 +495,7 @@ ter aceitado isso antes.
 ## 7. Transparência e confiança
 
 **O que as fontes dizem.**
+
 - Estudo CHI 2025 (KAIST, 30 participantes, app de detecção de golpe por voz no aparelho) **[C]**:
   mesmo com processamento local, parte dos participantes descreveu a sensação de "estar sendo
   grampeado". Dizer "é local" não gera, sozinho, sensação de segurança.
@@ -495,6 +507,7 @@ ter aceitado isso antes.
   do modelo e pedem permissão para baixar pacote de idioma fora do Wi-Fi **[C]**.
 
 **ECA Digital e LGPD.**
+
 - Lei 15.211/2025 em vigor desde 17/03/2026; Decreto 12.880/2026 regulamenta **[C]/[R]** (Agência
   Gov, Mattos Filho). O decreto exige o modelo **mais protetivo por padrão** e informação clara quando
   houver opção menos restritiva. A ANPD lista "configuração mais protetiva por padrão" entre os
@@ -508,6 +521,7 @@ ter aceitado isso antes.
 - Não achei regra específica do ECA Digital sobre transferência internacional; vale a LGPD.
 
 **Proposta prática [I].**
+
 1. Três estados, com nome fixo e cor/ícone próprios, visíveis durante a captura, e a mesma linguagem
    na tela de planos e na política de privacidade.
 2. Primeira vez que algo sai do aparelho: tela curta com o que sai (áudio da fala), para quem (nome
@@ -524,23 +538,23 @@ ter aceitado isso antes.
 
 ## Lista de ações, por ganho ÷ esforço
 
-| # | Ação | Ganho esperado | Esforço | Confiança | Aplica já ou mede antes |
-|---|---|---|---|---|---|
-| 1 | Medir Parakeet TDT v3 int8 (WASM) e fp16 (WebGPU) em pt/es/fr/de na nossa bancada; se confirmar, vira o "preciso local" fora do inglês | Erro em pt de ~14–18% (base) ou ~8% (small) para ~5%; passa a servir notebook sem GPU | Médio (motor novo, janela deslizante) | Média: número nativo é sólido, navegador não foi medido | **Mede antes** |
-| 2 | Conferir a rota `hybrid-fp16` contra a issue #1590 (encoder fp16 no WebGPU da v4) | Evita perda silenciosa de qualidade em celular/Quest com GPU | Baixo (rodar a bancada em dois dtypes) | Alta de que o risco existe; desconhecido se nos atinge | **Mede antes**, hoje |
-| 3 | Inglês de pagante não vai à nuvem quando o aparelho acompanha | Economiza a maior parte da cota de nuvem sem perda perceptível; Premium rende mais em português | Baixo (regra do roteador) | Alta | **Aplica já** (decisão do dono) |
-| 4 | Verificar e adotar Moonshine v2 streaming (en; depois es, de) | Erro en de ~10% para ~7,8% (small) com texto durante a fala nativo | Baixo a médio, depende de haver ONNX compatível | Média | Verificar disponibilidade, depois medir |
-| 5 | Sonda de `processLocally` para pt-BR/en/es no Chrome real + `phrases` com o vocabulário do usuário | Texto parcial no aparelho sem custo onde existir; nomes próprios melhores | Baixo | Baixa para pt-BR (lista de idiomas não publicada) | **Mede antes** (5 minutos por navegador) |
-| 6 | Selo de três estados + consentimento separado + trava do perfil infantil | Confiança, ECA Digital | Médio (interface) | Alta | **Aplica já** |
-| 7 | Correção determinística de vocabulário do usuário e nomes do conteúdo após o reconhecimento | Corrige o erro que o usuário mais nota, sem inventar | Baixo a médio | Média | Aplica com limiar conservador, mede taxa de troca errada |
-| 8 | Tabela única de qualidade (modelo × idioma × aparelho) lida pelo roteador e mostrada ao usuário | Roteamento explicável; transparência de qualidade | Baixo | Alta | **Aplica já** com os números que temos |
-| 9 | Amostragem de concordância local × nuvem (1 em 20 trechos de quem tem nuvem) | Mede qualidade em produção sem gabarito, por aparelho e idioma | Médio | Média | Aplica depois do item 8 |
-| 10 | Amostra de nuvem do Grátis só como recompensa, sobre Cloudflare, com teto global diário | Gancho de conversão sem risco de conta | Médio | Média (limites em [R], conferir) | Conferir limites e termos, depois aplicar |
-| 11 | Repetir a página de diagnóstico no Quest (navegador agora em Chromium 146+) | Pode destravar voz/fala nativas no Quest | Baixo | Baixa | **Mede antes** |
-| 12 | Voz: Kokoro opcional no computador com GPU; Piper como reserva onde não há voz do sistema | Voz melhor no Grátis de quem usa Chrome/Firefox; voz no Quest | Médio | Média | Mede velocidade e qualidade pt |
-| 13 | Redecodificar trecho suspeito de alucinação e ampliar a lista de frases típicas por idioma | Menos frases inventadas em silêncio/música | Baixo | Média | Aplica, mede taxa de barrados |
-| 14 | Subir transformers.js para 4.3 (WebGPU no Safari 26) e medir iPhone | Possível GPU no iPhone | Baixo + medição | Baixa | **Mede antes** |
-| 15 | Silero v6.2 (32 ms) no lugar do v5 | Pequeno, em casos de borda | Baixo, se o pacote permitir trocar o modelo | Baixa | Mede no nosso áudio |
+| #   | Ação                                                                                                                                   | Ganho esperado                                                                                  | Esforço                                         | Confiança                                               | Aplica já ou mede antes                                  |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------- |
+| 1   | Medir Parakeet TDT v3 int8 (WASM) e fp16 (WebGPU) em pt/es/fr/de na nossa bancada; se confirmar, vira o "preciso local" fora do inglês | Erro em pt de ~14–18% (base) ou ~8% (small) para ~5%; passa a servir notebook sem GPU           | Médio (motor novo, janela deslizante)           | Média: número nativo é sólido, navegador não foi medido | **Mede antes**                                           |
+| 2   | Conferir a rota `hybrid-fp16` contra a issue #1590 (encoder fp16 no WebGPU da v4)                                                      | Evita perda silenciosa de qualidade em celular/Quest com GPU                                    | Baixo (rodar a bancada em dois dtypes)          | Alta de que o risco existe; desconhecido se nos atinge  | **Mede antes**, hoje                                     |
+| 3   | Inglês de pagante não vai à nuvem quando o aparelho acompanha                                                                          | Economiza a maior parte da cota de nuvem sem perda perceptível; Premium rende mais em português | Baixo (regra do roteador)                       | Alta                                                    | **Aplica já** (decisão do dono)                          |
+| 4   | Verificar e adotar Moonshine v2 streaming (en; depois es, de)                                                                          | Erro en de ~10% para ~7,8% (small) com texto durante a fala nativo                              | Baixo a médio, depende de haver ONNX compatível | Média                                                   | Verificar disponibilidade, depois medir                  |
+| 5   | Sonda de `processLocally` para pt-BR/en/es no Chrome real + `phrases` com o vocabulário do usuário                                     | Texto parcial no aparelho sem custo onde existir; nomes próprios melhores                       | Baixo                                           | Baixa para pt-BR (lista de idiomas não publicada)       | **Mede antes** (5 minutos por navegador)                 |
+| 6   | Selo de três estados + consentimento separado + trava do perfil infantil                                                               | Confiança, ECA Digital                                                                          | Médio (interface)                               | Alta                                                    | **Aplica já**                                            |
+| 7   | Correção determinística de vocabulário do usuário e nomes do conteúdo após o reconhecimento                                            | Corrige o erro que o usuário mais nota, sem inventar                                            | Baixo a médio                                   | Média                                                   | Aplica com limiar conservador, mede taxa de troca errada |
+| 8   | Tabela única de qualidade (modelo × idioma × aparelho) lida pelo roteador e mostrada ao usuário                                        | Roteamento explicável; transparência de qualidade                                               | Baixo                                           | Alta                                                    | **Aplica já** com os números que temos                   |
+| 9   | Amostragem de concordância local × nuvem (1 em 20 trechos de quem tem nuvem)                                                           | Mede qualidade em produção sem gabarito, por aparelho e idioma                                  | Médio                                           | Média                                                   | Aplica depois do item 8                                  |
+| 10  | Amostra de nuvem do Grátis só como recompensa, sobre Cloudflare, com teto global diário                                                | Gancho de conversão sem risco de conta                                                          | Médio                                           | Média (limites em [R], conferir)                        | Conferir limites e termos, depois aplicar                |
+| 11  | Repetir a página de diagnóstico no Quest (navegador agora em Chromium 146+)                                                            | Pode destravar voz/fala nativas no Quest                                                        | Baixo                                           | Baixa                                                   | **Mede antes**                                           |
+| 12  | Voz: Kokoro opcional no computador com GPU; Piper como reserva onde não há voz do sistema                                              | Voz melhor no Grátis de quem usa Chrome/Firefox; voz no Quest                                   | Médio                                           | Média                                                   | Mede velocidade e qualidade pt                           |
+| 13  | Redecodificar trecho suspeito de alucinação e ampliar a lista de frases típicas por idioma                                             | Menos frases inventadas em silêncio/música                                                      | Baixo                                           | Média                                                   | Aplica, mede taxa de barrados                            |
+| 14  | Subir transformers.js para 4.3 (WebGPU no Safari 26) e medir iPhone                                                                    | Possível GPU no iPhone                                                                          | Baixo + medição                                 | Baixa                                                   | **Mede antes**                                           |
+| 15  | Silero v6.2 (32 ms) no lugar do v5                                                                                                     | Pequeno, em casos de borda                                                                      | Baixo, se o pacote permitir trocar o modelo     | Baixa                                                   | Mede no nosso áudio                                      |
 
 **Não fazer:** pós-correção da legenda por LLM pequeno no aparelho; Gemini Nano para português;
 Gemini grátis, Mistral Experiment e OpenRouter `:free` com dado de usuário; NLLB (licença não
@@ -602,6 +616,7 @@ comercial); WebNN; `initial_prompt` manual no Whisper (muito trabalho, ganho inc
 ## Fontes
 
 Modelos de fala
+
 - Moonshine, tabela de modelos: https://moonshine-voice.readthedocs.io/en/latest/models/available-models/ (lida em 09/10/2026)
 - Moonshine v2, artigo: https://arxiv.org/abs/2602.12241 (12/02/2026)
 - Moonshine JS: https://dev.moonshine.ai/moonshine-js/
@@ -615,6 +630,7 @@ Modelos de fala
 - Open ASR Leaderboard, trilhas multilíngue: https://huggingface.co/blog/open-asr-leaderboard
 
 Quantização, streaming, alucinação
+
 - Quantizing Whisper-small: https://arxiv.org/pdf/2511.08093 (11/2025)
 - Quantization for Whisper, análise comparativa: https://arxiv.org/abs/2503.09905 (03/2025)
 - transformers.js #1590 (fp16 no WebGPU): https://github.com/huggingface/transformers.js/issues/1590 (03/2026)
@@ -625,6 +641,7 @@ Quantização, streaming, alucinação
 - TEN VAD: https://github.com/TEN-framework/ten-vad
 
 Navegadores
+
 - Chrome, APIs embutidas: https://developer.chrome.com/docs/ai/built-in-apis
 - Chrome, requisitos: https://developer.chrome.com/docs/ai/get-started
 - Chrome, Translator: https://developer.chrome.com/docs/ai/translator-api
@@ -648,6 +665,7 @@ Navegadores
 - Quest, fala e voz (relato): https://communityforums.atmeta.com/discussions/dev-quest/meta-quest-browser-stt-and-tts-support-/1189761
 
 Tradução e LLM local
+
 - TranslateGemma, relatório: https://arxiv.org/abs/2601.09012 (01/2026)
 - TranslateGemma WebGPU: https://huggingface.co/spaces/webml-community/TranslateGemma-WebGPU
 - Modelos do Firefox Translations: https://github.com/mozilla/firefox-translations-models
@@ -655,6 +673,7 @@ Tradução e LLM local
 - Correção de ASR por LLM: https://arxiv.org/abs/2307.04172 ; https://arxiv.org/pdf/2506.16528 ; https://arxiv.org/html/2505.24347v3 ; https://www.alphaxiv.org/abs/2605.19711 ; https://publications.idiap.ch/attachments/papers/2024/Naderi_INTERSPEECH_2024.pdf
 
 Nuvem grátis
+
 - Groq, limites: https://console.groq.com/docs/rate-limits (lida em 09/10/2026)
 - Groq, contrato: https://console.groq.com/docs/legal/services-agreement (modificado em 22/06/2026)
 - Cloudflare Workers AI, preços: https://developers.cloudflare.com/workers-ai/platform/pricing/
@@ -664,6 +683,7 @@ Nuvem grátis
 - Cerebras (terceiros, contraditórios): https://costbench.com/software/llm-api-providers/cerebras-inference/free-plan/
 
 Voz
+
 - kokoro-js: https://cdn.jsdelivr.net/npm/kokoro-js@1.2.0/README.md
 - Kokoro: https://github.com/hexgrad/kokoro
 - Supertonic 3 (espelho): https://huggingface.co/davidgortega/supertonic-3
@@ -671,6 +691,7 @@ Voz
 - KittenTTS: https://huggingface.co/litert-community/kitten-tts-nano-0.8
 
 Roteamento, experiência e lei
+
 - Gravador do Pixel, "Transcrever de novo": https://www.androidheadlines.com/2023/12/pixel-recorder-cloud-transcribe-again.html
 - Patente de comando de voz híbrido: https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11763814
 - Estudo CHI 2025 (KAIST): https://nmsl.kaist.ac.kr/pdf/CHIEA25_VP.pdf

@@ -12,7 +12,7 @@
  * pelo resto da vida da aba. As duas falhas são invisíveis em uso normal — só aparecem como lentidão
  * e consumo de memória que ninguém liga à causa.
  */
-import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const apiFetch = vi.fn()
 vi.mock('../src/data/api', () => ({ apiFetch: (...a: unknown[]) => apiFetch(...a) }))
@@ -39,10 +39,14 @@ beforeEach(() => {
   apiFetch.mockReset()
   apiFetch.mockImplementation(async () => ({ ok: true, status: 200, blob: async () => new Blob(['audio']) }))
   globalThis.URL.createObjectURL = vi.fn(() => `blob:fake-${++criadas}`)
-  globalThis.URL.revokeObjectURL = vi.fn((u: string) => { revogadas.push(u) })
+  globalThis.URL.revokeObjectURL = vi.fn((u: string) => {
+    revogadas.push(u)
+  })
 })
 
-afterEach(() => { vi.restoreAllMocks() })
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('o áudio é buscado pelo caminho autenticado', () => {
   it('usa apiFetch (que injeta o Bearer), nunca fetch cru', async () => {
@@ -84,7 +88,7 @@ describe('contabilidade de referências', () => {
   it('a URL só é revogada na ÚLTIMA referência', async () => {
     const id = novaSessao()
     const url = await urlDeAudio(id)
-    await urlDeAudio(id)          // segunda tela
+    await urlDeAudio(id) // segunda tela
 
     liberar(id)
     await Promise.resolve()

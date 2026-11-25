@@ -1,4 +1,4 @@
-import { BookOpen, ChevronDown,Cpu, ExternalLink, Info, Sparkles, Waves } from 'lucide-react';
+import { BookOpen, ChevronDown, Cpu, ExternalLink, Info, Sparkles, Waves } from 'lucide-react';
 import { useState } from 'react';
 
 /**
@@ -34,9 +34,9 @@ export interface ProvenanceProps {
 }
 
 const KIND_META: Record<ProvenanceKind, { label: string; icon: typeof Info; badge: string }> = {
-  source:   { label: 'Fonte',           icon: BookOpen, badge: 'badge-tag ok' },
-  computed: { label: 'Calculado',       icon: Waves,    badge: 'badge-tag acc' },
-  ai:       { label: 'Gerado por IA',   icon: Sparkles, badge: 'badge-tag warn' },
+  source: { label: 'Fonte', icon: BookOpen, badge: 'badge-tag ok' },
+  computed: { label: 'Calculado', icon: Waves, badge: 'badge-tag acc' },
+  ai: { label: 'Gerado por IA', icon: Sparkles, badge: 'badge-tag warn' },
 };
 
 export default function Provenance({ kind, origin, method, url, limits, className = '' }: ProvenanceProps) {
@@ -55,7 +55,9 @@ export default function Provenance({ kind, origin, method, url, limits, classNam
 
         {method && (
           <>
-            <span className="text-ink-faint" aria-hidden>·</span>
+            <span className="text-ink-faint" aria-hidden>
+              ·
+            </span>
             <span className="font-mono text-ink-muted">{method}</span>
           </>
         )}
@@ -73,7 +75,7 @@ export default function Provenance({ kind, origin, method, url, limits, classNam
 
         {limits && (
           <button
-            onClick={() => setOpen(o => !o)}
+            onClick={() => setOpen((o) => !o)}
             className="inline-flex items-center gap-0.5 font-mono text-ink-muted hover:text-ink transition-colors cursor-pointer"
             aria-expanded={open}
           >

@@ -9,7 +9,7 @@ export const VIEWS_LABELS: Record<string, string> = {
   analysis: 'Análise de Sessão',
   reading: 'Leitura & Notas (Leitor)',
   study: 'Estudo & Exercícios (SRS)',
-  metrics: 'Meu Vocabulário & Métricas'
+  metrics: 'Meu Vocabulário & Métricas',
 };
 
 export const PANEL_TITLES: Record<string, string> = {
@@ -31,5 +31,5 @@ export const PANEL_TITLES: Record<string, string> = {
   filters: 'Filtros e Busca',
   gridList: 'Grade de Gravações',
   // Métricas
-  header: 'Cabeçalho de Telemetria'
+  header: 'Cabeçalho de Telemetria',
 };

@@ -64,8 +64,7 @@ function settle(declared: string, detected: LangDetection | null, ready: boolean
   const det = detected ? baseLang(detected.lang) : '';
 
   // O texto derruba o rótulo só quando discorda E está confiante.
-  const overrides =
-    !!det && det !== dec && (detected?.confidence ?? 0) >= OVERRIDE_CONFIDENCE;
+  const overrides = !!det && det !== dec && (detected?.confidence ?? 0) >= OVERRIDE_CONFIDENCE;
 
   // Sem rótulo, qualquer detecção já é melhor que nada — mas continua sendo "detectado", não "declarado".
   const useDetected = overrides || (!dec && !!det);
@@ -90,4 +89,3 @@ export async function resolveSpokenLang(text: string, declared: string): Promise
   const detected = await detectLanguage(text || '');
   return settle(declared, detected, true);
 }
-

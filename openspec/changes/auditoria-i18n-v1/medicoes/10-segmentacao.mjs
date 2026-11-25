@@ -35,7 +35,11 @@ const linhas = [];
 
 for (const lang of alvos) {
   let dados;
-  try { dados = lerJSON(caminho('public', 'trilha', `${lang}.json`)); } catch { continue; }
+  try {
+    dados = lerJSON(caminho('public', 'trilha', `${lang}.json`));
+  } catch {
+    continue;
+  }
   const itens = Object.values(dados.niveis).flat();
   const idx = itens.some((i) => i.length >= 4) ? 2 : 1;
   const frases = itens.map((i) => i[idx]).filter((f) => typeof f === 'string' && f.trim());
@@ -43,11 +47,18 @@ for (const lang of alvos) {
   const passo = Math.max(1, Math.floor(frases.length / AMOSTRA));
   const amostra = frases.filter((_, i) => i % passo === 0).slice(0, AMOSTRA);
 
-  let somaRegua = 0, somaICU = 0, erroAbs = 0, dentroDaFaixaRegua = 0, dentroDaFaixaICU = 0, discordam = 0;
+  let somaRegua = 0,
+    somaICU = 0,
+    erroAbs = 0,
+    dentroDaFaixaRegua = 0,
+    dentroDaFaixaICU = 0,
+    discordam = 0;
   for (const f of amostra) {
     const r = contarPalavras(f);
     const i = porSegmenter(f, lang);
-    somaRegua += r; somaICU += i; erroAbs += Math.abs(r - i);
+    somaRegua += r;
+    somaICU += i;
+    erroAbs += Math.abs(r - i);
     // A faixa que `scripts/trilha/frases.mjs:8` usa para aceitar uma frase.
     const okR = r >= 5 && r <= 12;
     const okI = i >= 5 && i <= 12;
@@ -58,7 +69,8 @@ for (const lang of alvos) {
 
   const n = amostra.length;
   linhas.push({
-    lang, n,
+    lang,
+    n,
     semEspaco: ESCRITA_SEM_ESPACO.test(amostra[0] ?? '') ? 'sim' : 'não',
     mediaRegua: (somaRegua / n).toFixed(2),
     mediaICU: (somaICU / n).toFixed(2),
@@ -73,8 +85,32 @@ for (const lang of alvos) {
 }
 
 let texto = tabela(
-  ['lang', 'n', 'sem espaço', 'média régua', 'média ICU', 'erro médio', 'viés', 'erro rel.', 'aceita régua', 'aceita ICU', 'decisão diverge'],
-  linhas.map((x) => [x.lang, x.n, x.semEspaco, x.mediaRegua, x.mediaICU, x.erroMedio, x.vies, x.erroRelativo, x.aceitaRegua, x.aceitaICU, `${x.discordam} (${x.discordanciaPct})`]),
+  [
+    'lang',
+    'n',
+    'sem espaço',
+    'média régua',
+    'média ICU',
+    'erro médio',
+    'viés',
+    'erro rel.',
+    'aceita régua',
+    'aceita ICU',
+    'decisão diverge',
+  ],
+  linhas.map((x) => [
+    x.lang,
+    x.n,
+    x.semEspaco,
+    x.mediaRegua,
+    x.mediaICU,
+    x.erroMedio,
+    x.vies,
+    x.erroRelativo,
+    x.aceitaRegua,
+    x.aceitaICU,
+    `${x.discordam} (${x.discordanciaPct})`,
+  ]),
 );
 
 // Idiomas sem espaço que a régua NÃO cobre — o teste de degradação que a Fase 3 vai querer.
@@ -85,12 +121,16 @@ const foraDaRegua = [
   ['birmanês', 'my', 'သင့်အကူအညီအတွက်ကျေးဇူးအများကြီးတင်ပါတယ်'],
   ['tibetano', 'bo', 'ཁྱེད་རང་གི་རོགས་རམ་ལ་ཐུགས་རྗེ་ཆེ།'],
 ];
-texto += '\n' + tabela(['idioma', 'bcp47', 'régua', 'ICU', 'erro'],
-  foraDaRegua.map(([nome, l, frase]) => {
-    const r = contarPalavras(frase);
-    const i = porSegmenter(frase, l);
-    return [nome, l, r, i, `${r - i > 0 ? '+' : ''}${r - i}`];
-  }));
+texto +=
+  '\n' +
+  tabela(
+    ['idioma', 'bcp47', 'régua', 'ICU', 'erro'],
+    foraDaRegua.map(([nome, l, frase]) => {
+      const r = contarPalavras(frase);
+      const i = porSegmenter(frase, l);
+      return [nome, l, r, i, `${r - i > 0 ? '+' : ''}${r - i}`];
+    }),
+  );
 
 texto += '\n\nTailandês: está em ESCRITA_SEM_ESPACO mas foi retirado da publicação (tasks.md:97).';
 const th = 'ขอบคุณมากสำหรับความช่วยเหลือของคุณในวันนี้';

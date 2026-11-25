@@ -15,18 +15,25 @@
  * A piscina abaixo é a REAL: as 9 palavras de 5 letras da etapa 1 do A1 (`mesmoTamanho` reduz o
  * material ao maior grupo de mesmo comprimento, e é ele que a escada consome).
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { buildItems } from '../src/core/minigames/itemSource'
 import { rodadasDaEscada } from '../src/core/minigames/termo'
 import type { VocabCard } from '../src/types'
 
 const PISCINA_A1: Array<[string, string]> = [
-  ['about', 'cerca de'], ['above', 'acima'], ['again', 'de novo'], ['agree', 'concordar'],
-  ['alone', 'sozinho'], ['angry', 'bravo'], ['apple', 'maçã'], ['april', 'abril'], ['apron', 'avental'],
+  ['about', 'cerca de'],
+  ['above', 'acima'],
+  ['again', 'de novo'],
+  ['agree', 'concordar'],
+  ['alone', 'sozinho'],
+  ['angry', 'bravo'],
+  ['apple', 'maçã'],
+  ['april', 'abril'],
+  ['apron', 'avental'],
 ]
 const carta = ([word, translation]: [string, string]): VocabCard =>
-  ({ id: word, word, translation, sentence: null, inDeck: true, srcLang: 'en' } as unknown as VocabCard)
+  ({ id: word, word, translation, sentence: null, inDeck: true, srcLang: 'en' }) as unknown as VocabCard
 
 /* Palavras de 5 letras com traduções sem dígito: `avaliarCartao` reprova pista com número, e um
    fixture reprovado esvaziaria a rodada por um motivo que nada tem a ver com o que se mede aqui. */
@@ -109,8 +116,9 @@ describe('buildItems já exclui o que caiu (a referência do conserto)', () => {
     const rodadas = corrente(
       cartas,
       (cs, evitar) =>
-        buildItems('memory', cs, { evitar, memoria: new Map(), semente, diaDe, excluirEvitadas: true, now: AGORA })
-          .map((i) => i.answer),
+        buildItems('memory', cs, { evitar, memoria: new Map(), semente, diaDe, excluirEvitadas: true, now: AGORA }).map(
+          (i) => i.answer,
+        ),
       4,
     )
     const todas = rodadas.flat()

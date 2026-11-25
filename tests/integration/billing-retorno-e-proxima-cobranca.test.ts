@@ -39,7 +39,10 @@ describe('criarAssinatura — callback de volta ao app', () => {
   it('APP_URL https: manda o callback para /app/plano/assinado com autoRedirect', async () => {
     process.env.APP_URL = 'https://babel.exemplo.com.br/'
     const corpo = await corpoEnviado()
-    expect(corpo.callback).toEqual({ successUrl: 'https://babel.exemplo.com.br/app/plano/assinado', autoRedirect: true })
+    expect(corpo.callback).toEqual({
+      successUrl: 'https://babel.exemplo.com.br/app/plano/assinado',
+      autoRedirect: true,
+    })
     expect(corpo.billingType).toBe('UNDEFINED')
   })
 

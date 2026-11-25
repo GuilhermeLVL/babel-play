@@ -1,6 +1,7 @@
 # laboratorio-de-latencia-da-legenda Specification
 
 ## Purpose
+
 Bancada que mede fim da fala até legenda traduzida, carga de modelos e campo, atrás de flag. Criada pela change `lab-medicao-legenda-traduzida` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-lab-medicao-legenda-traduzida/proposal.md` para o porquê.
 
 ## Requirements

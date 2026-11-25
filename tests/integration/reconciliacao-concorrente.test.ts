@@ -10,10 +10,10 @@
  * linha para quem chegar primeiro. Este arquivo prova as duas metades — que a corrida sumiu, e
  * que a varredura continua acontecendo quando é para acontecer.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let quota: any
@@ -24,16 +24,16 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   quota = await h.load('../../server/lib/storageQuota')
 })
-afterAll(async () => { await h?.cleanup?.() })
+afterAll(async () => {
+  await h?.cleanup?.()
+})
 
 describe('reconciliação de armazenamento sob concorrência', () => {
   it('dez reivindicações simultâneas: exatamente UMA vence', async () => {
     /* Afirmar sobre o MECANISMO, e não sobre um espião: `reconciliarSeVencido` chama a varredura
        por referência interna ao módulo, e um spy no export não interceptaria — o teste passaria
        verde sem provar nada. A reivindicação é a peça que decide quem varre. */
-    const vencedores = await Promise.all(
-      Array.from({ length: 10 }, () => quota.reivindicarJanela(U, 24)),
-    )
+    const vencedores = await Promise.all(Array.from({ length: 10 }, () => quota.reivindicarJanela(U, 24)))
     expect(vencedores.filter(Boolean).length, 'antes, todas as dez varriam').toBe(1)
   })
 

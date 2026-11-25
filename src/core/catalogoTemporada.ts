@@ -19,7 +19,10 @@ import type { ItemDaLoja, Raridade } from './tiposDaLoja';
 /** O preço de volta, por raridade — dentro das faixas calibradas da Loja com Seeds. */
 const PRECO_DE_VOLTA: Record<Raridade, number> = { comum: 400, raro: 1100, epico: 2800, lendario: 5200 };
 
-const daT1 = (raridade: Raridade) => ({ raridade, origemTemporada: { temporada: 't1', precoSeedsDepois: PRECO_DE_VOLTA[raridade] } });
+const daT1 = (raridade: Raridade) => ({
+  raridade,
+  origemTemporada: { temporada: 't1', precoSeedsDepois: PRECO_DE_VOLTA[raridade] },
+});
 
 const slug = (nome: string) =>
   nome
@@ -39,14 +42,40 @@ export function raridadeDaCasa(nivel: number): Raridade {
 
 /** Títulos da trilha de assinante — as casas ímpares (1, 3, …, 29), na ordem. */
 const ESTRELAS = [
-  'Sírius', 'Vega', 'Altair', 'Rigel', 'Antares', 'Canopus', 'Arcturus', 'Aldebarã',
-  'Betelgeuse', 'Spica', 'Deneb', 'Polaris', 'Achernar', 'Fomalhaut', 'Capella',
+  'Sírius',
+  'Vega',
+  'Altair',
+  'Rigel',
+  'Antares',
+  'Canopus',
+  'Arcturus',
+  'Aldebarã',
+  'Betelgeuse',
+  'Spica',
+  'Deneb',
+  'Polaris',
+  'Achernar',
+  'Fomalhaut',
+  'Capella',
 ] as const;
 
 /** Molduras da trilha de assinante — as casas pares (2, 4, …, 30), na ordem. A última é o marco. */
 const CONSTELACOES = [
-  'Órion', 'Lira', 'Cisne', 'Cruzeiro do Sul', 'Escorpião', 'Cassiopeia', 'Andrômeda', 'Pégaso',
-  'Fênix', 'Dragão', 'Centauro', 'Águia', 'Leão', 'Ursa Maior', 'Via Láctea',
+  'Órion',
+  'Lira',
+  'Cisne',
+  'Cruzeiro do Sul',
+  'Escorpião',
+  'Cassiopeia',
+  'Andrômeda',
+  'Pégaso',
+  'Fênix',
+  'Dragão',
+  'Centauro',
+  'Águia',
+  'Leão',
+  'Ursa Maior',
+  'Via Láctea',
 ] as const;
 
 export const TITULOS_DA_T1: ItemDaLoja[] = ESTRELAS.map((estrela, i) => ({

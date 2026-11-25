@@ -12,7 +12,10 @@ import { join } from 'node:path'
 
 const pasta = process.argv[2]
 const md = process.argv.includes('--md')
-if (!pasta) { console.error('uso: resumir-lighthouse.mjs <pasta>'); process.exit(2) }
+if (!pasta) {
+  console.error('uso: resumir-lighthouse.mjs <pasta>')
+  process.exit(2)
+}
 
 const grupos = new Map()
 for (const f of readdirSync(pasta).filter((x) => x.endsWith('.json'))) {
@@ -44,7 +47,10 @@ for (const [k, execs] of [...grupos.entries()].sort()) {
 if (md) {
   console.log('| preset | rota | exec. | perf | a11y | boas práticas | FCP ms | LCP ms | TBT ms | CLS | Speed Index |')
   console.log('|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|')
-  for (const l of linhas) console.log(`| ${l.preset} | /${l.rota === 'inicio' ? '' : l.rota} | ${l.execs} | ${l.perf} | ${l.a11y} | ${l.bp} | ${l.fcp} | ${l.lcp} | ${l.tbt} | ${l.cls} | ${l.si} |`)
+  for (const l of linhas)
+    console.log(
+      `| ${l.preset} | /${l.rota === 'inicio' ? '' : l.rota} | ${l.execs} | ${l.perf} | ${l.a11y} | ${l.bp} | ${l.fcp} | ${l.lcp} | ${l.tbt} | ${l.cls} | ${l.si} |`,
+    )
 } else {
   console.log(JSON.stringify(linhas, null, 2))
 }

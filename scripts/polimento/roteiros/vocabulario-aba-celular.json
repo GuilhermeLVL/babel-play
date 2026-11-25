@@ -51,10 +51,7 @@
       }
     ]
   },
-  "seletores": [
-    ".qv-abas",
-    ".qv-abas .px-pilula"
-  ],
+  "seletores": [".qv-abas", ".qv-abas .px-pilula"],
   "gravar": {
     "app": [
       {

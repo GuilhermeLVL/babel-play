@@ -6,12 +6,12 @@ encerrar em 07/09**, depois da explicacao dos dois custos.
 
 O que a decisao pesou, medido antes:
 
-| superficie | tamanho |
-|---|---|
-| ramos `EDICAO_LEVE` | 47, em 12 arquivos |
+| superficie          | tamanho                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| ramos `EDICAO_LEVE` | 47, em 12 arquivos                                                                 |
 | arquivos exclusivos | 4 (`edicao.ts`, `OnboardingLeve.tsx`, `TranscricaoLeve.tsx`, `functions/api/rank`) |
-| infra propria | `.env.leve`, `wrangler.toml`, `deploy-pages.yml`, `functions/api/[[path]].ts` |
-| testes so dela | `tests/edicao-leve.test.tsx` + um caso em `card-de-planos` |
+| infra propria       | `.env.leve`, `wrangler.toml`, `deploy-pages.yml`, `functions/api/[[path]].ts`      |
+| testes so dela      | `tests/edicao-leve.test.tsx` + um caso em `card-de-planos`                         |
 
 E o fato que decidiu: **ela nunca foi publicada.** `deploy-pages.yml` nasceu desarmado
 (`workflow_dispatch`, sem `CLOUDFLARE_API_TOKEN` nem `CLOUDFLARE_ACCOUNT_ID`) e nunca foi disparado.
@@ -40,9 +40,11 @@ exatamente esta resposta.
 ## Capabilities
 
 ### New Capabilities
+
 - `uma-edicao-so`: existe UM build. O que muda por ambiente e configuracao, nao um segundo produto.
 
 ### Modified Capabilities
+
 - `modo-anonimo`: o modo sem conta continua e passa a ser o unico caminho "sem servidor" — ele nao
   era a edicao leve, e sobrevive a ela.
 

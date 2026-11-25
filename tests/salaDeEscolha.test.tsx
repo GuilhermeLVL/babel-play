@@ -17,8 +17,8 @@
  * "Não reabre ao voltar da partida" NÃO se prova aqui: essa garantia vive na montagem do `Play`
  * (`useState(!embutido)`, e `App.tsx` não mantém a view viva) e é o passo de Playwright do plano.
  */
-import { cleanup, fireEvent,render, screen } from '@testing-library/react'
-import { afterEach,describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import SalaDeEscolha from '../src/components/minigames/SalaDeEscolha'
 import type { EscolhaDaPratica } from '../src/core/minigames/source'

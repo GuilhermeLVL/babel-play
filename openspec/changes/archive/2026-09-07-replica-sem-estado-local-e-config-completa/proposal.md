@@ -20,6 +20,7 @@ O servidor assume um processo e um disco em pontos que o modo cluster e o deploy
 ## Capabilities
 
 ### New Capabilities
+
 - `replica-sem-estado-local`: nada que o servidor precisa para responder vive so na memoria ou no disco de um processo, ou a configuracao recusa o modo multi-processo.
 - `config-declarada-igual-a-usada`: o inventario de configuracao e o unico lugar onde variaveis existem, e o CI prova.
 

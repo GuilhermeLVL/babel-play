@@ -81,9 +81,22 @@ describe('WebSpeechStt no Android (finais que crescem, sem parciais)', () => {
     const { cb, rec, finais } = montar()
     rec.emitir([['olá', true]], 0)
     vi.advanceTimersByTime(700)
-    rec.emitir([['olá', true], ['olá tudo', true]], 1)
+    rec.emitir(
+      [
+        ['olá', true],
+        ['olá tudo', true],
+      ],
+      1,
+    )
     vi.advanceTimersByTime(700)
-    rec.emitir([['olá', true], ['olá tudo', true], [FRASE, true]], 2)
+    rec.emitir(
+      [
+        ['olá', true],
+        ['olá tudo', true],
+        [FRASE, true],
+      ],
+      2,
+    )
     // Enquanto cresce, é o MESMO balão parcial.
     expect(cb.onFinal).not.toHaveBeenCalled()
     expect(cb.onPartial.mock.calls.map((c) => c[0])).toEqual(['olá', 'olá tudo', FRASE])
@@ -94,9 +107,29 @@ describe('WebSpeechStt no Android (finais que crescem, sem parciais)', () => {
   it('lista cumulativa reenviada com resultIndex 0: UM final', () => {
     const { rec, finais } = montar()
     rec.emitir([['olá', true]], 0)
-    rec.emitir([['olá', true], ['olá tudo', true]], 0)
-    rec.emitir([['olá', true], ['olá tudo', true], [FRASE, true]], 0)
-    rec.emitir([['olá', true], ['olá tudo', true], [FRASE, true]], 0)
+    rec.emitir(
+      [
+        ['olá', true],
+        ['olá tudo', true],
+      ],
+      0,
+    )
+    rec.emitir(
+      [
+        ['olá', true],
+        ['olá tudo', true],
+        [FRASE, true],
+      ],
+      0,
+    )
+    rec.emitir(
+      [
+        ['olá', true],
+        ['olá tudo', true],
+        [FRASE, true],
+      ],
+      0,
+    )
     vi.advanceTimersByTime(SILENCIO_DO_FINAL_MS + 10)
     expect(finais()).toEqual([FRASE])
   })
@@ -104,7 +137,13 @@ describe('WebSpeechStt no Android (finais que crescem, sem parciais)', () => {
   it('o reenvio do último final depois do religar é descartado (e o onend compromete o pendente)', () => {
     const { cb, rec, finais } = montar()
     rec.emitir([['olá', true]], 0)
-    rec.emitir([['olá', true], [FRASE, true]], 1)
+    rec.emitir(
+      [
+        ['olá', true],
+        [FRASE, true],
+      ],
+      1,
+    )
     // O onend chega antes do silêncio: compromete já, e religa.
     rec.religar()
     expect(finais()).toEqual([FRASE])
@@ -145,11 +184,32 @@ describe('WebSpeechStt no Android (finais que crescem, sem parciais)', () => {
 
   it('segunda fala na MESMA volta: o que já foi comprometido sai do final seguinte', () => {
     const { rec, finais } = montar()
-    rec.emitir([['olá', true], [FRASE, true]], 1)
+    rec.emitir(
+      [
+        ['olá', true],
+        [FRASE, true],
+      ],
+      1,
+    )
     vi.advanceTimersByTime(SILENCIO_DO_FINAL_MS)
-    rec.emitir([['olá', true], [FRASE, true], [`${FRASE} e aí`, true]], 2)
+    rec.emitir(
+      [
+        ['olá', true],
+        [FRASE, true],
+        [`${FRASE} e aí`, true],
+      ],
+      2,
+    )
     vi.advanceTimersByTime(SILENCIO_DO_FINAL_MS)
-    rec.emitir([['olá', true], [FRASE, true], [`${FRASE} e aí`, true], ['tudo certo', true]], 3)
+    rec.emitir(
+      [
+        ['olá', true],
+        [FRASE, true],
+        [`${FRASE} e aí`, true],
+        ['tudo certo', true],
+      ],
+      3,
+    )
     vi.advanceTimersByTime(SILENCIO_DO_FINAL_MS)
     expect(finais()).toEqual([FRASE, 'e aí', 'tudo certo'])
   })
@@ -157,7 +217,13 @@ describe('WebSpeechStt no Android (finais que crescem, sem parciais)', () => {
   it('finais que NÃO se estendem (trechos separados) são juntados num final só', () => {
     const { rec, finais } = montar()
     rec.emitir([['olá', true]], 0)
-    rec.emitir([['olá', true], ['tudo bem', true]], 1)
+    rec.emitir(
+      [
+        ['olá', true],
+        ['tudo bem', true],
+      ],
+      1,
+    )
     vi.advanceTimersByTime(SILENCIO_DO_FINAL_MS)
     expect(finais()).toEqual(['olá tudo bem'])
   })
@@ -179,8 +245,22 @@ describe('WebSpeechStt no desktop (parciais de verdade + finais)', () => {
     rec.emitir([['hello there', true]], 0, 0.9)
     expect(finais()).toEqual(['hello there'])
     expect(cb.onFinal.mock.calls[0][0]).toEqual({ text: 'hello there', language: 'pt-BR', confidence: 0.9 })
-    rec.emitir([['hello there', true], ['how', false]], 1, 0.9)
-    rec.emitir([['hello there', true], ['how are you', true]], 1, 0.9)
+    rec.emitir(
+      [
+        ['hello there', true],
+        ['how', false],
+      ],
+      1,
+      0.9,
+    )
+    rec.emitir(
+      [
+        ['hello there', true],
+        ['how are you', true],
+      ],
+      1,
+      0.9,
+    )
     expect(finais()).toEqual(['hello there', 'how are you'])
     expect(cb.onPartial.mock.calls.map((c) => c[0])).toEqual(['hello', 'how'])
     vi.advanceTimersByTime(SILENCIO_DO_FINAL_MS * 3)

@@ -26,7 +26,9 @@ try {
   }
   await page.waitForTimeout(2000);
   await page.screenshot({ path: 'aquecido.png' });
-  const ls = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)])));
+  const ls = await page.evaluate(() =>
+    Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)])),
+  );
   fs.writeFileSync('storage.json', JSON.stringify(ls, null, 1));
   console.log('chaves', Object.keys(ls).join(' '));
 } catch (e) {
@@ -36,7 +38,8 @@ await s.browser.close();
 amb.parar();
 await new Promise((r) => setTimeout(r, 1500));
 for (const x of ['', '-wal', '-shm']) {
-  if (fs.existsSync(TMP + '/perf-cli.db' + x)) fs.copyFileSync(TMP + '/perf-cli.db' + x, TMP + '/perf-cli-modelo.db' + x);
+  if (fs.existsSync(TMP + '/perf-cli.db' + x))
+    fs.copyFileSync(TMP + '/perf-cli.db' + x, TMP + '/perf-cli-modelo.db' + x);
   else if (fs.existsSync(TMP + '/perf-cli-modelo.db' + x)) fs.rmSync(TMP + '/perf-cli-modelo.db' + x);
 }
 console.log('modelo guardado');

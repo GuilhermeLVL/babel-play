@@ -37,7 +37,12 @@ export const CATALOGO_DAS_CONQUISTAS: ItemDaLoja[] = [
   moldura('moldura-conquista-biblioteca', 'caderno-1000', 'Moldura Biblioteca', 'De quem fichou 1.000 palavras.'),
   titulo('titulo-conquista-memoria', 'revisor-2000', 'Memória de ferro', 'De quem acertou 2.000 revisões.'),
   moldura('moldura-conquista-antena', 'capturas-100', 'Moldura Antena', 'De quem gravou ou importou 100 sessões.'),
-  titulo('titulo-conquista-ouvido', 'ouvido-absoluto', 'Ouvido absoluto', 'De quem chegou ao Ouro nos três jogos de escuta.'),
+  titulo(
+    'titulo-conquista-ouvido',
+    'ouvido-absoluto',
+    'Ouvido absoluto',
+    'De quem chegou ao Ouro nos três jogos de escuta.',
+  ),
   titulo('titulo-conquista-impecavel', 'impecavel', 'Impecável', 'De quem fechou 50 rodadas com 3 estrelas.'),
   moldura('moldura-conquista-arcade', 'arcade', 'Moldura Fliperama', 'De quem chegou ao Bronze em 12 jogos.'),
   titulo('titulo-conquista-inabalavel', 'inabalavel', 'Inabalável', 'De quem praticou 100 dias seguidos.'),

@@ -69,8 +69,5 @@
     "borderTopStyle",
     "textTransform"
   ],
-  "seletores": [
-    ".q-trilho",
-    ".q-cab h1"
-  ]
+  "seletores": [".q-trilho", ".q-cab h1"]
 }

@@ -20,20 +20,20 @@ import { numeroCom } from '../../lib/i18n';
 
 /** Formato estrutural dos eventos da lib (não importamos o tipo para não acoplar à versão). */
 export interface EventoDeProgresso {
-  status: string
-  name?: string
-  file?: string
-  loaded?: number
-  total?: number
-  progress?: number
-  files?: Record<string, { loaded: number; total: number }>
+  status: string;
+  name?: string;
+  file?: string;
+  loaded?: number;
+  total?: number;
+  progress?: number;
+  files?: Record<string, { loaded: number; total: number }>;
 }
 
 export interface ProgressoModelo {
   /** 0..1, por bytes reais do conjunto completo de arquivos do modelo. */
-  progress: number
-  loaded: number
-  total: number
+  progress: number;
+  loaded: number;
+  total: number;
 }
 
 /**
@@ -42,16 +42,16 @@ export interface ProgressoModelo {
  */
 export function lerProgresso(info: EventoDeProgresso): ProgressoModelo | null {
   if (info.status === 'ready') {
-    return { progress: 1, loaded: 0, total: 0 }
+    return { progress: 1, loaded: 0, total: 0 };
   }
   if (info.status === 'progress_total') {
-    const loaded = info.loaded ?? 0
-    const total = info.total ?? 0
+    const loaded = info.loaded ?? 0;
+    const total = info.total ?? 0;
     // total 0 acontece na primeira emissão, antes de os metadados chegarem.
-    const bruto = total > 0 ? loaded / total : 0
-    return { progress: Math.min(Math.max(bruto, 0), 1), loaded, total }
+    const bruto = total > 0 ? loaded / total : 0;
+    return { progress: Math.min(Math.max(bruto, 0), 1), loaded, total };
   }
-  return null
+  return null;
 }
 
 /**
@@ -68,37 +68,35 @@ export function lerProgresso(info: EventoDeProgresso): ProgressoModelo | null {
  * E a saída passa pelo `limitarProgresso`: a lib emite um evento POR CHUNK, e sem o limitador cada
  * um virava um `postMessage` e um render na thread principal (ver abaixo).
  */
-export function criarRastreadorDeProgresso(
-  emitir: (p: ProgressoModelo) => void,
-): (info: EventoDeProgresso) => void {
-  const emitirLimitado = limitarProgresso(emitir, LIMITE_DA_BARRA)
-  let ultimo = -1
+export function criarRastreadorDeProgresso(emitir: (p: ProgressoModelo) => void): (info: EventoDeProgresso) => void {
+  const emitirLimitado = limitarProgresso(emitir, LIMITE_DA_BARRA);
+  let ultimo = -1;
   return (info: EventoDeProgresso) => {
-    const p = lerProgresso(info)
-    if (!p) return
-    if (p.progress < ultimo) return
-    ultimo = p.progress
-    emitirLimitado(p)
-  }
+    const p = lerProgresso(info);
+    if (!p) return;
+    if (p.progress < ultimo) return;
+    ultimo = p.progress;
+    emitirLimitado(p);
+  };
 }
 
 export interface OpcoesDoLimitador {
   /** Com avanço menor que o passo, emite mesmo assim depois deste tempo desde a última emissão. */
-  intervaloMs: number
+  intervaloMs: number;
   /** Avanço (0..1) desde a última emissão que sai na hora. */
-  passoMinimo: number
+  passoMinimo: number;
   /** Injetável para teste. */
-  agora?: () => number
+  agora?: () => number;
 }
 
 /**
  * 1% ou 200 ms: no máximo ~5 mensagens por segundo num download lento, ~100 no total num modelo que
  * abre do cache — e a barra continua andando de um jeito que o olho não distingue do contínuo.
  */
-const LIMITE_DA_BARRA: OpcoesDoLimitador = { intervaloMs: 200, passoMinimo: 0.01 }
+const LIMITE_DA_BARRA: OpcoesDoLimitador = { intervaloMs: 200, passoMinimo: 0.01 };
 
 /** Folga de ponto flutuante: 0,53 − 0,52 não dá exatamente 0,01. */
-const EPSILON = 1e-9
+const EPSILON = 1e-9;
 
 /**
  * A TEMPESTADE DE PROGRESSO. A lib chama o `progress_callback` a CADA chunk do stream, INCLUSIVE
@@ -119,33 +117,33 @@ export function limitarProgresso(
   emitir: (p: ProgressoModelo) => void,
   opts: OpcoesDoLimitador,
 ): (p: ProgressoModelo) => void {
-  const agora = opts.agora ?? (() => Date.now())
-  let anterior: ProgressoModelo | null = null
-  let emitidoEm = 0
+  const agora = opts.agora ?? (() => Date.now());
+  let anterior: ProgressoModelo | null = null;
+  let emitidoEm = 0;
   return (p: ProgressoModelo) => {
-    const t = agora()
-    const houveByte = !anterior || p.loaded > anterior.loaded || p.progress > anterior.progress
+    const t = agora();
+    const houveByte = !anterior || p.loaded > anterior.loaded || p.progress > anterior.progress;
     const sai =
       !anterior ||
       p.progress >= 1 ||
       p.progress - anterior.progress >= opts.passoMinimo - EPSILON ||
-      (houveByte && t - emitidoEm >= opts.intervaloMs)
-    if (!sai) return
-    anterior = p
-    emitidoEm = t
-    emitir(p)
-  }
+      (houveByte && t - emitidoEm >= opts.intervaloMs);
+    if (!sai) return;
+    anterior = p;
+    emitidoEm = t;
+    emitir(p);
+  };
 }
 
 export interface OpcoesWatchdog {
   /** Tempo SEM progresso que caracteriza travamento. */
-  semProgressoMs: number
+  semProgressoMs: number;
   /** Frequência de checagem. */
-  tickMs: number
+  tickMs: number;
   /** Chamado quando estagnou. Recebe há quanto tempo não há sinal de vida. */
-  aoTravar: (paradoHaMs: number) => void
+  aoTravar: (paradoHaMs: number) => void;
   /** Injetável para teste. */
-  agora?: () => number
+  agora?: () => number;
 }
 
 /**
@@ -157,27 +155,32 @@ export interface OpcoesWatchdog {
  * realmente não chega mais nenhum byte.
  */
 export function criarWatchdogDeEstagnacao(opts: OpcoesWatchdog) {
-  const agora = opts.agora ?? (() => Date.now())
-  let ultimo = agora()
-  let parado = false
+  const agora = opts.agora ?? (() => Date.now());
+  let ultimo = agora();
+  let parado = false;
   const timer = setInterval(() => {
-    if (parado) return
-    const paradoHa = agora() - ultimo
+    if (parado) return;
+    const paradoHa = agora() - ultimo;
     if (paradoHa >= opts.semProgressoMs) {
-      parado = true
-      clearInterval(timer)
-      opts.aoTravar(paradoHa)
+      parado = true;
+      clearInterval(timer);
+      opts.aoTravar(paradoHa);
     }
-  }, opts.tickMs)
+  }, opts.tickMs);
   return {
-    sinalDeVida: () => { ultimo = agora() },
-    cancelar: () => { parado = true; clearInterval(timer) },
-  }
+    sinalDeVida: () => {
+      ultimo = agora();
+    },
+    cancelar: () => {
+      parado = true;
+      clearInterval(timer);
+    },
+  };
 }
 
 /** Rótulo honesto de tamanho para a UI: "12,4 MB de 85,0 MB". */
 export function rotuloDeBytes(loaded: number, total: number): string | null {
-  if (!total || total <= 0) return null
-  const mb = (n: number) => numeroCom(n / 1_048_576, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-  return `${mb(loaded)} MB de ${mb(total)} MB`
+  if (!total || total <= 0) return null;
+  const mb = (n: number) => numeroCom(n / 1_048_576, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return `${mb(loaded)} MB de ${mb(total)} MB`;
 }

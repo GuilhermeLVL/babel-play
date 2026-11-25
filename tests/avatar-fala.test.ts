@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { act,renderHook } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { FonteDeAudio } from '../src/lib/avatar/amplitude'
-import { fonteDeAudioDaVoz,prepararAnalisadorDaVoz } from '../src/lib/avatar/amplitude'
+import { fonteDeAudioDaVoz, prepararAnalisadorDaVoz } from '../src/lib/avatar/amplitude'
 import { ligarAvatarAFala, PRAZO_SEM_SINAL_MS, useAvatarFalando } from '../src/lib/avatar/fala'
 import type { SpeakOptions, TtsEngine } from '../src/lib/tts'
 

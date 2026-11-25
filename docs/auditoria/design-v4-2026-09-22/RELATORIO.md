@@ -12,14 +12,14 @@ número de carga aqui seria falso. Rodar `lighthouse` contra o build (`npm run b
 
 ## Nota
 
-| # | Dimensão | Nota | Achado principal |
-|---|---|---|---|
-| 1 | Acessibilidade | 2/4 | Laranja da marca usado como texto a 3,23:1 em 232 lugares |
-| 2 | Performance | 2/4 | 14 famílias de fonte num `@import` que bloqueia a renderização (não medido em build) |
-| 3 | Responsivo | 2/4 | Barra inferior do celular esconde "Ajustes" e corta "Planos" |
-| 4 | Temas | 3/4 | Sistema de tokens sólido; destaque `rare` a 2,32:1 no escuro |
-| 5 | Anti-padrões | 2/4 | Faixa lateral no item ativo, sobrancelhas em caixa-alta em todo bloco, partículas decorativas |
-| **Total** | | **11/20** | **Aceitável — trabalho relevante, nada bloqueante** |
+| #         | Dimensão       | Nota      | Achado principal                                                                              |
+| --------- | -------------- | --------- | --------------------------------------------------------------------------------------------- |
+| 1         | Acessibilidade | 2/4       | Laranja da marca usado como texto a 3,23:1 em 232 lugares                                     |
+| 2         | Performance    | 2/4       | 14 famílias de fonte num `@import` que bloqueia a renderização (não medido em build)          |
+| 3         | Responsivo     | 2/4       | Barra inferior do celular esconde "Ajustes" e corta "Planos"                                  |
+| 4         | Temas          | 3/4       | Sistema de tokens sólido; destaque `rare` a 2,32:1 no escuro                                  |
+| 5         | Anti-padrões   | 2/4       | Faixa lateral no item ativo, sobrancelhas em caixa-alta em todo bloco, partículas decorativas |
+| **Total** |                | **11/20** | **Aceitável — trabalho relevante, nada bloqueante**                                           |
 
 ## Veredito de anti-padrões
 
@@ -57,6 +57,7 @@ aprovada (D-011 a D-017). **Mantido de propósito**; não é recomendação troc
 ### P1 — corrigir antes de lançar
 
 **[P1] Laranja da marca como cor de texto reprova contraste**
+
 - **Onde:** classe `text-accent` — 232 ocorrências em 72 arquivos; visto no logotipo ("Play"), "Ver tudo que
   existe (130)", links de `Sobre`, `Personalizar`, `Planos`.
 - **Medido:** `#F04E23` sobre `#F5F2EA` = **3,23:1** (texto de 15 px bold exige 4,5:1).
@@ -69,6 +70,7 @@ aprovada (D-011 a D-017). **Mantido de propósito**; não é recomendação troc
   texto.
 
 **[P1] Balão "iChat sintonizado com: …" — contraste e vazamento de id interno**
+
 - **Onde:** `src/components/IChat.tsx:807` — `<strong className="text-rare">{showContextSyncNotification}</strong>`.
   Aparece em 8 de 9 telas.
 - **Medido:** `#5B5EA6` sobre ink = 2,88:1 no claro; `#58A6FF` sobre `#F0F6FC` = **2,32:1** no escuro.
@@ -80,6 +82,7 @@ aprovada (D-011 a D-017). **Mantido de propósito**; não é recomendação troc
 - **Comando:** `/impeccable clarify`.
 
 **[P1] Barra inferior do celular esconde "Ajustes"**
+
 - **Onde:** navegação principal no breakpoint móvel (390 px).
 - **Medido:** 9 itens ocupam 440 px numa tela de 390 px, `overflow-x: visible`, sem rolagem. "Planos" fica
   cortado (353–394 px); "Ajustes" (394–440 px) fica fora da tela. Só se chega a Ajustes pelo menu da conta.
@@ -89,6 +92,7 @@ aprovada (D-011 a D-017). **Mantido de propósito**; não é recomendação troc
 - **Comando:** `/impeccable adapt`.
 
 **[P1] Modal de conquista: sem Esc, sem foco, reaparece por aparelho**
+
 - **Onde:** `src/components/RecompensaDesbloqueada.tsx:101`.
 - **Medido:** Esc não fecha (testado duas vezes); o componente não tem `keydown` nem move o foco para
   dentro do diálogo. O "já visto" fica em `localStorage` (`babel.recompensas_vistas`), então o modal
@@ -100,6 +104,7 @@ aprovada (D-011 a D-017). **Mantido de propósito**; não é recomendação troc
 - **Comando:** `/impeccable harden`.
 
 **[P1] Três tamanhos diferentes para o mesmo download**
+
 - **Onde:** `Onboarding.tsx:447` diz "O download (~alguns MB)"; a tela seguinte diz "cerca de 880 MB";
   `GuidePanel.tsx:45` diz "~30MB".
 - **Impacto:** para quem está no 4G, o tamanho é a decisão. Prometer "alguns MB" e entregar 880 MB é o tipo
@@ -109,6 +114,7 @@ aprovada (D-011 a D-017). **Mantido de propósito**; não é recomendação troc
 - **Comando:** `/impeccable clarify`.
 
 **[P1] Checkbox "Prévia antes de começar" sem nome no celular**
+
 - **Onde:** `src/components/views/Play.tsx:3577` — o texto do rótulo está em `hidden sm:inline`, então abaixo
   de 640 px o input fica sem nome acessível (axe: `label`).
 - **Norma:** WCAG 4.1.2.

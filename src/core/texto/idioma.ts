@@ -11,7 +11,7 @@
  * cartão em `pt-BR` casa com o filtro de `pt`.
  */
 export function baseLang(code: string | undefined | null): string {
-  return (code ?? '').toLowerCase().split('-')[0]
+  return (code ?? '').toLowerCase().split('-')[0];
 }
 
 /**
@@ -23,7 +23,7 @@ export function baseLang(code: string | undefined | null): string {
  * portuguesa ser lida com voz inglesa.
  */
 export function idiomaDoCartao(card: { srcLang?: string | null } | null | undefined): string {
-  return baseLang(card?.srcLang)
+  return baseLang(card?.srcLang);
 }
 
 /**
@@ -31,13 +31,17 @@ export function idiomaDoCartao(card: { srcLang?: string | null } | null | undefi
  * `''` quando nenhum cartão tem idioma. Empate: o que aparece primeiro.
  */
 export function idiomaDominanteDosCartoes(cards: ReadonlyArray<{ srcLang?: string | null }>): string {
-  const conta = new Map<string, number>()
+  const conta = new Map<string, number>();
   for (const c of cards) {
-    const l = idiomaDoCartao(c)
-    if (l) conta.set(l, (conta.get(l) ?? 0) + 1)
+    const l = idiomaDoCartao(c);
+    if (l) conta.set(l, (conta.get(l) ?? 0) + 1);
   }
-  let melhor = ''
-  let n = 0
-  for (const [l, q] of conta) if (q > n) { melhor = l; n = q }
-  return melhor
+  let melhor = '';
+  let n = 0;
+  for (const [l, q] of conta)
+    if (q > n) {
+      melhor = l;
+      n = q;
+    }
+  return melhor;
 }

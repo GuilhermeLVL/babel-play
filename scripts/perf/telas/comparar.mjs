@@ -17,7 +17,9 @@ if (!a || !b) {
   console.error('uso: comparar.mjs <antes.json> <depois.json> [--campos=lcp,inp,...]')
   process.exit(2)
 }
-const campos = (process.argv.find((x) => x.startsWith('--campos='))?.slice(9) ?? 'lcp,tbtCarga,jsKB,inp,tbtInteracoes,fps,jank,heapMB').split(',')
+const campos = (
+  process.argv.find((x) => x.startsWith('--campos='))?.slice(9) ?? 'lcp,tbtCarga,jsKB,inp,tbtInteracoes,fps,jank,heapMB'
+).split(',')
 
 const A = JSON.parse(readFileSync(a, 'utf8'))
 const B = JSON.parse(readFileSync(b, 'utf8'))

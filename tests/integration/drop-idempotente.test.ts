@@ -16,11 +16,11 @@
  * Os dois se provam contra o banco, não em unidade: é o banco que guarda o razão de onde a posse
  * é derivada.
  */
-import { afterAll,beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { itensSorteaveisNoDrop,SEEDS_DO_DROP } from '../../src/core/economiaAutoridade'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { itensSorteaveisNoDrop, SEEDS_DO_DROP } from '../../src/core/economiaAutoridade'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let metricsRouter: any
@@ -33,8 +33,14 @@ function handler(caminho: string): (req: any, res: any) => Promise<void> {
 }
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 const req = (body: unknown, u: string) => ({ userId: asUserId(u), body, requestId: 'req-drop', path: '/x' })
@@ -48,7 +54,11 @@ async function creditar(u: string, creditoId: string) {
 /** Uma rodada REAL: é a âncora do baú, e sem ela o drop não existe. */
 async function jogarRodada(u: string, roundId: string) {
   await exerciseResultsRepo.addRodada(asUserId(u), {
-    roundId, exerciseKind: 'termo', origem: 'baralho', score: 100, melhorSequencia: 5,
+    roundId,
+    exerciseKind: 'termo',
+    origem: 'baralho',
+    score: 100,
+    melhorSequencia: 5,
     itens: Array.from({ length: 5 }, (_, i) => ({ itemRef: `${roundId}-${i}`, correct: 1, kind: 'drill' })),
   })
 }
@@ -59,7 +69,9 @@ beforeAll(async () => {
   ;({ economiaRepo } = (await h.load('../../server/db/repositories/economia')) as any)
   ;({ exerciseResultsRepo } = (await h.load('../../server/db/repositories/exerciseResults')) as any)
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('o drop é idempotente pela rodada', () => {
   it('o mesmo `drop:<roundId>` duas vezes entrega o MESMO item e credita as Seeds uma vez só', async () => {

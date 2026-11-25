@@ -15,23 +15,23 @@
  * `reason: 'croma:<item>:<matiz>'` — e o servidor deriva a posse desse razão, exatamente como
  * passou a fazer com `loja:<id>` quando a brecha B4 foi fechada. Um evento, uma fonte de verdade.
  */
-import { PRECO_DO_CROMA } from '@core'
+import { PRECO_DO_CROMA } from '@core';
 
-import type { Raridade } from '../loja'
-import { MATIZES } from './paletas'
+import type { Raridade } from '../loja';
+import { MATIZES } from './paletas';
 
 /** As quatro vias de um croma. Só uma delas envolve gastar a moeda de estudo. */
-export type ViaDoCroma = 'incluso' | 'meu' | 'seeds' | 'conquista' | 'premium'
+export type ViaDoCroma = 'incluso' | 'meu' | 'seeds' | 'conquista' | 'premium';
 
 export interface Croma {
   /** Id do matiz no catálogo de paletas — a mesma lista que gera as 200 paletas. */
-  matiz: string
-  nome: string
+  matiz: string;
+  nome: string;
   /** Matiz HSL (0-360), para a amostra e para a cor aplicada. */
-  h: number
-  via: ViaDoCroma
+  h: number;
+  via: ViaDoCroma;
   /** Só quando `via === 'seeds'`. */
-  preco?: number
+  preco?: number;
 }
 
 /**
@@ -43,25 +43,31 @@ export interface Croma {
  */
 /* A tabela mudou para `core/economiaAutoridade.ts` — o SERVIDOR precisa dela para conferir o
    preço de um croma antes de debitar. Reexportada aqui para nenhuma tela mudar de import. */
-export { PRECO_DO_CROMA }
+export { PRECO_DO_CROMA };
 
-const CHAVE = 'babel.cromas'
+const CHAVE = 'babel.cromas';
 
 /** `croma:<itemId>:<matizId>` — a chave que vale no localStorage, no spendId e no razão. */
 export function idDoCroma(itemId: string, matiz: string): string {
-  return `croma:${itemId}:${matiz}`
+  return `croma:${itemId}:${matiz}`;
 }
 
 export function cromasPossuidos(): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(CHAVE) || '[]') as string[]) } catch { return new Set() }
+  try {
+    return new Set(JSON.parse(localStorage.getItem(CHAVE) || '[]') as string[]);
+  } catch {
+    return new Set();
+  }
 }
 
 export function marcarCroma(id: string): void {
   try {
-    const s = cromasPossuidos()
-    s.add(id)
-    localStorage.setItem(CHAVE, JSON.stringify([...s]))
-  } catch { /* sem storage: a posse volta na próxima hidratação do servidor */ }
+    const s = cromasPossuidos();
+    s.add(id);
+    localStorage.setItem(CHAVE, JSON.stringify([...s]));
+  } catch {
+    /* sem storage: a posse volta na próxima hidratação do servidor */
+  }
 }
 
 /**
@@ -71,18 +77,20 @@ export function marcarCroma(id: string): void {
  */
 /** Mesma regra de `hidratarPosse`: com conta o servidor substitui; sem conta, soma. */
 export function hidratarCromas(doServidor: readonly string[] | undefined, autoritativo = false): void {
-  if (!doServidor) return
+  if (!doServidor) return;
   try {
     if (autoritativo) {
-      localStorage.setItem(CHAVE, JSON.stringify([...new Set(doServidor)]))
-      return
+      localStorage.setItem(CHAVE, JSON.stringify([...new Set(doServidor)]));
+      return;
     }
-    if (!doServidor.length) return
-    const s = cromasPossuidos()
-    const antes = s.size
-    for (const id of doServidor) s.add(id)
-    if (s.size !== antes) localStorage.setItem(CHAVE, JSON.stringify([...s]))
-  } catch { /* sem storage */ }
+    if (!doServidor.length) return;
+    const s = cromasPossuidos();
+    const antes = s.size;
+    for (const id of doServidor) s.add(id);
+    if (s.size !== antes) localStorage.setItem(CHAVE, JSON.stringify([...s]));
+  } catch {
+    /* sem storage */
+  }
 }
 
 /**
@@ -93,43 +101,48 @@ export function hidratarCromas(doServidor: readonly string[] | undefined, autori
  * fazer, e algo que exige apoiar o projeto.
  */
 export function cromasDaPeca(itemId: string, raridade: Raridade): Croma[] {
-  const possuidos = cromasPossuidos()
-  const total = MATIZES.length
+  const possuidos = cromasPossuidos();
+  const total = MATIZES.length;
   return MATIZES.map((m, i) => {
-    const id = idDoCroma(itemId, m.id)
+    const id = idDoCroma(itemId, m.id);
     // A cor inclusa é a primeira: toda peça já nasce com uma, e ela nunca custa nada.
-    if (i === 0) return { matiz: m.id, nome: m.nome, h: m.h, via: 'incluso' as const }
-    if (possuidos.has(id)) return { matiz: m.id, nome: m.nome, h: m.h, via: 'meu' as const }
-    if (i === total - 1) return { matiz: m.id, nome: m.nome, h: m.h, via: 'premium' as const }
-    if (i === total - 2) return { matiz: m.id, nome: m.nome, h: m.h, via: 'conquista' as const }
-    return { matiz: m.id, nome: m.nome, h: m.h, via: 'seeds' as const, preco: PRECO_DO_CROMA[raridade] }
-  })
+    if (i === 0) return { matiz: m.id, nome: m.nome, h: m.h, via: 'incluso' as const };
+    if (possuidos.has(id)) return { matiz: m.id, nome: m.nome, h: m.h, via: 'meu' as const };
+    if (i === total - 1) return { matiz: m.id, nome: m.nome, h: m.h, via: 'premium' as const };
+    if (i === total - 2) return { matiz: m.id, nome: m.nome, h: m.h, via: 'conquista' as const };
+    return { matiz: m.id, nome: m.nome, h: m.h, via: 'seeds' as const, preco: PRECO_DO_CROMA[raridade] };
+  });
 }
 
 /** Um croma está disponível para uso? (inclusa e comprada valem; as outras três não) */
 export function temOCroma(c: Croma): boolean {
-  return c.via === 'incluso' || c.via === 'meu'
+  return c.via === 'incluso' || c.via === 'meu';
 }
 
 /* ── O CROMA EQUIPADO POR PEÇA ────────────────────────────────────────────
    Preferência, não posse: trocar de croma é grátis e reversível, como a intensidade das
    partículas. Só DESBLOQUEAR custa. */
 
-const CHAVE_EQUIPADO = 'babel.croma_equipado'
+const CHAVE_EQUIPADO = 'babel.croma_equipado';
 
 export function cromaEquipado(itemId: string): string | null {
   try {
-    const m = JSON.parse(localStorage.getItem(CHAVE_EQUIPADO) || '{}') as Record<string, string>
-    return m[itemId] ?? null
-  } catch { return null }
+    const m = JSON.parse(localStorage.getItem(CHAVE_EQUIPADO) || '{}') as Record<string, string>;
+    return m[itemId] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function equiparCroma(itemId: string, matiz: string | null): void {
   try {
-    const m = JSON.parse(localStorage.getItem(CHAVE_EQUIPADO) || '{}') as Record<string, string>
-    if (matiz) m[itemId] = matiz; else delete m[itemId]
-    localStorage.setItem(CHAVE_EQUIPADO, JSON.stringify(m))
-  } catch { /* sem storage */ }
+    const m = JSON.parse(localStorage.getItem(CHAVE_EQUIPADO) || '{}') as Record<string, string>;
+    if (matiz) m[itemId] = matiz;
+    else delete m[itemId];
+    localStorage.setItem(CHAVE_EQUIPADO, JSON.stringify(m));
+  } catch {
+    /* sem storage */
+  }
 }
 
 /**
@@ -139,11 +152,11 @@ export function equiparCroma(itemId: string, matiz: string | null): void {
  * esta economia inteira ser aditiva.
  */
 export function corDoCromaEquipado(itemId: string): string | null {
-  const matiz = cromaEquipado(itemId)
-  if (!matiz) return null
-  const m = MATIZES.find((x) => x.id === matiz)
-  if (!m) return null
+  const matiz = cromaEquipado(itemId);
+  if (!matiz) return null;
+  const m = MATIZES.find((x) => x.id === matiz);
+  if (!m) return null;
   // Só matiz e luminosidade fixas: o croma muda a COR, não o brilho nem a saturação do preset —
   // senão um croma poderia deixar a partícula invisível em algum dos 7 temas.
-  return `hsl(${m.h} 78% 62%)`
+  return `hsl(${m.h} 78% 62%)`;
 }

@@ -76,9 +76,7 @@
     ],
     "depois": 1200
   },
-  "seletores": [
-    ".qj-ferramentas"
-  ],
+  "seletores": [".qj-ferramentas"],
   "gravar": {
     "app": [
       {

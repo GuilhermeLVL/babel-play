@@ -148,7 +148,9 @@ export function ajudaDoMic(falha: FalhaDoMic, p: Plataforma, o: { motorRapido: b
     case 'rede':
       return {
         titulo: t('O modo Rápido precisa de internet'),
-        texto: t('O reconhecimento de voz do navegador não alcançou o servidor. Verifique a conexão, ou use o Privado, que funciona sem internet depois do download.'),
+        texto: t(
+          'O reconhecimento de voz do navegador não alcançou o servidor. Verifique a conexão, ou use o Privado, que funciona sem internet depois do download.',
+        ),
         passos: [],
         tentarDeNovo: true,
         trocarParaPrivado: rapido,
@@ -156,7 +158,9 @@ export function ajudaDoMic(falha: FalhaDoMic, p: Plataforma, o: { motorRapido: b
     case 'nao-abriu':
       return {
         titulo: t('O reconhecimento do navegador não começou'),
-        texto: t('O navegador não abriu o microfone para o reconhecimento de voz dele. O Privado abre o microfone direto.'),
+        texto: t(
+          'O navegador não abriu o microfone para o reconhecimento de voz dele. O Privado abre o microfone direto.',
+        ),
         passos: [],
         tentarDeNovo: true,
         trocarParaPrivado: rapido,

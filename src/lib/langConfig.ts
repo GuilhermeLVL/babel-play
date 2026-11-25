@@ -52,9 +52,7 @@ export interface LangConfig {
 export const DEFAULT_LANG_CONFIG: LangConfig = { mine: 'pt-BR', studying: 'en-US', daInterface: 'pt-BR' };
 
 /** `?ui=<idioma>` da URL de entrada — ver `useIdiomaDaInterfaceEscolhido`. */
-const OVERRIDE_DA_URL = typeof window !== 'undefined'
-  ? new URLSearchParams(window.location.search).get('ui')
-  : null;
+const OVERRIDE_DA_URL = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ui') : null;
 
 /** Evento de mudança — as telas abertas se atualizam sozinhas (mesmo padrão do `tts.ts`). */
 const CHANGED = 'babel_lang_config_changed';
@@ -140,10 +138,19 @@ export function useLangConfig(): LangConfig {
   const [cfg, setCfg] = React.useState<LangConfig>(DEFAULT_LANG_CONFIG);
   React.useEffect(() => {
     let vivo = true;
-    const carregar = () => { fetchLangConfig().then((c) => { if (vivo) setCfg(c); }).catch(() => {}); };
+    const carregar = () => {
+      fetchLangConfig()
+        .then((c) => {
+          if (vivo) setCfg(c);
+        })
+        .catch(() => {});
+    };
     carregar();
     const off = onLangConfigChange(carregar);
-    return () => { vivo = false; off(); };
+    return () => {
+      vivo = false;
+      off();
+    };
   }, []);
   return cfg;
 }
@@ -177,7 +184,9 @@ export function useIdiomaDaInterfaceEscolhido(): string {
      deve se comportar. */
   const escolhido = OVERRIDE_DA_URL || cfg.daInterface;
 
-  React.useEffect(() => { void usarIdioma(escolhido); }, [escolhido]);
+  React.useEffect(() => {
+    void usarIdioma(escolhido);
+  }, [escolhido]);
 
   /* O DOCUMENTO INTEIRO acompanha o idioma: `lang` para leitores de tela e para a quebra de linha
      do navegador, `dir` para árabe e hebraico, que se leem da direita para a esquerda. Sem `dir` a

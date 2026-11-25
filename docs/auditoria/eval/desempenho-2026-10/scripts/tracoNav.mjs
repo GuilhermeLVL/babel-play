@@ -14,7 +14,10 @@ const JOGAR = '.q-trilho .q-item[data-px-rota="play"], .q-trilho .q-item[data-px
 const runs = [];
 let aplicadas = [];
 for (let i = 0; i < N; i++) {
-  const s = await abrir(nome, { ...extra, storage: { 'babel.fonte_da_pratica': '{"origem":"trilha","escopo":"todas"}', 'babel.praticar': 'play' } });
+  const s = await abrir(nome, {
+    ...extra,
+    storage: { 'babel.fonte_da_pratica': '{"origem":"trilha","escopo":"todas"}', 'babel.praticar': 'play' },
+  });
   const { page } = s;
   const toca = async (sel) => {
     const el = page.locator(sel).first();
@@ -38,9 +41,21 @@ for (let i = 0; i < N; i++) {
     );
     const m1 = await s.metricas();
     await page.waitForTimeout(200);
-    const inp = await page.evaluate((n) => Math.max(0, ...window.__p.ev.slice(n).filter((e) => e.id).map((e) => e.d)), ev0);
+    const inp = await page.evaluate(
+      (n) =>
+        Math.max(
+          0,
+          ...window.__p.ev
+            .slice(n)
+            .filter((e) => e.id)
+            .map((e) => e.d),
+        ),
+      ev0,
+    );
     const e = comEstilo ? estilos(arq) : null;
-    const gpu = Object.entries(r.fios).filter(([k]) => /GPU|Gpu/.test(k)).reduce((a, [, v]) => a + v.cpu_ms, 0);
+    const gpu = Object.entries(r.fios)
+      .filter(([k]) => /GPU|Gpu/.test(k))
+      .reduce((a, [, v]) => a + v.cpu_ms, 0);
     saida[rot] = {
       janela_ms: r.janela_ms,
       inp,
@@ -62,18 +77,28 @@ for (let i = 0; i < N; i++) {
       pinturas: r.quadros.pinturas,
       gpu_cpu_ms: r0(gpu),
       compositor_cpu_ms: r.fios['pagina/Compositor']?.cpu_ms ?? 0,
-      metricas: { script: r0((m1.ScriptDuration - m0.ScriptDuration) * 1000), estilo: r0((m1.RecalcStyleDuration - m0.RecalcStyleDuration) * 1000), layout: r0((m1.LayoutDuration - m0.LayoutDuration) * 1000), tarefa: r0((m1.TaskDuration - m0.TaskDuration) * 1000) },
+      metricas: {
+        script: r0((m1.ScriptDuration - m0.ScriptDuration) * 1000),
+        estilo: r0((m1.RecalcStyleDuration - m0.RecalcStyleDuration) * 1000),
+        layout: r0((m1.LayoutDuration - m0.LayoutDuration) * 1000),
+        tarefa: r0((m1.TaskDuration - m0.TaskDuration) * 1000),
+      },
       funcoes: r.funcoes.slice(0, 8),
       eventos: r.eventos.slice(0, 12),
       estilos: e,
     };
     const x = saida[rot];
-    console.log(`${nome}${suf} r${i} ${rot.padEnd(38)} inp=${x.inp} ocup=${x.ocupacao_pct}% tarefas=${x.tarefas_ms} longas=${x.tarefasLongas} bloqueio=${x.bloqueio_ms} maior=${x.maiorTarefa_ms} script=${x.script_ms} estilo=${x.estilo_ms} layout=${x.layout_ms} pintura=${x.pintura_ms} recalc=${x.recalculos} quadrosMain=${x.beginMain} rAF=${x.rAF} desenhados=${x.desenhados} descartados=${x.descartados} gpu=${x.gpu_cpu_ms}`);
+    console.log(
+      `${nome}${suf} r${i} ${rot.padEnd(38)} inp=${x.inp} ocup=${x.ocupacao_pct}% tarefas=${x.tarefas_ms} longas=${x.tarefasLongas} bloqueio=${x.bloqueio_ms} maior=${x.maiorTarefa_ms} script=${x.script_ms} estilo=${x.estilo_ms} layout=${x.layout_ms} pintura=${x.pintura_ms} recalc=${x.recalculos} quadrosMain=${x.beginMain} rAF=${x.rAF} desenhados=${x.desenhados} descartados=${x.descartados} gpu=${x.gpu_cpu_ms}`,
+    );
     if (comEstilo) {
       console.log('funcoes', r.funcoes.slice(0, 10).join(' | '));
       console.log('eventos', r.eventos.slice(0, 14).join(' | '));
-      console.log(`seletores: total ${e.seletores_total_ms} ms em ${e.nSeletores} seletores; com :has() ${e.comHas_ms} ms`);
-      for (const t of e.topo.slice(0, 18)) console.log(`   ${t.ms} ms  tent=${t.tentativas} casou=${t.casou}  ${t.seletor}`);
+      console.log(
+        `seletores: total ${e.seletores_total_ms} ms em ${e.nSeletores} seletores; com :has() ${e.comHas_ms} ms`,
+      );
+      for (const t of e.topo.slice(0, 18))
+        console.log(`   ${t.ms} ms  tent=${t.tentativas} casou=${t.casou}  ${t.seletor}`);
       console.log('motivos:', e.motivos.slice(0, 16).join('\n   '));
     }
   };
@@ -109,7 +134,26 @@ const med = {};
 for (const rot of rotulos) {
   const xs = runs.map((r) => r[rot]).filter(Boolean);
   const m = (f) => mediana(xs.map(f));
-  med[rot] = { n: xs.length, inp: r0(m((x) => x.inp)), ocupacao_pct: r1(m((x) => x.ocupacao_pct)), tarefas_ms: r0(m((x) => x.tarefas_ms)), tarefasLongas: m((x) => x.tarefasLongas), bloqueio_ms: r0(m((x) => x.bloqueio_ms)), maiorTarefa_ms: r0(m((x) => x.maiorTarefa_ms)), script_ms: r0(m((x) => x.script_ms)), estilo_ms: r0(m((x) => x.estilo_ms)), layout_ms: r0(m((x) => x.layout_ms)), pintura_ms: r0(m((x) => x.pintura_ms)), recalculos: m((x) => x.recalculos), quadrosDoFioPrincipal: m((x) => x.beginMain), desenhados: m((x) => x.desenhados), descartados: m((x) => x.descartados), gpu_cpu_ms: m((x) => x.gpu_cpu_ms), compositor_cpu_ms: r0(m((x) => x.compositor_cpu_ms)), janela_ms: r0(m((x) => x.janela_ms)) };
+  med[rot] = {
+    n: xs.length,
+    inp: r0(m((x) => x.inp)),
+    ocupacao_pct: r1(m((x) => x.ocupacao_pct)),
+    tarefas_ms: r0(m((x) => x.tarefas_ms)),
+    tarefasLongas: m((x) => x.tarefasLongas),
+    bloqueio_ms: r0(m((x) => x.bloqueio_ms)),
+    maiorTarefa_ms: r0(m((x) => x.maiorTarefa_ms)),
+    script_ms: r0(m((x) => x.script_ms)),
+    estilo_ms: r0(m((x) => x.estilo_ms)),
+    layout_ms: r0(m((x) => x.layout_ms)),
+    pintura_ms: r0(m((x) => x.pintura_ms)),
+    recalculos: m((x) => x.recalculos),
+    quadrosDoFioPrincipal: m((x) => x.beginMain),
+    desenhados: m((x) => x.desenhados),
+    descartados: m((x) => x.descartados),
+    gpu_cpu_ms: m((x) => x.gpu_cpu_ms),
+    compositor_cpu_ms: r0(m((x) => x.compositor_cpu_ms)),
+    janela_ms: r0(m((x) => x.janela_ms)),
+  };
   console.log('MEDIANA', nome + suf, rot, JSON.stringify(med[rot]));
 }
 salvar(`tracoNav${suf}-${nome}.json`, { mediana: med, aplicadas, runs });

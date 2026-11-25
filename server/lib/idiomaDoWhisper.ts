@@ -16,12 +16,41 @@
 
 /** Nomes em inglês → ISO-639-1, cobrindo os idiomas que o app oferece (`src/lib/languages.ts`). */
 const NOMES: Record<string, string> = {
-  portuguese: 'pt', english: 'en', spanish: 'es', castilian: 'es', french: 'fr', german: 'de',
-  italian: 'it', dutch: 'nl', flemish: 'nl', russian: 'ru', polish: 'pl', ukrainian: 'uk',
-  turkish: 'tr', swedish: 'sv', danish: 'da', norwegian: 'nb', 'norwegian nynorsk': 'nb',
-  finnish: 'fi', czech: 'cs', greek: 'el', romanian: 'ro', moldavian: 'ro', hungarian: 'hu',
-  japanese: 'ja', korean: 'ko', chinese: 'zh', mandarin: 'zh', hindi: 'hi', arabic: 'ar',
-  hebrew: 'he', indonesian: 'id', vietnamese: 'vi', thai: 'th', catalan: 'ca', galician: 'gl',
+  portuguese: 'pt',
+  english: 'en',
+  spanish: 'es',
+  castilian: 'es',
+  french: 'fr',
+  german: 'de',
+  italian: 'it',
+  dutch: 'nl',
+  flemish: 'nl',
+  russian: 'ru',
+  polish: 'pl',
+  ukrainian: 'uk',
+  turkish: 'tr',
+  swedish: 'sv',
+  danish: 'da',
+  norwegian: 'nb',
+  'norwegian nynorsk': 'nb',
+  finnish: 'fi',
+  czech: 'cs',
+  greek: 'el',
+  romanian: 'ro',
+  moldavian: 'ro',
+  hungarian: 'hu',
+  japanese: 'ja',
+  korean: 'ko',
+  chinese: 'zh',
+  mandarin: 'zh',
+  hindi: 'hi',
+  arabic: 'ar',
+  hebrew: 'he',
+  indonesian: 'id',
+  vietnamese: 'vi',
+  thai: 'th',
+  catalan: 'ca',
+  galician: 'gl',
 }
 
 /**
@@ -32,7 +61,9 @@ const NOMES: Record<string, string> = {
  * do cliente trata '' como "esta fala não votou", e segue com as outras.
  */
 export function normalizarIdiomaDoWhisper(bruto: unknown): string {
-  const s = String(bruto ?? '').trim().toLowerCase()
+  const s = String(bruto ?? '')
+    .trim()
+    .toLowerCase()
   if (!s) return ''
   // Já é código (aceita BCP-47: 'es-ES' → 'es').
   const base = s.split(/[-_]/)[0]

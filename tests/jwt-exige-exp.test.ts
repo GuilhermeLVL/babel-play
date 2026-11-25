@@ -12,7 +12,11 @@ const SEGREDO = 'segredo-de-teste-para-jwt-exp-0001'
 const bytes = new TextEncoder().encode(SEGREDO)
 
 async function assina(comExp: boolean): Promise<string> {
-  let t = new SignJWT({}).setProtectedHeader({ alg: 'HS256' }).setSubject('user-1').setAudience('authenticated').setIssuedAt()
+  let t = new SignJWT({})
+    .setProtectedHeader({ alg: 'HS256' })
+    .setSubject('user-1')
+    .setAudience('authenticated')
+    .setIssuedAt()
   if (comExp) t = t.setExpirationTime('1h')
   return t.sign(bytes)
 }

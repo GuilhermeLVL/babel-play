@@ -1,4 +1,5 @@
 ## 1. Inventario
+
 - [x] 1.1 `ferramentas.md` (MCPs, versoes, ausentes, CI)
 - [x] 1.2 `arquivos-linhas.txt`, `deps.json`, `deps-diretas.json`
 - [x] 1.3 `lint.json` + `lint-por-regra.json` (0 erros, 0 avisos em 739 arquivos)

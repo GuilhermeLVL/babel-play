@@ -55,8 +55,28 @@ const ROTAS = [
   { nome: 'GET /api/sessions', path: '/api/sessions' },
   { nome: 'GET /api/exercises/results', path: '/api/exercises/results?limite=20' },
   { nome: 'GET /api/rank/termo', path: '/api/rank/termo' },
-  { nome: 'POST /api/exercises/rodada', path: '/api/exercises/rodada', method: 'POST', headers: json, setupClient: (c) => { let i = 0; c.setBody(JSON.stringify(rodada(i))); c.on('response', () => c.setBody(JSON.stringify(rodada(++i)))) } },
-  ...(card ? [{ nome: 'POST /api/vocab/:id/review (FSRS)', path: `/api/vocab/${card}/review`, method: 'POST', headers: json, body: JSON.stringify({ grade: 3 }) }] : []),
+  {
+    nome: 'POST /api/exercises/rodada',
+    path: '/api/exercises/rodada',
+    method: 'POST',
+    headers: json,
+    setupClient: (c) => {
+      let i = 0
+      c.setBody(JSON.stringify(rodada(i)))
+      c.on('response', () => c.setBody(JSON.stringify(rodada(++i))))
+    },
+  },
+  ...(card
+    ? [
+        {
+          nome: 'POST /api/vocab/:id/review (FSRS)',
+          path: `/api/vocab/${card}/review`,
+          method: 'POST',
+          headers: json,
+          body: JSON.stringify({ grade: 3 }),
+        },
+      ]
+    : []),
 ]
 
 async function correr(rota, segundos) {
@@ -72,7 +92,9 @@ async function correr(rota, segundos) {
 }
 
 const resultados = []
-console.log(`# latencia — ${base} — ${conexoes} conexoes, ${duracao}s por rota, ${new Date().toISOString()}, ${process.version}\n`)
+console.log(
+  `# latencia — ${base} — ${conexoes} conexoes, ${duracao}s por rota, ${new Date().toISOString()}, ${process.version}\n`,
+)
 console.log('| rota | p50 ms | p95 ms | p99 ms | req/s | não-2xx | erros |')
 console.log('|---|---:|---:|---:|---:|---:|---:|')
 for (const rota of ROTAS) {
@@ -88,6 +110,16 @@ for (const rota of ROTAS) {
     erros: r.errors,
   }
   resultados.push(linha)
-  console.log(`| ${linha.rota} | ${linha.p50} | ${linha.p95} | ${linha.p99} | ${linha.reqPorSegundo} | ${linha.nao2xx} | ${linha.erros} |`)
+  console.log(
+    `| ${linha.rota} | ${linha.p50} | ${linha.p95} | ${linha.p99} | ${linha.reqPorSegundo} | ${linha.nao2xx} | ${linha.erros} |`,
+  )
 }
-if (saida) writeFileSync(saida, JSON.stringify({ base, conexoes, duracao, node: process.version, em: new Date().toISOString(), resultados }, null, 2))
+if (saida)
+  writeFileSync(
+    saida,
+    JSON.stringify(
+      { base, conexoes, duracao, node: process.version, em: new Date().toISOString(), resultados },
+      null,
+      2,
+    ),
+  )

@@ -12,11 +12,11 @@
  * Conquistas. Nada os comparava. Este teste
  * compara, e a decisão de não unificá-los está em `docs/adr/0002-pareamento-de-recompensa-cobrado-por-teste.md`.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { valorDoCredito } from '../src/core/economiaAutoridade'
 import { REGRAS } from '../src/core/learning/economia'
-import { PESOS_SEEDS,PESOS_XP } from '../src/core/learning/xp'
+import { PESOS_SEEDS, PESOS_XP } from '../src/core/learning/xp'
 import { RECOMPENSA_DA_META } from '../src/core/missoes'
 
 describe('o par (XP, Seeds) não diverge entre as telas', () => {
@@ -31,7 +31,10 @@ describe('o par (XP, Seeds) não diverge entre as telas', () => {
     expect(regra, 'regra metaDiaria sumiu de REGRAS').toBeTruthy()
     expect(RECOMPENSA_DA_META.xp, 'XP divergente entre o Hub e a tabela de ganhos').toBe(regra!.xp)
     expect(RECOMPENSA_DA_META.seeds, 'Seeds divergentes entre o Hub e a tabela de ganhos').toBe(regra!.seeds)
-    expect(valorDoCredito('meta:2026-10-05')).toMatchObject({ seeds: RECOMPENSA_DA_META.seeds, xp: RECOMPENSA_DA_META.xp })
+    expect(valorDoCredito('meta:2026-10-05')).toMatchObject({
+      seeds: RECOMPENSA_DA_META.seeds,
+      xp: RECOMPENSA_DA_META.xp,
+    })
   })
 
   it('gravar não rende por tempo, e salvar a sessão não rende Seeds', () => {

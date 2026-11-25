@@ -3,21 +3,22 @@
  * descarta a segunda. Se ele errar a divisão, o conserto vira outro defeito — daí os testes
  * concentrarem-se nas três armadilhas clássicas e na garantia de que nada se perde.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { juntarFrases,separarEmFrases } from '../src/core/texto/frases'
+import { juntarFrases, separarEmFrases } from '../src/core/texto/frases'
 
 describe('separação em frases', () => {
   it('separa o caso que motivou tudo isto', () => {
     // Sem separar, o opus-mt devolve só "Meu médico disse que estou bem." e perde o `she` que
     // resolveria o gênero.
-    expect(separarEmFrases('My doctor said I am fine. She was very kind.'))
-      .toEqual(['My doctor said I am fine.', 'She was very kind.'])
+    expect(separarEmFrases('My doctor said I am fine. She was very kind.')).toEqual([
+      'My doctor said I am fine.',
+      'She was very kind.',
+    ])
   })
 
   it('texto sem pontuação volta inteiro — é o caso normal da fala transcrita', () => {
-    expect(separarEmFrases('então eu fui lá e falei com ele'))
-      .toEqual(['então eu fui lá e falei com ele'])
+    expect(separarEmFrases('então eu fui lá e falei com ele')).toEqual(['então eu fui lá e falei com ele'])
   })
 
   it('NÃO quebra em abreviação', () => {
@@ -30,13 +31,11 @@ describe('separação em frases', () => {
   })
 
   it('NÃO quebra em inicial isolada', () => {
-    expect(separarEmFrases('J. R. R. Tolkien escreveu isso.'))
-      .toEqual(['J. R. R. Tolkien escreveu isso.'])
+    expect(separarEmFrases('J. R. R. Tolkien escreveu isso.')).toEqual(['J. R. R. Tolkien escreveu isso.'])
   })
 
   it('trata reticências e pontuação repetida como um corte só', () => {
-    expect(separarEmFrases('Que susto!!! Achei que fosse cair.'))
-      .toEqual(['Que susto!!!', 'Achei que fosse cair.'])
+    expect(separarEmFrases('Que susto!!! Achei que fosse cair.')).toEqual(['Que susto!!!', 'Achei que fosse cair.'])
     expect(separarEmFrases('Bom... Vamos ver.')).toEqual(['Bom...', 'Vamos ver.'])
   })
 

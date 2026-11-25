@@ -9,13 +9,7 @@
  * A regra de honestidade que atravessa o arquivo inteiro: sem timing confiável o valor é `null`, e
  * a tela mostra "—". Nenhum número é inventado para preencher um cartão.
  */
-import {
-  computeTextStats,
-  contarSobreposicoes,
-  contarViciosDasFalas,
-  extractKeywords,
-  retrievability,
-} from '@core';
+import { computeTextStats, contarSobreposicoes, contarViciosDasFalas, extractKeywords, retrievability } from '@core';
 import React from 'react';
 
 import type { Sentence } from '../sentences';
@@ -238,10 +232,7 @@ export function useMetricasDaSessao(deps: DepsDasMetricasDaSessao) {
   const stats = React.useMemo(() => computeTextStats(fullTranscriptText, ttsLang), [fullTranscriptText, ttsLang]);
 
   // WPM REAL da sessão: palavras / tempo falado (do primeiro tStartMs ao último tEndMs).
-  const realWpm = React.useMemo(
-    () => calcularWpm(realUtterances, stats.wordCount),
-    [realUtterances, stats.wordCount],
-  );
+  const realWpm = React.useMemo(() => calcularWpm(realUtterances, stats.wordCount), [realUtterances, stats.wordCount]);
 
   // Pausas longas (>3s) REAIS: intervalos entre utterances consecutivas com timing.
   const realLongPauses = React.useMemo(() => contarPausasLongas(realUtterances), [realUtterances]);

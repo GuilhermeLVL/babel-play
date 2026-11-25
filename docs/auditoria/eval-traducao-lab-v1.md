@@ -16,15 +16,15 @@ Um harness que decodificasse diferente mediria outro produto.
 
 ## Resultado — `opus-mt` local, en→pt, 16 casos
 
-| Categoria | Beam 2 só (o lab antes) | Beam 2 + segmentação | Δ |
-|---|---|---|---|
-| **pronome** | 57,9% | **75,5%** | **+17,6** |
-| **genero** | 56,0% | **71,5%** | **+15,5** |
-| fala-espontanea | 55,7% | 55,7% | — |
-| idiomatico | 27,4% | 27,4% | — |
-| literal | 83,8% | 83,8% | — |
-| registro | 32,1% | 32,1% | — |
-| **geral** | 51,4% | **56,6%** | **+5,2** |
+| Categoria       | Beam 2 só (o lab antes) | Beam 2 + segmentação | Δ         |
+| --------------- | ----------------------- | -------------------- | --------- |
+| **pronome**     | 57,9%                   | **75,5%**            | **+17,6** |
+| **genero**      | 56,0%                   | **71,5%**            | **+15,5** |
+| fala-espontanea | 55,7%                   | 55,7%                | —         |
+| idiomatico      | 27,4%                   | 27,4%                | —         |
+| literal         | 83,8%                   | 83,8%                | —         |
+| registro        | 32,1%                   | 32,1%                | —         |
+| **geral**       | 51,4%                   | **56,6%**            | **+5,2**  |
 
 **O beam sozinho não conserta o truncamento.** 51,4% com beam 2 é exatamente o mesmo número da
 cópia de engenharia com decodificação gulosa: o `num_beams` melhora a escolha de palavras dentro

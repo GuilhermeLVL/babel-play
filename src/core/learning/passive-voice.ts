@@ -25,33 +25,138 @@
  */
 
 /** Formas do verbo "be" que podem preceder um particípio passado em voz passiva. */
-const BE_FORMS = new Set(['am', 'is', 'are', 'was', 'were', 'be', 'been', 'being'])
+const BE_FORMS = new Set(['am', 'is', 'are', 'was', 'were', 'be', 'been', 'being']);
 
 /**
  * Advérbios/negação comuns que podem aparecer ENTRE o "be" e o particípio sem quebrar o padrão
  * ("was not written", "was recently built"). Curta de propósito: é só o que não muda a classificação.
  */
 const ADVERBIOS_PERMITIDOS = new Set([
-  'not', 'never', 'also', 'often', 'always', 'usually', 'still', 'just', 'already', 'clearly',
-  'widely', 'commonly', 'recently', 'quickly', 'carefully', 'completely', 'fully', 'partially',
-  'rarely', 'suddenly', 'barely', 'largely', 'mostly', 'nearly', 'once', 'only', 'really',
-])
+  'not',
+  'never',
+  'also',
+  'often',
+  'always',
+  'usually',
+  'still',
+  'just',
+  'already',
+  'clearly',
+  'widely',
+  'commonly',
+  'recently',
+  'quickly',
+  'carefully',
+  'completely',
+  'fully',
+  'partially',
+  'rarely',
+  'suddenly',
+  'barely',
+  'largely',
+  'mostly',
+  'nearly',
+  'once',
+  'only',
+  'really',
+]);
 
 /**
  * Particípios irregulares mais comuns do inglês — não terminam em "-ed", então o padrão regular
  * (abaixo) não os pega. Lista curada, não exaustiva (ver ressalva de honestidade no topo do arquivo).
  */
 const PARTICIPIOS_IRREGULARES = new Set([
-  'been', 'born', 'beaten', 'become', 'begun', 'bent', 'bet', 'bitten', 'blown', 'broken',
-  'brought', 'built', 'bought', 'caught', 'chosen', 'come', 'cut', 'done', 'drawn', 'dreamt',
-  'driven', 'drunk', 'eaten', 'fallen', 'felt', 'fought', 'found', 'flown', 'forbidden',
-  'forgiven', 'forgotten', 'frozen', 'given', 'gone', 'grown', 'had', 'heard', 'held', 'hidden',
-  'hit', 'hurt', 'kept', 'known', 'laid', 'left', 'lent', 'let', 'lit', 'lost', 'made', 'meant',
-  'met', 'paid', 'put', 'read', 'ridden', 'risen', 'run', 'said', 'seen', 'sent', 'set', 'shaken',
-  'shot', 'shown', 'shut', 'sold', 'sought', 'spent', 'spoken', 'spread', 'stolen', 'struck',
-  'sung', 'sat', 'slept', 'stood', 'stuck', 'sworn', 'swum', 'taken', 'taught', 'told', 'thought',
-  'thrown', 'understood', 'woken', 'won', 'worn', 'written',
-])
+  'been',
+  'born',
+  'beaten',
+  'become',
+  'begun',
+  'bent',
+  'bet',
+  'bitten',
+  'blown',
+  'broken',
+  'brought',
+  'built',
+  'bought',
+  'caught',
+  'chosen',
+  'come',
+  'cut',
+  'done',
+  'drawn',
+  'dreamt',
+  'driven',
+  'drunk',
+  'eaten',
+  'fallen',
+  'felt',
+  'fought',
+  'found',
+  'flown',
+  'forbidden',
+  'forgiven',
+  'forgotten',
+  'frozen',
+  'given',
+  'gone',
+  'grown',
+  'had',
+  'heard',
+  'held',
+  'hidden',
+  'hit',
+  'hurt',
+  'kept',
+  'known',
+  'laid',
+  'left',
+  'lent',
+  'let',
+  'lit',
+  'lost',
+  'made',
+  'meant',
+  'met',
+  'paid',
+  'put',
+  'read',
+  'ridden',
+  'risen',
+  'run',
+  'said',
+  'seen',
+  'sent',
+  'set',
+  'shaken',
+  'shot',
+  'shown',
+  'shut',
+  'sold',
+  'sought',
+  'spent',
+  'spoken',
+  'spread',
+  'stolen',
+  'struck',
+  'sung',
+  'sat',
+  'slept',
+  'stood',
+  'stuck',
+  'sworn',
+  'swum',
+  'taken',
+  'taught',
+  'told',
+  'thought',
+  'thrown',
+  'understood',
+  'woken',
+  'won',
+  'worn',
+  'written',
+]);
 
 /**
  * Adjetivos terminados em "-ed" de altíssima frequência que normalmente descrevem um ESTADO (não
@@ -60,42 +165,68 @@ const PARTICIPIOS_IRREGULARES = new Set([
  * palavra É voz passiva ("she was excited by the crowd" — ainda assim, ambíguo até para humanos).
  */
 const ADJETIVOS_ED_EXCLUIDOS = new Set([
-  'excited', 'interested', 'tired', 'worried', 'scared', 'bored', 'confused', 'annoyed',
-  'surprised', 'pleased', 'satisfied', 'disappointed', 'embarrassed', 'frustrated', 'stressed',
-  'relaxed', 'concerned', 'shocked', 'amazed', 'thrilled', 'delighted', 'depressed', 'exhausted',
-  'committed', 'dedicated', 'qualified', 'experienced', 'talented', 'motivated', 'organized',
-])
+  'excited',
+  'interested',
+  'tired',
+  'worried',
+  'scared',
+  'bored',
+  'confused',
+  'annoyed',
+  'surprised',
+  'pleased',
+  'satisfied',
+  'disappointed',
+  'embarrassed',
+  'frustrated',
+  'stressed',
+  'relaxed',
+  'concerned',
+  'shocked',
+  'amazed',
+  'thrilled',
+  'delighted',
+  'depressed',
+  'exhausted',
+  'committed',
+  'dedicated',
+  'qualified',
+  'experienced',
+  'talented',
+  'motivated',
+  'organized',
+]);
 
 /** Particípio regular: termina em "-ed", tamanho mínimo 4 (descarta "bed", "red", "led"-like ruído). */
 function isParticipioRegular(w: string): boolean {
-  return w.length >= 4 && /^[a-z]+ed$/.test(w) && !ADJETIVOS_ED_EXCLUIDOS.has(w)
+  return w.length >= 4 && /^[a-z]+ed$/.test(w) && !ADJETIVOS_ED_EXCLUIDOS.has(w);
 }
 
 function isParticipio(w: string): boolean {
-  return PARTICIPIOS_IRREGULARES.has(w) || isParticipioRegular(w)
+  return PARTICIPIOS_IRREGULARES.has(w) || isParticipioRegular(w);
 }
 
 export interface VozPassivaResultado {
   /** Quantas construções "be + particípio" foram encontradas. */
-  ocorrencias: number
+  ocorrencias: number;
   /** Palavras consideradas — denominador, para a taxa ser conferível. */
-  palavras: number
+  palavras: number;
   /** Ocorrências por 100 palavras, 1 casa decimal. Comparável entre textos de tamanhos diferentes. */
-  por100Palavras: number
+  por100Palavras: number;
   /** Trechos que casaram o padrão (até 6), para a pessoa auditar o que foi contado. */
-  exemplos: string[]
+  exemplos: string[];
 }
 
 function round1(n: number): number {
-  return Math.round(n * 10) / 10
+  return Math.round(n * 10) / 10;
 }
 
 /** Os idiomas para os quais existe régua de voz passiva. Hoje um só, e dizê-lo é o ponto. */
-const IDIOMAS_COM_REGUA = new Set(['en'])
+const IDIOMAS_COM_REGUA = new Set(['en']);
 
 /** Há régua de voz passiva para este idioma? A tela usa para declarar a ausência. */
 export function temReguaDeVozPassiva(lang: string): boolean {
-  return IDIOMAS_COM_REGUA.has((lang || '').toLowerCase().split('-')[0])
+  return IDIOMAS_COM_REGUA.has((lang || '').toLowerCase().split('-')[0]);
 }
 
 /**
@@ -108,34 +239,37 @@ export function temReguaDeVozPassiva(lang: string): boolean {
  * descreve o alemão nem o japonês, e aplicá-lo devolveria zero com cara de medição.
  */
 export function detectarVozPassiva(texto: string, lang: string): VozPassivaResultado | null {
-  if (!temReguaDeVozPassiva(lang)) return null
-  const raw = texto ?? ''
-  const tokens = raw.match(/[\p{L}']+/gu) ?? []
-  const lower = tokens.map((t) => t.toLowerCase())
-  const n = lower.length
+  if (!temReguaDeVozPassiva(lang)) return null;
+  const raw = texto ?? '';
+  const tokens = raw.match(/[\p{L}']+/gu) ?? [];
+  const lower = tokens.map((t) => t.toLowerCase());
+  const n = lower.length;
 
-  const exemplos: string[] = []
-  let ocorrencias = 0
+  const exemplos: string[] = [];
+  let ocorrencias = 0;
 
-  let i = 0
+  let i = 0;
   while (i < n) {
-    if (!BE_FORMS.has(lower[i])) { i++; continue }
+    if (!BE_FORMS.has(lower[i])) {
+      i++;
+      continue;
+    }
 
     // Encadeia formas de "be" consecutivas ("was being").
-    let j = i
-    while (j + 1 < n && BE_FORMS.has(lower[j + 1])) j++
+    let j = i;
+    while (j + 1 < n && BE_FORMS.has(lower[j + 1])) j++;
 
     // No máximo um advérbio/negação entre o "be" e o particípio.
-    let k = j + 1
-    if (k < n && ADVERBIOS_PERMITIDOS.has(lower[k])) k++
+    let k = j + 1;
+    if (k < n && ADVERBIOS_PERMITIDOS.has(lower[k])) k++;
 
     if (k < n && isParticipio(lower[k])) {
-      ocorrencias++
-      if (exemplos.length < 6) exemplos.push(tokens.slice(i, k + 1).join(' '))
-      i = k + 1 // não deixa a mesma ocorrência ser recontada por sobreposição
-      continue
+      ocorrencias++;
+      if (exemplos.length < 6) exemplos.push(tokens.slice(i, k + 1).join(' '));
+      i = k + 1; // não deixa a mesma ocorrência ser recontada por sobreposição
+      continue;
     }
-    i++
+    i++;
   }
 
   return {
@@ -143,5 +277,5 @@ export function detectarVozPassiva(texto: string, lang: string): VozPassivaResul
     palavras: n,
     por100Palavras: n > 0 ? round1((ocorrencias / n) * 100) : 0,
     exemplos,
-  }
+  };
 }

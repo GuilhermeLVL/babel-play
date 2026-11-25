@@ -95,11 +95,5 @@
     ],
     "depois": 150
   },
-  "seletores": [
-    ".pj-vaga.pj-no",
-    ".pj-vaga.cheia",
-    ".pj-cho",
-    ".fx-vinheta.erro",
-    ".combo"
-  ]
+  "seletores": [".pj-vaga.pj-no", ".pj-vaga.cheia", ".pj-cho", ".fx-vinheta.erro", ".combo"]
 }

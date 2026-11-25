@@ -14,16 +14,16 @@ Tudo abaixo tem evidência: tempo medido, consulta ao banco ou captura de tela.
 O app oferece **28 idiomas** e entrega experiência completa em **um**. Não por falta de conteúdo do
 usuário — por quatro defeitos que se encadeiam e transformam um baralho legítimo em tela vazia.
 
-| # | Defeito | Classe |
-|---|---|---|
-| 1 | `palavra-curta` descarta kanji isolado — 70% de um baralho japonês | **bloqueante** |
-| 2 | Importar não entrega nada jogável: toda nota nasce `arquivada` | **bloqueante** |
-| 3 | Frase de gravação em inglês aparece na rodada de árabe | **bloqueante** |
-| 4 | RTL não existe: `direction: ltr` em todo texto de exercício | **bloqueante** |
-| 5 | Baralho sem idioma-alvo não diz que idioma é | atrito |
-| 6 | A porta de desbloqueio sugere "Jogar em inglês" — abandonar o idioma | atrito |
-| 7 | Quatro pontos quebram em silêncio fora do gate de alfabeto | atrito |
-| 8 | Hindi e tailandês não são reconhecidos pelo detector de escrita | atrito |
+| #   | Defeito                                                              | Classe         |
+| --- | -------------------------------------------------------------------- | -------------- |
+| 1   | `palavra-curta` descarta kanji isolado — 70% de um baralho japonês   | **bloqueante** |
+| 2   | Importar não entrega nada jogável: toda nota nasce `arquivada`       | **bloqueante** |
+| 3   | Frase de gravação em inglês aparece na rodada de árabe               | **bloqueante** |
+| 4   | RTL não existe: `direction: ltr` em todo texto de exercício          | **bloqueante** |
+| 5   | Baralho sem idioma-alvo não diz que idioma é                         | atrito         |
+| 6   | A porta de desbloqueio sugere "Jogar em inglês" — abandonar o idioma | atrito         |
+| 7   | Quatro pontos quebram em silêncio fora do gate de alfabeto           | atrito         |
+| 8   | Hindi e tailandês não são reconhecidos pelo detector de escrita      | atrito         |
 
 ---
 
@@ -31,15 +31,15 @@ usuário — por quatro defeitos que se encadeiam e transformam um baralho legí
 
 **Importação** (POST `/api/import/anki`, texto TSV):
 
-| idioma | tempo | notas | descartadas | motivo |
-|---|---:|---:|---:|---|
-| ar | 637 ms | 10 | 0 | — |
-| de | 307 ms | 10 | 0 | — |
-| es | 380 ms | 12 | 2 | `traducao-igual` (cognatos: *comida*, *agua*) |
-| fr | 298 ms | 10 | 0 | — |
-| **ja** | 294 ms | 10 | **7** | **`palavra-curta`** |
-| ru | 290 ms | 10 | 0 | — |
-| th | 297 ms | 10 | 0 | — |
+| idioma |  tempo | notas | descartadas | motivo                                        |
+| ------ | -----: | ----: | ----------: | --------------------------------------------- |
+| ar     | 637 ms |    10 |           0 | —                                             |
+| de     | 307 ms |    10 |           0 | —                                             |
+| es     | 380 ms |    12 |           2 | `traducao-igual` (cognatos: _comida_, _agua_) |
+| fr     | 298 ms |    10 |           0 | —                                             |
+| **ja** | 294 ms |    10 |       **7** | **`palavra-curta`**                           |
+| ru     | 290 ms |    10 |           0 | —                                             |
+| th     | 297 ms |    10 |           0 | —                                             |
 
 A importação é rápida. **O tempo não é o problema — o resultado é.**
 
@@ -56,12 +56,12 @@ idioma. Quem não sabe não chega: nada na tela de jogar indica que o baralho re
 A régua conta **caracteres**. Em escrita logográfica, um caractere é uma palavra inteira:
 
 | descartado | significa |
-|---|---|
-| 窓 | janela |
-| 家 | casa |
-| 道 | caminho |
-| 本 | livro |
-| 町 | cidade |
+| ---------- | --------- |
+| 窓         | janela    |
+| 家         | casa      |
+| 道         | caminho   |
+| 本         | livro     |
+| 町         | cidade    |
 
 Sete de dez notas. Sobraram 3 palavras — **abaixo do mínimo de 4** de qualquer jogo de palavra.
 O encadeamento completo: régua descarta 70% → acervo fica com 3 → os quatro jogos de palavra
@@ -85,7 +85,7 @@ N", numa tela que a pessoa precisa descobrir sozinha. Do ponto de vista de quem 
 ## Defeito 3 — vazamento de idioma na rodada
 
 Com **árabe** escolhido (`?fonte=baralho&idioma=ar`, resumo confirmando "10 palavras · árabe"), o
-jogo *Montar a frase* abriu com:
+jogo _Montar a frase_ abriu com:
 
 > MONTE A FRASE QUE QUER DIZER ≈ **Para onde vou?** — `going? am Where I`
 
@@ -126,12 +126,12 @@ ativar mais notas daquele baralho, ou dizer que a régua descartou 7 delas (defe
 
 O gate `requisitos: { alfabeto: 'latino' }` cobre só Termo e Caça-palavras. Estes quebram calados:
 
-| Ponto | Regra | Efeito |
-|---|---|---|
-| `src/core/minigames/bingo.ts:42,50` | `normalizarPalavra` (A–Z) | Bingo vazio, sem declarar requisito |
-| `src/core/minigames/escuta.ts:275` | `lista.has(normalizarPalavra(t))` | Conectores sem alvos |
-| `src/components/views/Analysis.tsx:1397` | `[^a-zA-Z]` | Destrói acentuadas — **afeta português** |
-| `src/components/TokensClicaveis.tsx:42` | `/^[a-z]+$/` | "ação" não é clicável. `vocabWord.ts:198` já corrigiu a tokenização; o consumidor ficou para trás |
+| Ponto                                    | Regra                             | Efeito                                                                                            |
+| ---------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `src/core/minigames/bingo.ts:42,50`      | `normalizarPalavra` (A–Z)         | Bingo vazio, sem declarar requisito                                                               |
+| `src/core/minigames/escuta.ts:275`       | `lista.has(normalizarPalavra(t))` | Conectores sem alvos                                                                              |
+| `src/components/views/Analysis.tsx:1397` | `[^a-zA-Z]`                       | Destrói acentuadas — **afeta português**                                                          |
+| `src/components/TokensClicaveis.tsx:42`  | `/^[a-z]+$/`                      | "ação" não é clicável. `vocabWord.ts:198` já corrigiu a tokenização; o consumidor ficou para trás |
 
 ## Defeito 8 — hindi e tailandês não são detectados
 
@@ -144,7 +144,7 @@ porque eu mandei `x-src-lang: th` explicitamente; pela detecção automática, n
 ## As nove perguntas do brief
 
 1. **Cliques/tempo até jogar?** 6 cliques, ~15 s, conhecendo o caminho. Ponto mais lento: descobrir
-   que é preciso *ativar* (defeito 2).
+   que é preciso _ativar_ (defeito 2).
 2. **O idioma aparece nos seletores?** Só depois de ativar. Antes, o baralho existe e o idioma não.
 3. **Dá para jogar num idioma só, sem tentativa e erro?** Sim, depois de ativado — a faceta de
    idioma lista com contagem (`inglês 2228 · japonês 3 · português 0`).
@@ -163,7 +163,7 @@ porque eu mandei `x-src-lang: th` explicitamente; pela detecção automática, n
    nada diz isso.
 2. **"Ativar mais 10" — ativar o quê, e por que não veio ativado?** O vocabulário do termo é do
    sistema, não de quem estuda.
-3. **"3 de 10 ativadas, 7 descartadas"** sem dizer *o que* foi descartado nem *por quê* — e no
+3. **"3 de 10 ativadas, 7 descartadas"** sem dizer _o que_ foi descartado nem _por quê_ — e no
    japonês o motivo é um defeito nosso, não do baralho.
 4. **Jogo bloqueado que sugere trocar de idioma** em vez de resolver o material.
 5. **"0 de 10 notas ativadas" convive com "10 palavras" no resumo** depois de ativar: duas unidades

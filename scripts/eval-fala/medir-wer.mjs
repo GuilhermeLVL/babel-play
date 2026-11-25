@@ -30,7 +30,10 @@ const RAIZ_AUDIO = 'tests/fixtures/audio'
 const SAIDA = 'docs/auditoria/eval/resultados-wer.json'
 
 const args = process.argv.slice(2)
-const opt = (n, p) => { const i = args.indexOf(`--${n}`); return i >= 0 && args[i + 1] ? args[i + 1] : p }
+const opt = (n, p) => {
+  const i = args.indexOf(`--${n}`)
+  return i >= 0 && args[i + 1] ? args[i + 1] : p
+}
 
 const MODELOS = {
   tiny: 'onnx-community/whisper-tiny',
@@ -51,7 +54,10 @@ function variantes(modelos) {
   for (const m of modelos) {
     /* `nuvem` só faz sentido com dica: é o que o `sttProxy` manda, e é a configuração que o plano
        pago entrega. Gerar a variante sem dica gastaria dinheiro para medir algo que não existe. */
-    if (m === 'nuvem') { v.push({ nome: 'nuvem/com-dica-pt', modelo: m, idioma: 'pt', nuvem: true }); continue }
+    if (m === 'nuvem') {
+      v.push({ nome: 'nuvem/com-dica-pt', modelo: m, idioma: 'pt', nuvem: true })
+      continue
+    }
     v.push({ nome: `${m}/sem-dica`, modelo: m, idioma: undefined })
     v.push({ nome: `${m}/com-dica-pt`, modelo: m, idioma: 'pt' })
   }
@@ -65,7 +71,9 @@ function chaveDaNuvem() {
     try {
       const m = readFileSync(new URL(`../../${arquivo}`, import.meta.url), 'utf8').match(/^GROQ_API_KEY=(.+)$/m)
       if (m) return m[1].trim()
-    } catch { /* ausente é normal */ }
+    } catch {
+      /* ausente é normal */
+    }
   }
   throw new Error('GROQ_API_KEY não encontrada — a variante `nuvem` precisa dela')
 }
@@ -74,10 +82,19 @@ function chaveDaNuvem() {
 function montarWav(pcm) {
   const bytes = pcm.length * 2
   const buf = Buffer.alloc(44 + bytes)
-  buf.write('RIFF', 0, 'ascii'); buf.writeUInt32LE(36 + bytes, 4); buf.write('WAVE', 8, 'ascii')
-  buf.write('fmt ', 12, 'ascii'); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22)
-  buf.writeUInt32LE(16000, 24); buf.writeUInt32LE(32000, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34)
-  buf.write('data', 36, 'ascii'); buf.writeUInt32LE(bytes, 40)
+  buf.write('RIFF', 0, 'ascii')
+  buf.writeUInt32LE(36 + bytes, 4)
+  buf.write('WAVE', 8, 'ascii')
+  buf.write('fmt ', 12, 'ascii')
+  buf.writeUInt32LE(16, 16)
+  buf.writeUInt16LE(1, 20)
+  buf.writeUInt16LE(1, 22)
+  buf.writeUInt32LE(16000, 24)
+  buf.writeUInt32LE(32000, 28)
+  buf.writeUInt16LE(2, 32)
+  buf.writeUInt16LE(16, 34)
+  buf.write('data', 36, 'ascii')
+  buf.writeUInt32LE(bytes, 40)
   for (let i = 0; i < pcm.length; i++) {
     const s = Math.max(-1, Math.min(1, pcm[i]))
     buf.writeInt16LE(Math.round(s * 32767), 44 + i * 2)
@@ -131,12 +148,19 @@ function lerWav(buf) {
   if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') {
     throw new Error('não é um WAV RIFF')
   }
-  let pos = 12, fmt = null, dados = null
+  let pos = 12,
+    fmt = null,
+    dados = null
   while (pos + 8 <= buf.length) {
     const id = buf.toString('ascii', pos, pos + 4)
     const tam = buf.readUInt32LE(pos + 4)
     const corpo = pos + 8
-    if (id === 'fmt ') fmt = { canais: buf.readUInt16LE(corpo + 2), taxa: buf.readUInt32LE(corpo + 4), bits: buf.readUInt16LE(corpo + 14) }
+    if (id === 'fmt ')
+      fmt = {
+        canais: buf.readUInt16LE(corpo + 2),
+        taxa: buf.readUInt32LE(corpo + 4),
+        bits: buf.readUInt16LE(corpo + 14),
+      }
     else if (id === 'data') dados = buf.subarray(corpo, Math.min(corpo + tam, buf.length))
     pos = corpo + tam + (tam % 2)
   }
@@ -180,7 +204,11 @@ async function main() {
     console.error(`manifesto ausente: ${MANIFESTO}\nRode antes: node scripts/eval-fala/baixar-corpus.mjs`)
     process.exit(1)
   }
-  let itens = readFileSync(MANIFESTO, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l))
+  let itens = readFileSync(MANIFESTO, 'utf8')
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => JSON.parse(l))
   const limite = Number(opt('limite', '0'))
   if (limite > 0) itens = itens.slice(0, limite)
   itens = itens.filter((o) => existsSync(path.join(RAIZ_AUDIO, o.arquivo)))
@@ -190,7 +218,9 @@ async function main() {
     process.exit(1)
   }
 
-  const nomesDeModelo = opt('modelos', 'tiny,base').split(',').map((s) => s.trim())
+  const nomesDeModelo = opt('modelos', 'tiny,base')
+    .split(',')
+    .map((s) => s.trim())
     .filter((m) => MODELOS[m] || m === 'nuvem')
   const vs = variantes(nomesDeModelo)
   console.log(`corpus: ${itens.length} itens · variantes: ${vs.map((v) => v.nome).join(', ')}\n`)
@@ -206,12 +236,15 @@ async function main() {
   for (const v of vs) {
     process.stdout.write(`${v.nome}: carregando…`)
     // A variante de nuvem não carrega modelo nenhum: o trabalho acontece do outro lado da rede.
-    const asr = v.nuvem ? null : await pipeline('automatic-speech-recognition', MODELOS[v.modelo], { dtype: 'q8', device: 'cpu' })
+    const asr = v.nuvem
+      ? null
+      : await pipeline('automatic-speech-recognition', MODELOS[v.modelo], { dtype: 'q8', device: 'cpu' })
     const chaveNuvem = v.nuvem ? chaveDaNuvem() : null
     const casos = []
     /** Casos EXCLUÍDOS por falha de infraestrutura — não entram na média, e são reportados. */
     const falhasDeInfra = []
-    let msTotal = 0, audioTotalS = 0
+    let msTotal = 0,
+      audioTotalS = 0
 
     for (let i = 0; i < itens.length; i++) {
       const it = itens[i]
@@ -254,7 +287,10 @@ async function main() {
            muito melhor (23,4% num lote que coube na cota). */
         const infra = /HTTP (4[0-9]{2}|5[0-9]{2})/.test(e.message)
         console.warn(`\n  ! ${it.id}: ${e.message}`)
-        if (infra) { falhasDeInfra.push({ id: it.id, erro: e.message }); continue }
+        if (infra) {
+          falhasDeInfra.push({ id: it.id, erro: e.message })
+          continue
+        }
       }
       msTotal += Date.now() - t0
       audioTotalS += audioSec
@@ -268,31 +304,52 @@ async function main() {
     // metade "custo" da troca — sem ela, um WER melhor com modelo maior pareceria de graça.
     const rtf = audioTotalS > 0 ? msTotal / 1000 / audioTotalS : 0
 
-    resultados.push({ variante: v.nome, modelo: v.modelo, idioma: v.idioma ?? null, geral, porFaixa, rtf, casos, falhasDeInfra })
+    resultados.push({
+      variante: v.nome,
+      modelo: v.modelo,
+      idioma: v.idioma ?? null,
+      geral,
+      porFaixa,
+      rtf,
+      casos,
+      falhasDeInfra,
+    })
     const nota = falhasDeInfra.length ? `  (${falhasDeInfra.length} de ${itens.length} FORA por falha de infra)` : ''
-    console.log(`\r${v.nome}: WER ${(geral.wer * 100).toFixed(1)}%  CER ${(geral.cer * 100).toFixed(1)}%  RTF ${rtf.toFixed(2)}${nota}          `)
+    console.log(
+      `\r${v.nome}: WER ${(geral.wer * 100).toFixed(1)}%  CER ${(geral.cer * 100).toFixed(1)}%  RTF ${rtf.toFixed(2)}${nota}          `,
+    )
   }
 
   mkdirSync(path.dirname(SAIDA), { recursive: true })
-  writeFileSync(SAIDA, JSON.stringify({ geradoEm: new Date().toISOString(), corpus: itens.length, resultados }, null, 2))
+  writeFileSync(
+    SAIDA,
+    JSON.stringify({ geradoEm: new Date().toISOString(), corpus: itens.length, resultados }, null, 2),
+  )
 
   console.log(`\n${'variante'.padEnd(22)} ${'WER'.padStart(7)} ${'CER'.padStart(7)} ${'RTF'.padStart(6)}   sub/ins/del`)
   for (const r of resultados) {
     const g = r.geral
-    console.log(`${r.variante.padEnd(22)} ${(g.wer * 100).toFixed(1).padStart(6)}% ${(g.cer * 100).toFixed(1).padStart(6)}% ${r.rtf.toFixed(2).padStart(6)}   ${g.substituicoes}/${g.insercoes}/${g.delecoes}`)
+    console.log(
+      `${r.variante.padEnd(22)} ${(g.wer * 100).toFixed(1).padStart(6)}% ${(g.cer * 100).toFixed(1).padStart(6)}% ${r.rtf.toFixed(2).padStart(6)}   ${g.substituicoes}/${g.insercoes}/${g.delecoes}`,
+    )
   }
 
   console.log(`\nWER por faixa de duração (a resposta a "é o modelo ou a segmentação?"):`)
   const faixas = Object.keys(resultados[0].porFaixa)
   console.log(`${''.padEnd(22)}${faixas.map((f) => f.split(' ')[0].padStart(9)).join('')}`)
   for (const r of resultados) {
-    const linha = faixas.map((f) => {
-      const a = r.porFaixa[f]
-      return (a.casos === 0 ? '—' : `${(a.wer * 100).toFixed(0)}%`).padStart(9)
-    }).join('')
+    const linha = faixas
+      .map((f) => {
+        const a = r.porFaixa[f]
+        return (a.casos === 0 ? '—' : `${(a.wer * 100).toFixed(0)}%`).padStart(9)
+      })
+      .join('')
     console.log(`${r.variante.padEnd(22)}${linha}`)
   }
   console.log(`\nresultado bruto: ${SAIDA}`)
 }
 
-main().catch((e) => { console.error('\nfalhou:', e); process.exit(1) })
+main().catch((e) => {
+  console.error('\nfalhou:', e)
+  process.exit(1)
+})

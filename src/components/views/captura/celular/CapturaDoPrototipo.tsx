@@ -2,6 +2,7 @@ import '../../../../styles/capturaNoCelular.css';
 import '../../../../styles/polimentoCaptura.css';
 
 import {
+  AudioLines,
   ChevronDown,
   CircleQuestionMark,
   Cpu,
@@ -69,6 +70,7 @@ export default function CapturaDoPrototipo({
   pausa,
   noQuest = false,
   intencao,
+  legendarAgora,
   avatar,
   preparo,
 }: {
@@ -113,6 +115,8 @@ export default function CapturaDoPrototipo({
   noQuest?: boolean;
   /** Antecipação do "Iniciar" (foco/ponteiro); ausente = sem handlers novos. */
   intencao?: { entrou: () => void; saiu: () => void };
+  /** "Legendar agora" (quem já legendou o som do computador): só o som do computador, com o que já foi escolhido. */
+  legendarAgora?: () => void;
   /** O avatar do modo legendar (flag `avatar_3d`): botão, faixa de presença e dica. Ausente = a tela de antes. */
   avatar?: { botao: ReactNode; presenca: ReactNode; dica: ReactNode };
   /**
@@ -283,6 +287,20 @@ export default function CapturaDoPrototipo({
                               'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.',
                             )}
                   </p>
+                  {legendarAgora && !preparo && (
+                    <button
+                      type="button"
+                      className="q-chip"
+                      data-testid="legendar-agora"
+                      onClick={legendarAgora}
+                      onFocus={intencao?.entrou}
+                      onPointerEnter={intencao?.entrou}
+                      onBlur={intencao?.saiu}
+                      onPointerLeave={intencao?.saiu}
+                    >
+                      <AudioLines aria-hidden /> {t('Legendar agora')}
+                    </button>
+                  )}
                   {nivel.nota}
                 </div>
               </div>

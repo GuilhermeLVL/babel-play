@@ -99,7 +99,8 @@ export default function TemporadaDoPrototipo({
         <div className="px-ceu" aria-hidden="true" />
         <div className="px-temp-texto">
           <p className="q-rotulo">{t('Temporada')}</p>
-          <p>
+          {/* A faixa existe SEMPRE (inclusive sem temporada em curso e sem próxima): é o que a tela e o e2e leem. */}
+          <p data-testid="faixa-da-temporada">
             {estado === null ? t('Não consegui ler a temporada agora.') : t('A próxima temporada ainda não tem data.')}
           </p>
         </div>

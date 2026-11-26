@@ -12,7 +12,9 @@
  *    primeira abertura destruiria a lista de livros de todo mundo; o risco é só o aparelho que já era compartilhado);
  *  - marcador de OUTRA conta (recarga com outra conta, conta -> conta, sair): o conjunto inteiro sai;
  *  - marcador `anonimo` e o dono agora é uma conta (o visitante entrou): NÃO sai nem é adotado sozinho. Fica PENDENTE
- *    até a pessoa escolher, no aviso de entrada, "trazer para esta conta" ou "apagar" (`ModalDeMigracao`).
+ *    até a pessoa escolher, no aviso de entrada, "trazer para esta conta" ou "apagar" (`ModalDeMigracao`). Se a conta
+    SAI ou TROCA com a escolha pendente, o conjunto INTEIRO sai (fail-closed: a conta grava nas mesmas chaves e não há
+    como separar o dela do do visitante).
  * Bancos IndexedDB são ESVAZIADOS (não apagados): outra aba ou módulo pode estar com o banco aberto e `deleteDatabase`
  * ficaria bloqueado. E só se abre o que existe (`bancoExiste`): a guarda não cria banco onde ninguém gravou.
  *
@@ -38,10 +40,38 @@ interface Conjunto {
 export const CONJUNTOS: readonly Conjunto[] = [
   {
     nome: 'meus-livros',
-    chaves: ['frasy.livros.meus.v1'],
-    /* posição, elenco e posição da narração POR LIVRO (`meu-…` e `cat:…`); as opções de narração são do aparelho. */
-    prefixos: ['leitor:posicao:', 'leitor:elenco:', 'leitor:narracao:meu-', 'leitor:narracao:cat:'],
+    /* `leitor:recentes` é a lista "continuar lendo" (ids e títulos do que a pessoa abriu). */
+    chaves: ['frasy.livros.meus.v1', 'leitor:recentes'],
+    /* posição, elenco e posição da narração POR LIVRO (`meu-…`, `cat:…` e `sessao:…`) e a marca de migração das
+       anotações por sessão; as opções, o perfil e o "Meu estilo" de narração são do aparelho (preferência, sem conteúdo). */
+    prefixos: [
+      'leitor:posicao:',
+      'leitor:elenco:',
+      'leitor:narracao:meu-',
+      'leitor:narracao:cat:',
+      'leitor:narracao:sessao:',
+      'leitor:migrou:',
+    ],
     bancos: ['frasy-livros', 'frasy-leitor', 'frasy-capas'],
+  },
+  /* As anotações por frase da Leitura (`readingAnnotations:<sessão>`): texto escrito pela pessoa sobre as falas dela. */
+  { nome: 'anotacoes-da-leitura', chaves: [], prefixos: ['readingAnnotations:'], bancos: [] },
+  /* Varredura final (25/11): estudo e identidade pública que ficavam como "pendente" na auditoria. */
+  {
+    nome: 'estudo-e-ranking',
+    chaves: [
+      'revisao.cenasJuntadas',
+      'curadoria.mantidas',
+      'frasy.leituraAtiva.lidos',
+      'frasy.anki.perfis.v1',
+      'babel.apelido',
+      'babel.rank_enviado',
+      /* os casos "ruim" do iChat: guardam a pergunta e a resposta, texto da pessoa */
+      'ichat_avaliacoes',
+    ],
+    /* o rascunho da escrita da leitura ativa, por texto e tarefa */
+    prefixos: ['babel.vistas.', 'babel.precisoes.', 'frasy.leituraAtiva.rascunho.'],
+    bancos: [],
   },
   { nome: 'memoria-de-traducao', chaves: [], prefixos: [], bancos: ['babel-memoria-de-traducao'] },
   { nome: 'desenhos', chaves: [], prefixos: ['babel.desenho.sessao:'], bancos: ['babel-desenhos'] },
@@ -81,11 +111,13 @@ export const CONJUNTOS: readonly Conjunto[] = [
     bancos: [],
   },
   {
-    /* `frasy.avatar.protegido` (trava do perfil protegido, sessionStorage) e as dicas NÃO entram: a trava só restringe e
-       as dicas são do aparelho. */
+    /* A receita (`frasy.avatar.receita.<id>`), a miniatura e o crédito do modelo são POR USUÁRIO, e as marcações de pose
+       são texto da própria pessoa. `frasy.avatar.protegido` (trava do perfil protegido, sessionStorage), as dicas e as
+       preferências de exibição (`frasy.avatar.modo.*`, `frasy.avatar.interprete.*`: ligado, tamanho, economia...)
+       NÃO entram: a trava só restringe e o resto é do aparelho, sem conteúdo nem identidade. */
     nome: 'foto-e-avatar',
-    chaves: [],
-    prefixos: ['babel.fotoDoPerfil.', 'frasy.avatar.miniatura.', 'frasy.avatar.credito.'],
+    chaves: ['frasy.avatar.sinais.marcacoes'],
+    prefixos: ['babel.fotoDoPerfil.', 'frasy.avatar.receita.', 'frasy.avatar.miniatura.', 'frasy.avatar.credito.'],
     bancos: ['frasy-avatar'],
   },
 ];
@@ -229,10 +261,14 @@ registrarArmazemPorConta({
     ) {
       gravarMarcador(donoDaIdentidade());
     }
-    /* O que é do VISITANTE não é da conta que entra nem da que sai: fica (pendente, a pessoa escolhe trazer ou apagar;
-       perdê-lo ao entrar e sair apagaria os livros que ele trouxe). Só sai o que é da conta por chave de usuário:
-       foto e avatar. */
-    if (lerMarcador() === 'anonimo') {
+    /* FAIL-CLOSED. A conta que entra grava nas MESMAS chaves e bancos do visitante, sem marcador que separe o que é de
+       quem, e não há como provar depois que ela não gravou (contar linhas ou tirar "impressão" deixa passar sobrescrita e
+       corrida). Então:
+        - ENTRADA do visitante (visitante -> conta): nada do visitante sai (a pessoa ainda vai escolher no aviso); só o
+          que é da conta por chave de usuário (foto e avatar);
+        - SAÍDA ou TROCA de conta com a escolha ainda pendente: o conjunto INTEIRO sai, inclusive o do visitante.
+          Perder o que ninguém reivindicou é aceitável; deixar dado de conta para a próxima pessoa não é. */
+    if (lerMarcador() === 'anonimo' && o?.preservarVisitante) {
       await apagarConjuntos(['foto-e-avatar']);
       return;
     }

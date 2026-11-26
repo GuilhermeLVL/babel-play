@@ -87,7 +87,35 @@ Decisões assumidas (recomendação do agente, 25/11):
   livros de todo mundo. Risco: aparelho que já era compartilhado.
 - O que o visitante deixou fica PENDENTE ao entrar numa conta (nem apagado nem adotado sozinho). O aviso de entrada
   (`ModalDeMigracao`) agora tem "Guardar na conta" (traz), "Apagar deste navegador" (com confirmação) e "Agora não".
-  Se a conta sai com o visitante ainda pendente, o dele continua pendente (não se apaga o que a conta não trouxe).
-- Enquanto pendente, o que a conta grava se mistura ao do visitante; "Apagar" leva os dois (são espelhos do servidor).
+  Se a conta SAI ou TROCA com a escolha ainda pendente, o conjunto INTEIRO sai do aparelho, inclusive o que o visitante
+  deixou (regra FAIL-CLOSED, revisão de segurança de 25/11).
+- Enquanto pendente, o que a conta grava se mistura ao do visitante (mesmas chaves e bancos, sem como separar), e contar
+  linhas ou tirar "impressão" do conjunto não prova que a conta não gravou (sobrescrita e corrida passam). Por isso a regra
+  acima: perder o dado do visitante que ninguém reivindicou é aceitável; vazar dado de conta para a próxima pessoa não é.
+  "Apagar" leva os dois (são espelhos do servidor); "Guardar na conta" não perde nada.
+- Chaves por conta acrescentadas na revisão: `frasy.avatar.receita.`, `frasy.avatar.sinais.marcacoes`, `leitor:recentes`,
+  `leitor:narracao:sessao:` e `leitor:migrou:`. Ficam de fora, por serem preferência do aparelho: `frasy.avatar.modo.*`,
+  `frasy.avatar.interprete.*`, `leitor:perfil`, `leitor:narracao:opcoes|modo|seguir` (o `meu-estilo` sai com o prefixo `leitor:narracao:meu-`), `leitor:glosa`.
 - Não migrados (risco baixo, seguem pendentes): cenas juntadas da revisão, curadoria, leitura ativa, perfis de mapeamento do Anki,
   apelido e envio do ranking.
+
+## Varredura final de chaves e bancos (25/11, antes da produção)
+
+Conferidos `localStorage.*Item` e `openDB`/`indexedDB.open` em `src` contra os conjuntos de `armazensDoAparelhoDaConta.ts`.
+
+- Bancos IndexedDB: `frasy-avatar`, `frasy-livros`, `frasy-leitor`, `frasy-capas` (conjuntos `foto-e-avatar` e `meus-livros`),
+  `babel-desenhos` e `babel-memoria-de-traducao` (conjuntos próprios), `babel-local` (modo sem conta, `limparTudo`); os demais
+  usam a peça comum por conta. Nenhum banco ficou de fora.
+- Acrescentados nesta rodada: `readingAnnotations:` (conjunto `anotacoes-da-leitura`, teste: sai quando outra conta entra) e o
+  conjunto `estudo-e-ranking` (`revisao.cenasJuntadas`, `curadoria.mantidas`, `frasy.leituraAtiva.lidos`,
+  `frasy.anki.perfis.v1`, `babel.apelido`, `babel.rank_enviado`, `babel.vistas.*`, `babel.precisoes.*`), que estavam como
+  "pendente" na tabela acima. Cada chave tem teste de troca de conta.
+- Ficam de fora, por serem preferência do aparelho ou efêmeros: `babel.nivel*` (dificuldade escolhida), `babel.filtro_da_pratica`,
+  `babel.ultimaCaptura`/`babel.ultimoInterprete` (métricas sem conteúdo), `babel.login.email` (e-mail lembrado de propósito, antes
+  do login), `babel.assistente*`, `babel.legendasMeuPerfil`, `frasy.livros.nivel|idioma`, `babel.analise.*`, `babel.interprete.*`.
+- Achados da varredura estática (conjunto `estudo-e-ranking`): `ichat_avaliacoes` (pergunta e resposta do iChat nos casos "ruim") e
+  `frasy.leituraAtiva.rascunho.` (rascunho da escrita), que estavam sem conjunto.
+- A REGRA ESTÁTICA `tests/seguranca/chaves-locais-por-conta.test.ts` (varredura em `tests/seguranca/varredura-de-armazenamento.ts`)
+  falha se aparecer chave de `localStorage`/`sessionStorage` ou banco IndexedDB em `src/` que não esteja nos conjuntos, num armazém
+  da peça comum ou na lista de exceções com motivo. Limite: chave que só chega por parâmetro de helper é vista pelas constantes
+  `CHAVE_*`/`KEY`/`LS_*`/`PREFIXO_*` do arquivo; os arquivos assim ficam em `DINAMICOS`.

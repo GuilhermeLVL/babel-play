@@ -168,6 +168,8 @@ describe('os conjuntos cobrem o que a auditoria deixou pendente', () => {
   it('cada armazém pendente tem um conjunto', () => {
     expect(CONJUNTOS.map((c) => c.nome).sort()).toEqual(
       [
+        'anotacoes-da-leitura',
+        'estudo-e-ranking',
         'cosmeticos-da-galeria',
         'desenhos',
         'foto-e-avatar',
@@ -331,14 +333,15 @@ describe('o visitante que entra numa conta: fica pendente até a pessoa escolher
     expect(_lerMarcador()).toBe('A')
   })
 
-  it('"agora não": a conta sai e o que era do visitante continua pendente para a próxima vez', async () => {
+  it('"agora não": a conta sai com a escolha pendente e o conjunto inteiro sai (fail-closed)', async () => {
     await comoVisitante()
     entrar('A')
     await espera()
     sair()
     await espera()
     expect(_lerMarcador()).toBe('anonimo')
-    expect(localStorage.getItem('babel.perfis')).not.toBeNull()
+    expect(localStorage.getItem('babel.perfis')).toBeNull()
+    expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBe(0)
   })
 
   it('a foto e o avatar da conta (por usuário) saem ao sair, mesmo com o visitante pendente', async () => {
@@ -349,7 +352,6 @@ describe('o visitante que entra numa conta: fica pendente até a pessoa escolher
     sair()
     await espera()
     expect(localStorage.getItem('babel.fotoDoPerfil.A')).toBeNull()
-    expect(localStorage.getItem('babel.perfis')).not.toBeNull()
   })
 
   it('sem nada do visitante, não há aviso', async () => {
@@ -374,6 +376,131 @@ describe('o visitante que entra numa conta: fica pendente até a pessoa escolher
     expect(visitantePendente()).toBe(false)
     expect(await temDadosDoVisitante()).toBe(false)
   })
+})
+
+describe('o que a conta grava com a escolha do visitante pendente não fica para a próxima pessoa', () => {
+  const comoVisitanteEConta = async () => {
+    definirIdentidade('anonimo')
+    iniciarGuardaDosArmazensLocais()
+    await espera()
+    localStorage.setItem('babel.perfis', '["do visitante"]')
+    await guardarNoBanco('frasy-livros', 'conteudo')
+    entrar('A')
+    await espera()
+    expect(visitantePendente()).toBe(true)
+  }
+
+  it('A grava sem escolher, sai, e a B não vê nada da A (nem o visitante fica misturado)', async () => {
+    await comoVisitanteEConta()
+    localStorage.setItem('babel.conquistas', '["segredo da A"]')
+    localStorage.setItem('leitor:recentes', '["livro-da-A"]')
+    localStorage.setItem('frasy.avatar.receita.A', '{"da":"A"}')
+    sair()
+    await espera()
+    entrar('B')
+    await espera()
+    expect(localStorage.getItem('babel.conquistas')).toBeNull()
+    expect(localStorage.getItem('leitor:recentes')).toBeNull()
+    expect(localStorage.getItem('frasy.avatar.receita.A')).toBeNull()
+    expect(localStorage.getItem('babel.perfis')).toBeNull()
+    expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBe(0)
+  })
+
+  it('o que a A grava num banco (linha nova) também sai quando ela sai', async () => {
+    await comoVisitanteEConta()
+    await guardarNoBanco('babel-memoria-de-traducao', 'traducoes')
+    sair()
+    await espera()
+    expect(await linhasNoBanco('babel-memoria-de-traducao', 'traducoes')).toBe(0)
+    expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBe(0)
+  })
+
+  it('troca de conta com a escolha pendente: a B não vê o que a A gravou', async () => {
+    await comoVisitanteEConta()
+    localStorage.setItem('babel.conquistas', '["segredo da A"]')
+    definirDonoDaConta('B')
+    await espera()
+    expect(localStorage.getItem('babel.conquistas')).toBeNull()
+  })
+
+  it('a A grava SEM mudar a contagem (sobrescreve um registro): o dado dela também não vaza', async () => {
+    await comoVisitanteEConta()
+    await new Promise<void>((ok, falha) => {
+      const r = indexedDB.open('frasy-livros')
+      r.onsuccess = () => {
+        const tx = r.result.transaction('conteudo', 'readwrite')
+        tx.objectStore('conteudo').put({ x: 'segredo da A' }, 'k')
+        tx.oncomplete = () => {
+          r.result.close()
+          ok()
+        }
+        tx.onerror = () => falha(tx.error)
+      }
+    })
+    localStorage.setItem('babel.perfis', '["segredo da A"]')
+    sair()
+    await espera()
+    entrar('B')
+    await espera()
+    expect(localStorage.getItem('babel.perfis')).toBeNull()
+    expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBe(0)
+  })
+
+  it('"Guardar na conta": nada se perde, e o conjunto sai só quando a conta sai (como antes)', async () => {
+    await comoVisitanteEConta()
+    localStorage.setItem('babel.conquistas', '["da A"]')
+    trazerDadosDoVisitante()
+    expect(_lerMarcador()).toBe('A')
+    await espera()
+    expect(localStorage.getItem('babel.perfis')).not.toBeNull()
+    expect(localStorage.getItem('babel.conquistas')).not.toBeNull()
+    expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBeGreaterThan(0)
+    sair()
+    await espera()
+    expect(localStorage.getItem('babel.perfis')).toBeNull()
+  })
+})
+
+describe('chaves por conta do avatar e do leitor', () => {
+  it.each([
+    'frasy.avatar.receita.u1',
+    'frasy.avatar.sinais.marcacoes',
+    'leitor:recentes',
+    'leitor:narracao:sessao:s1',
+    'leitor:migrou:s1',
+    'readingAnnotations:x',
+    'babel.apelido',
+    'babel.rank_enviado',
+    'frasy.leituraAtiva.lidos',
+    'frasy.anki.perfis.v1',
+    'revisao.cenasJuntadas',
+    'curadoria.mantidas',
+    'babel.vistas.baralho',
+    'babel.precisoes.jogo1',
+    'ichat_avaliacoes',
+    'frasy.leituraAtiva.rascunho.t1.escrita',
+  ])('%s sai quando outra conta entra', async (chave) => {
+    entrar('A')
+    iniciarGuardaDosArmazensLocais()
+    await espera()
+    localStorage.setItem(chave, 'x')
+    definirDonoDaConta('B')
+    await espera()
+    expect(localStorage.getItem(chave)).toBeNull()
+  })
+
+  it.each(['frasy.avatar.modo.livro.ligado', 'frasy.avatar.interprete.tamanho', 'leitor:perfil'])(
+    '%s é preferência do aparelho e fica',
+    async (chave) => {
+      entrar('A')
+      iniciarGuardaDosArmazensLocais()
+      await espera()
+      localStorage.setItem(chave, 'x')
+      definirDonoDaConta('B')
+      await espera()
+      expect(localStorage.getItem(chave)).toBe('x')
+    },
+  )
 })
 
 describe('"Meus livros": a lista na memória se esquece quando o conjunto é apagado', () => {

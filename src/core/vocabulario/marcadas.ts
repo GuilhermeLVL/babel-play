@@ -14,8 +14,8 @@
  * OS MARCOS SÃO POR RESULTADO (quantas palavras a pessoa conhece), NUNCA por tempo: nada de sequência de dias, prazo
  * ou "volte amanhã" (Decreto 12.880/2026, art. 9º; o mesmo cuidado de `src/core/missoes.ts`).
  */
+import { chaveAtiva } from '../texto/chaveAtiva';
 import { baseLang } from '../texto/idioma';
-import { chaveDaPalavra } from '../texto/palavra';
 import { estadoNoCaderno, FORCA_QUE_APAGA_A_GLOSA, type IndiceDeForcas, type IndiceDoCaderno } from './etiquetas';
 
 export const ESTADOS_DA_MARCACAO = ['conhecida', 'ignorada'] as const;
@@ -28,7 +28,7 @@ export const TETO_DE_MARCADAS = 20_000;
 export interface PalavraMarcada {
   /** O idioma BASE (`en`, não `en-US`). */
   lang: string;
-  /** `chaveDaPalavra`: sem acento, sem caixa, sem pontuação. */
+  /** A chave comparável na versão do servidor (`chave_dedup_v2`): v1 sem acento, sem caixa, sem pontuação; v2 mantém ñ, ô, ü… */
   chave: string;
   estado: EstadoDaMarcacao;
   atualizadoEm: number;
@@ -47,7 +47,8 @@ export function montarIndiceDeMarcadas(
   const indice = new Map<string, Map<string, EstadoDaMarcacao>>();
   for (const m of marcadas) {
     const idioma = baseLang(m.lang);
-    const chave = chaveDaPalavra(m.chave);
+    /* A chave já vem na versão do servidor; refazê-la na versão ativa é idempotente (v2 de v2 = v2) e só reduz se a flag voltou. */
+    const chave = chaveAtiva(m.chave, m.lang);
     if (!idioma || !chave || !ehEstadoDaMarcacao(m.estado)) continue;
     let balde = indice.get(idioma);
     if (!balde) indice.set(idioma, (balde = new Map()));

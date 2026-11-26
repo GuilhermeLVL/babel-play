@@ -17,6 +17,7 @@
  * A estimativa de palavras é na escala da LISTA DE REFERÊNCIA do idioma (não é o vocabulário total da pessoa).
  */
 import { type CefrLevel, palavrasPorNivel } from '../learning/cefrWordlist';
+import { chaveAtiva } from '../texto/chaveAtiva';
 import { baseLang } from '../texto/idioma';
 import { chaveDaPalavra } from '../texto/palavra';
 import { PSEUDOPALAVRAS } from './pseudopalavras';
@@ -209,7 +210,7 @@ export interface ResultadoDoTeste {
   /** Fração de pseudopalavras marcadas "sei" (0 sem nenhuma vista). */
   taxaDeChute: number;
   faixas: FaixaDoResultado[];
-  /** As chaves a marcar como conhecidas (`chaveDaPalavra`), sem repetir. Vazio quando não confiável. */
+  /** As chaves a marcar como conhecidas (`chaveAtiva`, a versão do servidor), sem repetir. Vazio quando não confiável. */
   aMarcar: string[];
 }
 
@@ -262,19 +263,19 @@ export function resultadoDoTeste(teste: TesteDeVocabulario, respostas: readonly 
     const item = teste.itens[i]!;
     if (item.pseudo || !respostas[i]) continue;
     if (moderado && (corrigidaDe.get(item.faixa) ?? 0) < LIMIAR_DE_PARADA) continue;
-    aMarcar.add(chaveDaPalavra(item.palavra));
+    aMarcar.add(chaveAtiva(item.palavra, teste.lang));
   }
   /* Faixa inteira só com chute baixo: com chute moderado entram apenas as palavras marcadas "sei". */
   if (!moderado) {
     for (const f of faixas) {
       if (f.taxaCorrigida < LIMIAR_DE_ACERTO_ALTO) break;
-      for (const p of lista[f.nivel]) aMarcar.add(chaveDaPalavra(p));
+      for (const p of lista[f.nivel]) aMarcar.add(chaveAtiva(p, teste.lang));
     }
   }
   /* Quem respondeu "não sei" a uma palavra real nunca a tem marcada, mesmo numa faixa semeada inteira. */
   for (let i = 0; i < teste.itens.length && i < respostas.length; i++) {
     const item = teste.itens[i]!;
-    if (!item.pseudo && !respostas[i]) aMarcar.delete(chaveDaPalavra(item.palavra));
+    if (!item.pseudo && !respostas[i]) aMarcar.delete(chaveAtiva(item.palavra, teste.lang));
   }
   aMarcar.delete('');
 

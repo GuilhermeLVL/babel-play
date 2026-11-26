@@ -20,7 +20,7 @@
  *
  * Puro: sem DOM, sem relógio, sem rede.
  */
-import { chaveDaPalavra } from '../texto/palavra';
+import { chaveAtiva } from '../texto/chaveAtiva';
 import type { FraseDoTexto } from './narracao';
 import { dividirTexto, mesmoLema, type PalavraDaLeitura } from './textoDaLeitura';
 
@@ -83,7 +83,7 @@ const NUMEROS_EN: Record<string, string> = {
 
 /** A palavra ouvida como a comparação a vê: chave, com o algarismo por extenso no inglês. */
 function normalizarOuvida(w: string, lang: string): string {
-  const chave = chaveDaPalavra(w);
+  const chave = chaveAtiva(w, lang);
   if (/^\d+$/.test(chave) && lang.startsWith('en')) return NUMEROS_EN[Number(chave)] ?? chave;
   return chave;
 }

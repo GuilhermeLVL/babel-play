@@ -292,7 +292,7 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
   /* Parciais vivos (V6): a fala ainda parcial mostra o texto do armazém, que só esta linha assina. Final, ou sem a flag: o do estado. */
   const vivo = useParcialVivo(segmentoDoEstado.isPartial ? segmentoDoEstado.id : null);
   const segment = vivo ? { ...segmentoDoEstado, originalText: vivo.originalText } : segmentoDoEstado;
-  const aprendida = (palavra: string) => (aprendidas?.has(chaveDaPalavra(palavra)) ? true : undefined);
+  const aprendida = (palavra: string) => (aprendidas?.has(chaveDaPalavra(palavra, lineLang)) ? true : undefined);
   /* A palavra NOVA (só no modo `novas`, só no idioma do predicado, nunca número nem a que já tem o
      destaque de aprendida): `true` vira o atributo, `undefined` o omite. */
   const nova = (palavra: string, lang: string) =>

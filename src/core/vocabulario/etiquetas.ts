@@ -25,6 +25,7 @@
 import { PALAVRAS_FUNCIONAIS } from '../harness/palavrasConhecidas';
 import type { Forca } from '../learning/forcaDoCartao';
 import type { Layout } from '../legendas/janelaFlutuante';
+import { chaveAtiva } from '../texto/chaveAtiva';
 import { baseLang } from '../texto/idioma';
 import { chaveDaPalavra } from '../texto/palavra';
 import type { IndiceDeMarcadas } from './marcadas';
@@ -57,7 +58,7 @@ export function montarIndiceDoCaderno(
 ): IndiceDoCaderno {
   const indice = new Map<string, Map<string, EstadoNoCaderno>>();
   for (const c of cartoes) {
-    const chave = chaveDaPalavra(c.palavra);
+    const chave = chaveAtiva(c.palavra, c.lang);
     if (!chave) continue;
     const idioma = baseLang(c.lang);
     let balde = indice.get(idioma);
@@ -86,7 +87,7 @@ export function montarIndiceDeForcas(
 ): IndiceDeForcas {
   const indice = new Map<string, Map<string, Forca>>();
   for (const c of cartoes) {
-    const chave = chaveDaPalavra(c.palavra);
+    const chave = chaveAtiva(c.palavra, c.lang);
     if (!chave) continue;
     const idioma = baseLang(c.lang);
     let balde = indice.get(idioma);
@@ -134,9 +135,11 @@ function funcionais(idioma: string): ReadonlySet<string> {
  */
 export function chaveIndexavel(chave: string, lang: string | undefined): boolean {
   const idioma = baseLang(lang);
-  if (!chave || /\p{N}/u.test(chave)) return false;
-  if ([...chave].length < (UMA_LETRA_BASTA.has(idioma) ? 1 : 2)) return false;
-  return !funcionais(idioma).has(chave);
+  /* O corte é pela v1, como no servidor (`chaveContavel`): a chave v2 volta à v1 sem perder nada que o corte use. */
+  const v1 = chaveDaPalavra(chave);
+  if (!v1 || /\p{N}/u.test(v1)) return false;
+  if ([...v1].length < (UMA_LETRA_BASTA.has(idioma) ? 1 : 2)) return false;
+  return !funcionais(idioma).has(v1);
 }
 
 /** O índice de palavras vistas de UM idioma, como o cliente o guarda. */
@@ -195,7 +198,7 @@ export function etiquetaDaPalavra(
   caderno: IndiceDoCaderno | null,
   o: OpcoesDaEtiqueta,
 ): Etiqueta | undefined {
-  return etiquetaDaChave(chaveDaPalavra(palavra), lang, caderno, o);
+  return etiquetaDaChave(chaveAtiva(palavra, lang), lang, caderno, o);
 }
 
 /** O que cada layout da janela flutuante pinta. A FAIXA (jogo) fica com as tintas e perde o ponto (ruído no jogo). */

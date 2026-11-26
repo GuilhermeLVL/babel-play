@@ -29,6 +29,7 @@ import { marcarQuestNovoNoDocumento } from './lib/dispositivo/telaNovaDoQuest';
 import { quandoPassarOLcp } from './lib/polimento/depoisDoLcp';
 import { instalarRelatorioDeErros } from './lib/relatorioDeErros';
 import { bootTheme } from './lib/theme';
+import { ligarAVersaoDaChave } from './lib/versaoDaChave';
 
 // Fase 4: o link do convite ao responsável sai da barra antes que o login ou o roteador o apaguem.
 capturarTokenDoConvite();
@@ -46,6 +47,7 @@ quandoPassarOLcp(() => void import('./lib/registrarSw').then((m) => m.registrarS
 // O servidor reconcilia depois (App → hydrateTheme), mas sem isto haveria um
 // flash do tema padrão em cada carregamento.
 bootTheme();
+ligarAVersaoDaChave();
 // Perfil do aparelho por capacidade (Quest, celular, desktop): `<html data-dispositivo data-modo-leve>`.
 marcarDispositivoNoDocumento();
 marcarQuestNovoNoDocumento();

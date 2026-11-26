@@ -41,7 +41,10 @@ export function coberturaDoTexto(texto: string, lang: string, conhecidas: Readon
   const novas: string[] = [];
   let ok = 0;
   for (const p of palavras) {
-    const conhece = p.nomeProprio || sabidas.has(p.chave) || chavesDeLema(p.texto, lang).some((c) => conhecidas.has(c));
+    const conhece =
+      p.nomeProprio ||
+      sabidas.has(chaveDaPalavra(p.chave)) ||
+      chavesDeLema(p.texto, lang).some((c) => conhecidas.has(c));
     if (conhece) ok++;
     else if (!novas.includes(p.chave)) novas.push(p.chave);
   }

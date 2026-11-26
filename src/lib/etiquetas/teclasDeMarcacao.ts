@@ -7,8 +7,8 @@
  * recebe as teclas de DENTRO do capítulo (outro documento, que a janela não ouve) e as repassa com
  * `pedirMarcacaoPorTecla`.
  */
+import { chaveAtiva } from '../../core/texto/chaveAtiva';
 import { baseLang } from '../../core/texto/idioma';
-import { chaveDaPalavra } from '../../core/texto/palavra';
 import { estadoNoCaderno } from '../../core/vocabulario/etiquetas';
 import { type EstadoDaMarcacao, estadoMarcado } from '../../core/vocabulario/marcadas';
 import { desmarcarNoIndice, lerSnapshotDasEtiquetas, marcarNoIndice } from './indiceDeEtiquetas';
@@ -49,7 +49,7 @@ export async function alternarMarcacao(
   estado: EstadoDaMarcacao,
 ): Promise<boolean | 'no-caderno'> {
   const s = lerSnapshotDasEtiquetas();
-  const chave = chaveDaPalavra(palavra);
+  const chave = chaveAtiva(palavra, lang);
   if (!chave || !baseLang(lang)) return false;
   if (estadoNoCaderno(s.caderno, chave, lang)) return 'no-caderno';
   if (estadoMarcado(s.marcadas, chave, lang) === estado) return desmarcarNoIndice(chave, lang);

@@ -1,8 +1,8 @@
 import { type MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { NOME_DO_JOGO_NA_MAESTRIA } from '../../core/maestria';
+import { chaveAtiva } from '../../core/texto/chaveAtiva';
 import { baseLang } from '../../core/texto/idioma';
-import { chaveDaPalavra } from '../../core/texto/palavra';
 import { type EstadoNoCaderno, estadoNoCaderno } from '../../core/vocabulario/etiquetas';
 import {
   fetchHistoricoDaPalavra,
@@ -29,6 +29,7 @@ const PREFIXO_DAS_ANOTACOES = 'readingAnnotations:';
 /** As anotações da Leitura (deste aparelho) que citam a palavra: a palavra anotada ou o texto da nota. */
 export function anotacoesQueCitam(
   chave: string,
+  lang: string | undefined,
   armazenamento: Pick<Storage, 'length' | 'key' | 'getItem'> | null = typeof localStorage === 'undefined'
     ? null
     : localStorage,
@@ -41,8 +42,8 @@ export function anotacoesQueCitam(
       if (!k?.startsWith(PREFIXO_DAS_ANOTACOES)) continue;
       const sessaoId = k.slice(PREFIXO_DAS_ANOTACOES.length);
       for (const a of lerAnotacoes(armazenamento.getItem(k))) {
-        const daPalavra = !!a.wordText && chaveDaPalavra(a.wordText) === chave;
-        const naNota = !!a.content && a.content.split(/\s+/).some((p) => chaveDaPalavra(p) === chave);
+        const daPalavra = !!a.wordText && chaveAtiva(a.wordText, lang) === chave;
+        const naNota = !!a.content && a.content.split(/\s+/).some((p) => chaveAtiva(p, lang) === chave);
         if (daPalavra || naNota) saida.push({ sessaoId, anotacao: a });
       }
     }
@@ -75,7 +76,7 @@ export default function HistoricoDaPalavra({
   lang: string | undefined;
   novaAba?: boolean;
 }) {
-  const chave = chaveDaPalavra(palavra);
+  const chave = chaveAtiva(palavra, lang);
   const idioma = baseLang(lang);
   const snapshot = useSnapshotDasEtiquetas();
   const local = estadoNoCaderno(snapshot.caderno, chave, lang);
@@ -104,7 +105,7 @@ export default function HistoricoDaPalavra({
     };
   }, [chave, idioma]);
 
-  const anotacoes = useMemo(() => anotacoesQueCitam(chave).slice(0, ANOTACOES_NO_CARTAO), [chave]);
+  const anotacoes = useMemo(() => anotacoesQueCitam(chave, lang).slice(0, ANOTACOES_NO_CARTAO), [chave, lang]);
 
   const linkDaSessao = (sessaoId: string, aba?: 'reading') => {
     const alvo = estadoParaUrl({ view: 'analysis', sessionId: sessaoId, ...(aba ? { subTab: aba } : {}) });

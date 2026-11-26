@@ -6,14 +6,14 @@
  *
  * Puro: sem DOM, sem rede.
  */
+import { chaveAtiva } from '../texto/chaveAtiva';
 import { candidatosDeLema } from '../texto/lemas';
-import { chaveDaPalavra } from '../texto/palavra';
 import { type FraseDoTexto, frasesDoTexto } from './narracao';
 
 export interface PalavraDaLeitura {
   /** Como está escrita, com a pontuação colada ("apples."). */
   texto: string;
-  /** A chave comparável (`chaveDaPalavra`): sem acento, caixa nem pontuação. */
+  /** A chave comparável na versão ativa (`chaveAtiva`): sem caixa nem pontuação; acento só na v1 ou fora das marcas da v2. */
   chave: string;
   /** Posição no texto (unidades de código, como `String#slice`). */
   inicio: number;
@@ -42,7 +42,7 @@ export function dividirTexto(texto: string, lang = 'en'): TextoDividido {
     let primeira = true;
     while ((m = re.exec(f.texto))) {
       const bruta = m[0];
-      const chave = chaveDaPalavra(bruta);
+      const chave = chaveAtiva(bruta, lang);
       if (!chave || !temLetra(bruta)) continue;
       const inicio = f.inicio + m.index;
       const maiuscula = /^[^\p{L}]*\p{Lu}/u.test(bruta);
@@ -57,8 +57,8 @@ export function dividirTexto(texto: string, lang = 'en'): TextoDividido {
 
 /** As chaves possíveis de lema de uma palavra (a forma e os candidatos de `candidatosDeLema`), sem repetir. */
 export function chavesDeLema(palavra: string, lang: string): string[] {
-  const chave = chaveDaPalavra(palavra);
-  const lista = [chave, ...candidatosDeLema(palavra, lang).map(chaveDaPalavra)];
+  const chave = chaveAtiva(palavra, lang);
+  const lista = [chave, ...candidatosDeLema(palavra, lang).map((c) => chaveAtiva(c, lang))];
   return lista.filter((x, i) => x && lista.indexOf(x) === i);
 }
 
@@ -67,8 +67,8 @@ export function chavesDeLema(palavra: string, lang: string): string[] {
  * com os lemas da outra, nos dois sentidos — nunca lema com lema, que juntaria "news" e "new" por acidente.
  */
 export function mesmoLema(a: string, b: string, lang: string): boolean {
-  const ca = chaveDaPalavra(a);
-  const cb = chaveDaPalavra(b);
+  const ca = chaveAtiva(a, lang);
+  const cb = chaveAtiva(b, lang);
   if (!ca || !cb) return false;
   if (ca === cb) return true;
   return chavesDeLema(a, lang).includes(cb) || chavesDeLema(b, lang).includes(ca);

@@ -168,6 +168,8 @@ describe('os conjuntos cobrem o que a auditoria deixou pendente', () => {
   it('cada armazém pendente tem um conjunto', () => {
     expect(CONJUNTOS.map((c) => c.nome).sort()).toEqual(
       [
+        'anotacoes-da-leitura',
+        'estudo-e-ranking',
         'cosmeticos-da-galeria',
         'desenhos',
         'foto-e-avatar',
@@ -466,6 +468,15 @@ describe('chaves por conta do avatar e do leitor', () => {
     'leitor:recentes',
     'leitor:narracao:sessao:s1',
     'leitor:migrou:s1',
+    'readingAnnotations:x',
+    'babel.apelido',
+    'babel.rank_enviado',
+    'frasy.leituraAtiva.lidos',
+    'frasy.anki.perfis.v1',
+    'revisao.cenasJuntadas',
+    'curadoria.mantidas',
+    'babel.vistas.baralho',
+    'babel.precisoes.jogo1',
   ])('%s sai quando outra conta entra', async (chave) => {
     entrar('A')
     iniciarGuardaDosArmazensLocais()

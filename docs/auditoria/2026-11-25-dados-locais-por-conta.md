@@ -98,3 +98,18 @@ Decisões assumidas (recomendação do agente, 25/11):
   `frasy.avatar.interprete.*`, `leitor:perfil`, `leitor:narracao:opcoes|meu-estilo|modo|seguir`, `leitor:glosa`.
 - Não migrados (risco baixo, seguem pendentes): cenas juntadas da revisão, curadoria, leitura ativa, perfis de mapeamento do Anki,
   apelido e envio do ranking.
+
+## Varredura final de chaves e bancos (25/11, antes da produção)
+
+Conferidos `localStorage.*Item` e `openDB`/`indexedDB.open` em `src` contra os conjuntos de `armazensDoAparelhoDaConta.ts`.
+
+- Bancos IndexedDB: `frasy-avatar`, `frasy-livros`, `frasy-leitor`, `frasy-capas` (conjuntos `foto-e-avatar` e `meus-livros`),
+  `babel-desenhos` e `babel-memoria-de-traducao` (conjuntos próprios), `babel-local` (modo sem conta, `limparTudo`); os demais
+  usam a peça comum por conta. Nenhum banco ficou de fora.
+- Acrescentados nesta rodada: `readingAnnotations:` (conjunto `anotacoes-da-leitura`, teste: sai quando outra conta entra) e o
+  conjunto `estudo-e-ranking` (`revisao.cenasJuntadas`, `curadoria.mantidas`, `frasy.leituraAtiva.lidos`,
+  `frasy.anki.perfis.v1`, `babel.apelido`, `babel.rank_enviado`, `babel.vistas.*`, `babel.precisoes.*`), que estavam como
+  "pendente" na tabela acima. Cada chave tem teste de troca de conta.
+- Ficam de fora, por serem preferência do aparelho ou efêmeros: `babel.nivel*` (dificuldade escolhida), `babel.filtro_da_pratica`,
+  `babel.ultimaCaptura`/`babel.ultimoInterprete` (métricas sem conteúdo), `babel.login.email` (e-mail lembrado de propósito, antes
+  do login), `babel.assistente*`, `babel.legendasMeuPerfil`, `frasy.livros.nivel|idioma`, `babel.analise.*`, `babel.interprete.*`.

@@ -54,6 +54,22 @@ export const CONJUNTOS: readonly Conjunto[] = [
     ],
     bancos: ['frasy-livros', 'frasy-leitor', 'frasy-capas'],
   },
+  /* As anotações por frase da Leitura (`readingAnnotations:<sessão>`): texto escrito pela pessoa sobre as falas dela. */
+  { nome: 'anotacoes-da-leitura', chaves: [], prefixos: ['readingAnnotations:'], bancos: [] },
+  /* Varredura final (25/11): estudo e identidade pública que ficavam como "pendente" na auditoria. */
+  {
+    nome: 'estudo-e-ranking',
+    chaves: [
+      'revisao.cenasJuntadas',
+      'curadoria.mantidas',
+      'frasy.leituraAtiva.lidos',
+      'frasy.anki.perfis.v1',
+      'babel.apelido',
+      'babel.rank_enviado',
+    ],
+    prefixos: ['babel.vistas.', 'babel.precisoes.'],
+    bancos: [],
+  },
   { nome: 'memoria-de-traducao', chaves: [], prefixos: [], bancos: ['babel-memoria-de-traducao'] },
   { nome: 'desenhos', chaves: [], prefixos: ['babel.desenho.sessao:'], bancos: ['babel-desenhos'] },
   {

@@ -26,7 +26,8 @@ const requestWindow = vi.fn(
 )
 const janelaFalsa = () => ({ close: vi.fn(), closed: false }) as unknown as Window & { close: ReturnType<typeof vi.fn> }
 
-const opcoes = { ativo: true, falas: [], contexto: () => ({ interprete: false, cenario: 'media' as const }) }
+const FALA = { id: '1', quem: 'Outros', original: 'Hello.', traducao: 'Olá.', lado: 'eles' as const }
+const opcoes = { ativo: true, falas: [FALA], contexto: () => ({ interprete: false, cenario: 'media' as const }) }
 
 beforeEach(() => {
   pedidos = []
@@ -52,6 +53,12 @@ describe('useJanelaFlutuante', () => {
     expect(estadoNoPedido, 'ainda nenhum estado mudou quando a janela foi pedida').toBeNull()
     expect(requestWindow).toHaveBeenCalledWith({ width: 600, height: 170 })
     expect(result.current.ativo).toBe('documento')
+  })
+
+  it('sem fala nenhuma a janela abre BAIXA (só o "ouvindo"), na largura do formato', () => {
+    const { result } = renderHook(() => useJanelaFlutuante({ ...opcoes, falas: [] }))
+    act(() => result.current.abrir())
+    expect(requestWindow).toHaveBeenCalledWith({ width: 600, height: 96 })
   })
 
   it('abriu e fechou antes de o navegador responder: a janela que chega é fechada, e nada fica aberto', async () => {

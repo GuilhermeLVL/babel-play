@@ -160,6 +160,49 @@ export function normalizarTamanhos(bruto: unknown): Partial<Record<Formato, Tama
   return saida;
 }
 
+/** Altura (px) da janela enquanto não há fala nenhuma: só o estado "ouvindo", sem o retângulo vazio. */
+export const ALTURA_COMPACTA = 96;
+/** Acima disto a janela deixou de ser a compacta (a pessoa a esticou, ou ela cresceu). */
+export const ALTURA_QUE_SAI_DA_COMPACTA = ALTURA_COMPACTA + 24;
+
+/**
+ * O tamanho de abertura: o de `tamanhoParaAbrir`, mas SEM falas a janela abre baixa (`ALTURA_COMPACTA`), na largura
+ * do formato. Quando a primeira fala chega ela cresce até o tamanho do formato (`tamanhoParaAbrir`).
+ */
+export function tamanhoDeAbertura(
+  formato: Formato,
+  guardados: Partial<Record<Formato, Tamanho>>,
+  semFalas: boolean,
+): Tamanho {
+  const cheio = tamanhoParaAbrir(formato, guardados);
+  return semFalas ? { largura: cheio.largura, altura: Math.min(cheio.altura, ALTURA_COMPACTA) } : cheio;
+}
+
+/** Sem nenhum som por este tempo, a janela deixa de dizer só "ouvindo" e orienta a pessoa. */
+export const SEM_SOM_APOS_MS = 6000;
+/** Nível (0..1) a partir do qual há som de verdade (abaixo é ruído de fundo). */
+export const NIVEL_DE_SOM = 0.03;
+
+/**
+ * Do que a janela diz que está ouvindo, pelo que o app sabe da captura (a mesma informação do formato sugerido).
+ * Devolve a chave de tradução (texto em pt-BR) para a UI passar por `t()`.
+ */
+export function rotuloDaEscuta(c: ContextoDaCaptura): string {
+  if (c.interprete) return 'Ouvindo a conversa';
+  if (c.cenario === 'mic') return 'Ouvindo o microfone';
+  if (c.cenario === 'conversation') return 'Ouvindo o som do computador e o microfone';
+  if (c.superficie === 'browser') return 'Ouvindo o som da aba';
+  if (c.superficie === 'window') return 'Ouvindo o som da janela';
+  if (c.superficie === 'monitor') return 'Ouvindo o som da tela';
+  return 'Ouvindo o som do computador';
+}
+
+/** O nível (0..1) suavizado: sobe rápido e cai devagar, para a barrinha não tremer. */
+export function suavizarNivel(anterior: number, novo: number): number {
+  const n = Math.min(1, Math.max(0, Number.isFinite(novo) ? novo : 0));
+  return n > anterior ? n : anterior * 0.7 + n * 0.3;
+}
+
 /** O tamanho com que o formato abre: o último que a pessoa deixou, ou o de fábrica. */
 export function tamanhoParaAbrir(formato: Formato, guardados: Partial<Record<Formato, Tamanho>>): Tamanho {
   return guardados[formato] ?? TAMANHO_DO_FORMATO[formato];

@@ -376,6 +376,92 @@ describe('o visitante que entra numa conta: fica pendente até a pessoa escolher
   })
 })
 
+describe('o que a conta grava com a escolha do visitante pendente não fica para a próxima pessoa', () => {
+  const comoVisitanteEConta = async () => {
+    definirIdentidade('anonimo')
+    iniciarGuardaDosArmazensLocais()
+    await espera()
+    localStorage.setItem('babel.perfis', '["do visitante"]')
+    await guardarNoBanco('frasy-livros', 'conteudo')
+    entrar('A')
+    await espera()
+    expect(visitantePendente()).toBe(true)
+  }
+
+  it('A grava sem escolher, sai, e a B não vê nada da A (nem o visitante fica misturado)', async () => {
+    await comoVisitanteEConta()
+    localStorage.setItem('babel.conquistas', '["segredo da A"]')
+    localStorage.setItem('leitor:recentes', '["livro-da-A"]')
+    localStorage.setItem('frasy.avatar.receita.A', '{"da":"A"}')
+    sair()
+    await espera()
+    entrar('B')
+    await espera()
+    expect(localStorage.getItem('babel.conquistas')).toBeNull()
+    expect(localStorage.getItem('leitor:recentes')).toBeNull()
+    expect(localStorage.getItem('frasy.avatar.receita.A')).toBeNull()
+    expect(localStorage.getItem('babel.perfis')).toBeNull()
+    expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBe(0)
+  })
+
+  it('o que a A grava num banco (linha nova) também sai quando ela sai', async () => {
+    await comoVisitanteEConta()
+    await guardarNoBanco('babel-memoria-de-traducao', 'traducoes')
+    sair()
+    await espera()
+    expect(await linhasNoBanco('babel-memoria-de-traducao', 'traducoes')).toBe(0)
+    expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBe(0)
+  })
+
+  it('troca de conta com a escolha pendente: a B não vê o que a A gravou', async () => {
+    await comoVisitanteEConta()
+    localStorage.setItem('babel.conquistas', '["segredo da A"]')
+    definirDonoDaConta('B')
+    await espera()
+    expect(localStorage.getItem('babel.conquistas')).toBeNull()
+  })
+
+  it('a A não grava nada: o visitante continua pendente, como antes', async () => {
+    await comoVisitanteEConta()
+    sair()
+    await espera()
+    expect(_lerMarcador()).toBe('anonimo')
+    expect(localStorage.getItem('babel.perfis')).not.toBeNull()
+    expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBeGreaterThan(0)
+  })
+})
+
+describe('chaves por conta do avatar e do leitor', () => {
+  it.each([
+    'frasy.avatar.receita.u1',
+    'frasy.avatar.sinais.marcacoes',
+    'leitor:recentes',
+    'leitor:narracao:sessao:s1',
+    'leitor:migrou:s1',
+  ])('%s sai quando outra conta entra', async (chave) => {
+    entrar('A')
+    iniciarGuardaDosArmazensLocais()
+    await espera()
+    localStorage.setItem(chave, 'x')
+    definirDonoDaConta('B')
+    await espera()
+    expect(localStorage.getItem(chave)).toBeNull()
+  })
+
+  it.each(['frasy.avatar.modo.livro.ligado', 'frasy.avatar.interprete.tamanho', 'leitor:perfil'])(
+    '%s é preferência do aparelho e fica',
+    async (chave) => {
+      entrar('A')
+      iniciarGuardaDosArmazensLocais()
+      await espera()
+      localStorage.setItem(chave, 'x')
+      definirDonoDaConta('B')
+      await espera()
+      expect(localStorage.getItem(chave)).toBe('x')
+    },
+  )
+})
+
 describe('"Meus livros": a lista na memória se esquece quando o conjunto é apagado', () => {
   it('sair esvazia a lista que a tela lê', async () => {
     entrar('A')

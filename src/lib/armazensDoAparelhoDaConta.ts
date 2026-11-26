@@ -38,9 +38,18 @@ interface Conjunto {
 export const CONJUNTOS: readonly Conjunto[] = [
   {
     nome: 'meus-livros',
-    chaves: ['frasy.livros.meus.v1'],
-    /* posição, elenco e posição da narração POR LIVRO (`meu-…` e `cat:…`); as opções de narração são do aparelho. */
-    prefixos: ['leitor:posicao:', 'leitor:elenco:', 'leitor:narracao:meu-', 'leitor:narracao:cat:'],
+    /* `leitor:recentes` é a lista "continuar lendo" (ids e títulos do que a pessoa abriu). */
+    chaves: ['frasy.livros.meus.v1', 'leitor:recentes'],
+    /* posição, elenco e posição da narração POR LIVRO (`meu-…`, `cat:…` e `sessao:…`) e a marca de migração das
+       anotações por sessão; as opções, o perfil e o "Meu estilo" de narração são do aparelho (preferência, sem conteúdo). */
+    prefixos: [
+      'leitor:posicao:',
+      'leitor:elenco:',
+      'leitor:narracao:meu-',
+      'leitor:narracao:cat:',
+      'leitor:narracao:sessao:',
+      'leitor:migrou:',
+    ],
     bancos: ['frasy-livros', 'frasy-leitor', 'frasy-capas'],
   },
   { nome: 'memoria-de-traducao', chaves: [], prefixos: [], bancos: ['babel-memoria-de-traducao'] },
@@ -81,14 +90,25 @@ export const CONJUNTOS: readonly Conjunto[] = [
     bancos: [],
   },
   {
-    /* `frasy.avatar.protegido` (trava do perfil protegido, sessionStorage) e as dicas NÃO entram: a trava só restringe e
-       as dicas são do aparelho. */
+    /* A receita (`frasy.avatar.receita.<id>`), a miniatura e o crédito do modelo são POR USUÁRIO, e as marcações de pose
+       são texto da própria pessoa. `frasy.avatar.protegido` (trava do perfil protegido, sessionStorage), as dicas e as
+       preferências de exibição (`frasy.avatar.modo.*`, `frasy.avatar.interprete.*`: ligado, tamanho, economia...)
+       NÃO entram: a trava só restringe e o resto é do aparelho, sem conteúdo nem identidade. */
     nome: 'foto-e-avatar',
-    chaves: [],
-    prefixos: ['babel.fotoDoPerfil.', 'frasy.avatar.miniatura.', 'frasy.avatar.credito.'],
+    chaves: ['frasy.avatar.sinais.marcacoes'],
+    prefixos: ['babel.fotoDoPerfil.', 'frasy.avatar.receita.', 'frasy.avatar.miniatura.', 'frasy.avatar.credito.'],
     bancos: ['frasy-avatar'],
   },
 ];
+
+/**
+ * A IMPRESSÃO do conjunto do visitante no instante em que a conta entra (hash, não dado pessoal). Os armazéns gravam nas
+ * MESMAS chaves e bancos, então não dá para separar, depois, o que a conta escreveu enquanto a escolha estava pendente.
+ * Ao sair (ou trocar de conta) com a escolha pendente, a impressão atual é comparada com esta: igual = a conta não
+ * gravou nada, o visitante continua; diferente (ou sem impressão) = o conjunto inteiro é apagado, para nada da conta
+ * ficar no aparelho para a próxima pessoa.
+ */
+const CHAVE_DA_IMPRESSAO = 'babel.dono-dos-armazens-locais.impressao-do-visitante';
 
 const fabrica = (): IDBFactory | null => (typeof indexedDB === 'undefined' ? null : indexedDB);
 
@@ -123,6 +143,101 @@ function chavesPresentes(): string[] {
     return [];
   }
 }
+
+function hash(texto: string): string {
+  let h = 2166136261;
+  for (let i = 0; i < texto.length; i++) {
+    h ^= texto.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36) + ':' + texto.length;
+}
+
+/** Quantas linhas há em cada loja de um banco que existe (sem criá-lo). */
+async function contagemDoBanco(f: IDBFactory, nome: string): Promise<string> {
+  return new Promise<string>((ok) => {
+    try {
+      const r = f.open(nome);
+      r.onerror = () => ok('?');
+      r.onblocked = () => ok('?');
+      r.onsuccess = () => {
+        const db = r.result;
+        const lojas = [...db.objectStoreNames].sort();
+        if (!lojas.length) {
+          db.close();
+          return ok('');
+        }
+        const n: Record<string, number> = {};
+        const tx = db.transaction(lojas, 'readonly');
+        for (const l of lojas)
+          tx.objectStore(l).count().onsuccess = (e) => {
+            n[l] = (e.target as IDBRequest<number>).result ?? 0;
+          };
+        const fim = () => {
+          db.close();
+          ok(lojas.map((l) => `${l}=${n[l] ?? '?'}`).join(','));
+        };
+        tx.oncomplete = fim;
+        tx.onerror = fim;
+        tx.onabort = fim;
+      };
+    } catch {
+      ok('?');
+    }
+  });
+}
+
+/**
+ * A impressão do conjunto agora: chaves (com valor) e contagem de linhas dos bancos. Não contam os marcadores passivos
+ * nem `foto-e-avatar`, que a saída apaga sempre (é por usuário).
+ */
+async function impressaoDoConjunto(): Promise<string> {
+  const partes: string[] = [];
+  const porUsuario = CONJUNTOS.find((c) => c.nome === 'foto-e-avatar');
+  const ehPorUsuario = (k: string) =>
+    !!porUsuario && (porUsuario.chaves.includes(k) || porUsuario.prefixos.some((p) => k.startsWith(p)));
+  try {
+    for (const k of chavesPresentes().sort()) {
+      if (k === CHAVE_DO_DONO || k === CHAVE_DA_IMPRESSAO || CHAVES_PASSIVAS.has(k) || ehPorUsuario(k)) continue;
+      partes.push(`${k}=${localStorage.getItem(k)}`);
+    }
+  } catch {
+    partes.push('?');
+  }
+  const f = fabrica();
+  if (f) {
+    for (const nome of CONJUNTOS.filter((c) => c !== porUsuario)
+      .flatMap((c) => c.bancos)
+      .sort()) {
+      if (!(await bancoExiste(f, nome))) continue;
+      partes.push(`${nome}:${await contagemDoBanco(f, nome)}`);
+    }
+  }
+  return hash(partes.join('\n'));
+}
+
+async function guardarImpressao(): Promise<void> {
+  const i = await impressaoDoConjunto();
+  try {
+    localStorage.setItem(CHAVE_DA_IMPRESSAO, i);
+  } catch {
+    /* sem armazenamento: sem impressão, e sem impressão ao sair apaga tudo (o lado seguro) */
+  }
+}
+const esquecerImpressao = (): void => {
+  try {
+    localStorage.removeItem(CHAVE_DA_IMPRESSAO);
+  } catch {
+    /* idem */
+  }
+};
+const lerImpressao = (): string | null => {
+  try {
+    return localStorage.getItem(CHAVE_DA_IMPRESSAO);
+  } catch {
+    return null;
+  }
+};
 
 /** Esvazia todas as lojas de um banco que EXISTE (sem criá-lo, sem mudar a versão e sem esperar por conexões abertas). */
 async function esvaziarBanco(nome: string): Promise<void> {
@@ -193,6 +308,7 @@ const ehConta = (dono: string | null): dono is string => !!dono && dono !== 'ano
 
 /** Apaga o conjunto e passa o marcador para o dono de agora (ou o remove, se ainda não se sabe). */
 async function apagarEReconhecer(): Promise<void> {
+  esquecerImpressao();
   gravarMarcador(null);
   await apagarConjuntos();
   gravarMarcador(donoDaIdentidade());
@@ -212,6 +328,7 @@ async function purgarDeOutros(): Promise<void> {
     /* O visitante só abriu o app (nada além dos marcadores passivos): não há o que escolher, a conta adota. Sem isto
        o que a própria conta grava logo depois (conquistas, cromas) faria o aviso aparecer a quem não deixou nada. */
     if (!(await haAlgoDoVisitante())) gravarMarcador(dono);
+    else if (lerImpressao() === null) await guardarImpressao();
     return; // senão, pendente: a pessoa escolhe no aviso de entrada
   }
   await apagarEReconhecer();
@@ -230,11 +347,30 @@ registrarArmazemPorConta({
       gravarMarcador(donoDaIdentidade());
     }
     /* O que é do VISITANTE não é da conta que entra nem da que sai: fica (pendente, a pessoa escolhe trazer ou apagar;
-       perdê-lo ao entrar e sair apagaria os livros que ele trouxe). Só sai o que é da conta por chave de usuário:
-       foto e avatar. */
+       perdê-lo ao entrar e sair apagaria os livros que ele trouxe). MAS a conta que entrou grava nas mesmas chaves e
+       bancos, sem marcador que separe. Por isso a impressão do conjunto tirada na entrada decide:
+        - entrada do visitante (visitante -> conta): só tira a impressão; sai o que é da conta por chave de usuário;
+        - saída ou troca de conta: impressão igual = a conta não gravou nada, o visitante continua; diferente ou sem
+          impressão = a conta deixou dado ali, e o conjunto inteiro é apagado (o visitante perde o que deixou: é o
+          preço de nada da conta ficar para a próxima pessoa). */
     if (lerMarcador() === 'anonimo') {
-      await apagarConjuntos(['foto-e-avatar']);
-      return;
+      if (o?.preservarVisitante) {
+        if (await haAlgoDoVisitante()) await guardarImpressao();
+        await apagarConjuntos(['foto-e-avatar']);
+        return;
+      }
+      const guardada = lerImpressao();
+      if (guardada !== null && (await impressaoDoConjunto()) === guardada) {
+        esquecerImpressao();
+        await apagarConjuntos(['foto-e-avatar']);
+        try {
+          for (const k of CHAVES_PASSIVAS) localStorage.removeItem(k);
+        } catch {
+          /* idem */
+        }
+        return;
+      }
+      esquecerImpressao();
     }
     await apagarEReconhecer();
   },
@@ -305,6 +441,7 @@ async function bancoTemLinhas(f: IDBFactory, nome: string): Promise<boolean> {
 
 /** "Trazer para esta conta": o que o visitante deixou passa a ser da conta de agora. */
 export function trazerDadosDoVisitante(): void {
+  esquecerImpressao();
   const dono = donoDaIdentidade();
   if (ehConta(dono)) gravarMarcador(dono);
 }

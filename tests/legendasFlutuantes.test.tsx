@@ -5,7 +5,7 @@
  * e o painel de personalização (modo, predefinições, esconder…), guardado entre aberturas. O ritmo,
  * o histórico, o teclado e o cartão da palavra estão em `legendasRitmo.test.tsx`.
  */
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -52,6 +52,58 @@ describe('Legendas flutuantes (C6)', () => {
   it('sem fala ainda: "Esperando a primeira fala"', () => {
     montar({ falas: [] })
     expect(screen.getByText('Esperando a primeira fala')).toBeTruthy()
+  })
+
+  it('estado vazio com a escuta: diz de onde ouve e mostra o medidor; sem som por 6 s, orienta', () => {
+    vi.useFakeTimers()
+    try {
+      const nivelRef = { current: 0 }
+      montar({ falas: [], escuta: { rotulo: 'Ouvindo o som da aba', gravando: true, nivelRef } })
+      expect(screen.getByRole('status').textContent).toContain('Ouvindo o som da aba')
+      expect(document.querySelectorAll('.leg-nivel i')).toHaveLength(5)
+      act(() => {
+        nivelRef.current = 0.9
+        vi.advanceTimersByTime(130)
+      })
+      expect(document.querySelectorAll('.leg-nivel i.acesa').length).toBeGreaterThan(2)
+      expect(nivelRef.current, 'o nível é lido e zerado').toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('estado vazio sem som por 6 s: a dica do que fazer; parada: diz que está parada', () => {
+    vi.useFakeTimers()
+    try {
+      const { unmount } = montar({
+        falas: [],
+        escuta: { rotulo: 'Ouvindo o microfone', gravando: true, nivelRef: { current: 0 } },
+      })
+      act(() => void vi.advanceTimersByTime(6200))
+      expect(screen.getByText('Nenhum som chegou ainda. Dê play em algo.')).toBeTruthy()
+      unmount()
+      montar({ falas: [], escuta: { rotulo: 'x', gravando: false } })
+      expect(screen.getByText('A captura está parada')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('atalhos + e - mudam a letra, O troca o que mostra e F troca o fundo', () => {
+    montar()
+    const r = screen.getByRole('region', { name: 'Legendas flutuantes' })
+    const tam = () => r.style.getPropertyValue('--leg-tam')
+    expect(tam()).toBe('1')
+    fireEvent.keyDown(r, { key: '+' })
+    expect(tam()).toBe('1.1')
+    fireEvent.keyDown(r, { key: '-' })
+    fireEvent.keyDown(r, { key: '-' })
+    expect(tam()).toBe('0.9')
+    fireEvent.keyDown(r, { key: 'o' })
+    expect(JSON.parse(localStorage.getItem('babel.legendasFlutuantes')!).mostrar).toBe('original')
+    const fundo = r.getAttribute('data-fundo')
+    fireEvent.keyDown(r, { key: 'f' })
+    expect(r.getAttribute('data-fundo')).not.toBe(fundo)
   })
 
   it('modo conversa (no Personalizar) mostra quem fala', () => {

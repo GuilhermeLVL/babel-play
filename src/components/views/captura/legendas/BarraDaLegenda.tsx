@@ -24,6 +24,9 @@ import type { Fundo, Modo, Mostrar, Traducao } from './aparenciaDaLegenda';
 const ATALHOS: ReadonlyArray<[string, string]> = [
   ['Espaço', 'Pausar ou continuar'],
   ['← →', 'Voltar e avançar pelas falas'],
+  ['+ −', 'Letra maior e menor'],
+  ['O', 'Mostrar original, tradução ou os dois'],
+  ['F', 'Trocar o fundo'],
   ['T', 'Tradução da fala em foco'],
   ['P', 'Ouvir a fala em foco'],
   ['S', 'Salvar a frase atual'],
@@ -142,7 +145,8 @@ export default function BarraDaLegenda({
         type="button"
         className="leg-letra"
         aria-label={t('Letra menor')}
-        title={t('Letra menor')}
+        title={`${t('Letra menor')} (-)`}
+        aria-keyshortcuts="-"
         disabled={letraNoMinimo}
         onClick={() => aoLetra(-1)}
       >
@@ -152,7 +156,8 @@ export default function BarraDaLegenda({
         type="button"
         className="leg-letra"
         aria-label={t('Letra maior')}
-        title={t('Letra maior')}
+        title={`${t('Letra maior')} (+)`}
+        aria-keyshortcuts="+"
         disabled={letraNoMaximo}
         onClick={() => aoLetra(1)}
       >

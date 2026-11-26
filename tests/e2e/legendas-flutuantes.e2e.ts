@@ -75,7 +75,10 @@ test('legendas flutuantes: espelho das últimas falas, pausar, continuar e fecha
   const janela = page.getByRole('region', { name: 'Legendas flutuantes' })
   await expect(janela).toBeVisible()
   await expect(janela).toBeInViewport()
-  await expect(janela.getByText('Esperando a primeira fala')).toBeVisible()
+  // O estado vazio diz de onde ouve e mostra o medidor do som, em vez de um retângulo mudo.
+  await expect(janela.getByText(/esperando a primeira fala/i)).toBeVisible()
+  await expect(janela.locator('.leg-escuta')).toContainText(/Ouvindo/)
+  await expect(janela.locator('.leg-nivel i')).toHaveCount(5)
   await page.mouse.move(2, 2)
 
   const primeira = 'Hello there, how are you doing today?'

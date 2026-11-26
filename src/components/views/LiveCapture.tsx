@@ -3317,6 +3317,7 @@ export default function LiveCapture({
     ativo: !noQuest,
     celular: perfilDoAparelho.tipo.startsWith('celular'),
     gravando: isRecording,
+    nivelRef: currentLevelRef,
     falas: legendasAoVivo,
     contexto: () => ({
       interprete: interpreteAberto,

@@ -1,9 +1,12 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
+  ALTURA_QUE_SAI_DA_COMPACTA,
   type ContextoDaCaptura,
   type Formato,
   formatoSugerido,
+  rotuloDaEscuta,
+  tamanhoDeAbertura,
   tamanhoParaAbrir,
 } from '../../../../core/legendas/janelaFlutuante';
 import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
@@ -59,6 +62,8 @@ interface Opcoes {
   celular?: boolean;
   /** A captura está rodando: é quando o vídeo do PiP do Safari fica pronto (antes do clique). */
   gravando?: boolean;
+  /** O pico do nível do áudio capturado (0..1), para o estado vazio da janela mostrar o som chegando. */
+  nivelRef?: { current: number };
   falas: LegendaAoVivo[];
   /** Lido na hora de abrir: é dele que sai o formato sugerido. */
   contexto: () => ContextoDaCaptura;
@@ -99,6 +104,8 @@ export function useJanelaFlutuante(o: Opcoes) {
   /** O pedido em curso. Fechar (ou sair da tela) troca o número: a resposta atrasada é descartada. */
   const pedidoRef = useRef(0);
   const controlador = useRef<Controlador | null>(null);
+  /** A janela abriu BAIXA (sem fala ainda) e espera crescer: enquanto isso o tamanho dela não vira "o da pessoa". */
+  const compactaRef = useRef(false);
   const opcoes = useRef(o);
   opcoes.current = o;
 
@@ -129,6 +136,7 @@ export function useJanelaFlutuante(o: Opcoes) {
     pedidoRef.current++;
     setJanela(null);
     void controlador.current?.fechar();
+    compactaRef.current = false;
     setPausaDoVideo(SEM_PAUSA);
     setAtivo(null);
   }, []);
@@ -160,7 +168,9 @@ export function useJanelaFlutuante(o: Opcoes) {
       const f = formatoSugerido(opcoes.current.contexto());
       if (caminho === 'documento') {
         /* PRIMEIRO o pedido (ainda dentro do gesto); o estado vem depois. */
-        const pedido = abrirJanelaDocumento(tamanhoParaAbrir(f, lerTamanhos()));
+        const semFalas = !opcoes.current.falas.some((x) => x.original.trim());
+        compactaRef.current = semFalas;
+        const pedido = abrirJanelaDocumento(tamanhoDeAbertura(f, lerTamanhos(), semFalas));
         setFormato(f);
         setAtivo('documento');
         pedido.then(
@@ -255,10 +265,14 @@ export function useJanelaFlutuante(o: Opcoes) {
     let relogio = 0;
     const aoRedimensionar = () => {
       window.clearTimeout(relogio);
-      relogio = window.setTimeout(
-        () => guardarTamanho(formatoRef.current, { largura: janela.innerWidth, altura: janela.innerHeight }),
-        GUARDAR_TAMANHO_MS,
-      );
+      relogio = window.setTimeout(() => {
+        /* Aberta baixa, sem fala: esse tamanho é da espera, não uma escolha. Cresceu (a pessoa ou nós): vale de novo. */
+        if (compactaRef.current) {
+          if (janela.innerHeight <= ALTURA_QUE_SAI_DA_COMPACTA) return;
+          compactaRef.current = false;
+        }
+        guardarTamanho(formatoRef.current, { largura: janela.innerWidth, altura: janela.innerHeight });
+      }, GUARDAR_TAMANHO_MS);
     };
     janela.addEventListener('resize', aoRedimensionar);
     return () => {
@@ -266,6 +280,25 @@ export function useJanelaFlutuante(o: Opcoes) {
       janela.removeEventListener('resize', aoRedimensionar);
     };
   }, [janela]);
+
+  /* A PRIMEIRA FALA: a janela que abriu baixa cresce até o tamanho do formato. `resizeTo` exige gesto: tenta já (alguns
+     navegadores deixam) e, se ficou baixa, o primeiro toque ou tecla dentro da janela termina o serviço. */
+  const temFala = o.falas.some((f) => f.original.trim());
+  useEffect(() => {
+    if (!janela || !temFala || !compactaRef.current) return;
+    const crescer = () => {
+      if (!compactaRef.current) return;
+      redimensionarJanela(janela, tamanhoParaAbrir(formatoRef.current, lerTamanhos()));
+    };
+    crescer();
+    const doc = janela.document;
+    doc.addEventListener('pointerdown', crescer);
+    doc.addEventListener('keydown', crescer);
+    return () => {
+      doc.removeEventListener('pointerdown', crescer);
+      doc.removeEventListener('keydown', crescer);
+    };
+  }, [janela, temFala]);
 
   /* ── O ASSISTENTE AO VIVO (Fase C2/C3): na Document PiP inteiro; no PiP de vídeo, só a glosa desenhada. A instância
      é da captura: aqui só se conta a ela como a janela está, e se desenha a vista da janela. ── */
@@ -310,9 +343,16 @@ export function useJanelaFlutuante(o: Opcoes) {
     (f: Formato) => {
       setFormato(f);
       formatoRef.current = f;
+      compactaRef.current = false;
       if (janela) redimensionarJanela(janela, tamanhoParaAbrir(f, lerTamanhos()));
     },
     [janela],
+  );
+
+  const escuta = useMemo(
+    () => ({ rotulo: t(rotuloDaEscuta(o.contexto())), gravando: !!o.gravando, nivelRef: o.nivelRef }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `contexto` é lido na hora (muda sem render); o rótulo acompanha a gravação
+    [o.gravando, o.nivelRef],
   );
 
   const elemento: ReactNode = o.ativo ? (
@@ -336,6 +376,7 @@ export function useJanelaFlutuante(o: Opcoes) {
               abaInicial={assistente?.ajustes.abrirNaAba ? 'assistente' : undefined}
               assistente={doAssistente}
               aoMudarPausa={setPausaDaJanela}
+              escuta={escuta}
             />
           </ComAvatarNoPip>
         </DocumentPiP>
@@ -356,6 +397,7 @@ export function useJanelaFlutuante(o: Opcoes) {
         aberta={ativo === 'painel'}
         falas={o.falas}
         idiomaDaTraducao={o.idiomaDaTraducao}
+        escuta={escuta}
         aoFechar={fechar}
       />
     </>

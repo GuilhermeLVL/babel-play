@@ -509,8 +509,8 @@
 .leitor-selecao {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 12px 16px;
   border-top: 1px solid var(--leitor-borda);
   background: var(--leitor-sutil);
   max-height: 50dvh;
@@ -520,7 +520,20 @@
   margin: 0;
   font-family: Georgia, serif;
   font-size: 14px;
+  line-height: 1.4;
   color: var(--leitor-suave);
+  /* A citação nunca cresce além de duas linhas: o texto inteiro está na página, aqui é só a lembrança do trecho. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+/* Com a barra do trecho ou um painel (IA, Sumário, Aparência, Anotações, Narração) aberto, o iChat flutuante sai de cena:
+   a barra ocupa a largura do pé e o painel o canto, e ele cobria "Perguntar", o fechar e os controles do painel (mesmo
+   caminho do narrador e da folha da palavra). A pessoa o reencontra ao fechar. */
+body:has(.leitor-selecao, .leitor-painel) .fab {
+  display: none;
 }
 .leitor-cores {
   display: inline-flex;
@@ -686,9 +699,12 @@
 }
 /* Botão indisponível na barra do trecho: continua focável e legível, só mais apagado (a razão aparece embaixo). */
 .leitor .btn.leitor-indisponivel {
-  opacity: 0.65;
-  border-style: dashed;
+  opacity: 0.55;
   cursor: help;
+}
+.leitor .btn.leitor-indisponivel:hover {
+  box-shadow: none;
+  transform: none;
 }
 /* A tradução do capítulo, lado a lado com o original. */
 .leitor-bilingue {
@@ -1395,7 +1411,27 @@ body:has(.cartao-palavra[data-modo='folha']) .fab {
 }
 .cartao-palavra-chip[data-estado='salva'] {
   cursor: default;
-  border-style: dashed;
+  border-color: var(--leitor-acento);
+}
+/* O PRINCIPAL do cartão (Salvar, Já sei, Ignorar) numa fileira só, os botões dividindo a largura; "Salvar" se destaca
+   pela borda e pelo tom do acento, sem mudar a paleta do leitor. */
+.cartao-palavra-principais {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.cartao-palavra-principais .marcar-palavra {
+  display: contents;
+}
+.cartao-palavra-principais .cartao-palavra-chip {
+  flex: 1 1 0;
+  justify-content: center;
+}
+.cartao-palavra-chip-primaria {
+  border-color: var(--leitor-acento);
+  background: color-mix(in srgb, var(--leitor-acento) 14%, var(--leitor-sutil));
+  font-weight: 700;
 }
 .cartao-palavra-chip[aria-expanded='true'] .cartao-palavra-seta {
   transform: rotate(180deg);

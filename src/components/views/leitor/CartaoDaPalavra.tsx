@@ -257,6 +257,21 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
       </div>
       {props.destaque}
 
+      {/* O PRINCIPAL primeiro: guardar a palavra (Salvar) ou dizer que já a sabe (Já sei, Ignorar); o resto (traduzir a
+          frase, o sentido, "Mais") fica na fileira de baixo. */}
+      <div className="cartao-palavra-principais" role="group" aria-label={t('Guardar a palavra')}>
+        {props.salva ? (
+          <span className="cartao-palavra-chip" data-estado="salva" role="status">
+            <Check aria-hidden /> {t('Salva')}
+          </span>
+        ) : (
+          <button type="button" className="cartao-palavra-chip cartao-palavra-chip-primaria" onClick={props.aoSalvar}>
+            <Plus aria-hidden /> {t('Salvar')}
+          </button>
+        )}
+        <MarcarPalavra palavra={vocab.word} lang={idioma || undefined} classeDoBotao="cartao-palavra-chip" />
+      </div>
+
       <div className="cartao-palavra-acoes" role="group" aria-label={t('Ações da palavra')}>
         <button
           type="button"
@@ -274,15 +289,6 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
         >
           <BookOpenText aria-hidden /> {t('Sentido')}
         </button>
-        {props.salva ? (
-          <span className="cartao-palavra-chip" data-estado="salva" role="status">
-            <Check aria-hidden /> {t('Salva')}
-          </span>
-        ) : (
-          <button type="button" className="cartao-palavra-chip" onClick={props.aoSalvar}>
-            <Plus aria-hidden /> {t('Salvar')}
-          </button>
-        )}
         {props.link && (
           <button
             type="button"
@@ -308,8 +314,6 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
           <ChevronDown aria-hidden className="cartao-palavra-seta" /> {mais ? t('Menos') : t('Mais')}
         </button>
       </div>
-
-      <MarcarPalavra palavra={vocab.word} lang={idioma || undefined} classeDoBotao="cartao-palavra-chip" />
 
       {aberta === 'frase' && (
         <section className="cartao-palavra-bloco" aria-label={t('Tradução da frase')} data-testid="cartao-frase">

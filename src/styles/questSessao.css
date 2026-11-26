@@ -380,6 +380,16 @@ html[data-quest-novo='true'] dialog > .qs-miolo {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+/* O miolo que é uma LISTA (grade): cada linha tem a altura do próprio conteúdo e o que passar rola. Sem isto as abas
+   de "Palavras desta sessão" (que rolam de lado, então sem altura mínima) eram espremidas e o primeiro item subia
+   por baixo delas. */
+html[data-quest-novo='true'] dialog > .qs-miolo.q-lista {
+  grid-auto-rows: max-content;
+  align-content: start;
+}
+html[data-quest-novo='true'] dialog > .qs-miolo.q-lista > .q-abas {
+  min-height: min-content;
+}
 html[data-quest-novo='true'] dialog > .qs-miolo::-webkit-scrollbar {
   width: 14px;
 }
@@ -1134,6 +1144,64 @@ html[data-quest-novo='true'] .q-palco.qs:has(.px-player-guiada) {
 }
 .px-escuta-proximo {
   margin-left: auto;
+}
+/* COMPACTO E ALINHADO: o player com a escuta guiada é um cartão (e não a pílula de 999 px, que num bloco de três linhas
+   vira um oval), cada rótulo na altura do seu campo e a caixa de marcar do tamanho do texto. */
+.px-player.px-player-guiada {
+  border-radius: 28px;
+  row-gap: 6px;
+}
+.px-player-guiada > .px-escuta {
+  gap: 2px 14px;
+}
+.px-escuta-modo {
+  min-height: 40px;
+  line-height: 1.2;
+}
+.px-escuta-modo input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--q-acento);
+}
+.px-player-guiada > .q-ctl {
+  min-width: 52px;
+  min-height: 52px;
+  padding-inline: 16px;
+}
+@media (max-width: 720px) {
+  /* A dica ("Sugerido: …") sai da vista no celular (continua lida pelo leitor de tela): o seletor já diz o modo. */
+  .px-player-guiada .px-escuta-dica {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .px-escuta-modo {
+    min-height: 44px;
+  }
+  .px-escuta-select {
+    min-height: 44px;
+  }
+  html[data-px='on'] .px-sessao .px-player-guiada > .q-ctl {
+    min-width: 46px;
+    min-height: 46px;
+    padding-inline: 14px;
+  }
+  html[data-px='on'] .px-sessao .px-player-guiada .px-onde {
+    padding: 0;
+    line-height: 1.2;
+  }
+  /* O player é FIXO sobre a barra de baixo: o fim da tela reserva a altura dele (medida em `PlayerInterativo`), a barra
+     (92 px) e um respiro; e o iChat flutuante sobe para acima dele em vez de cobrir "Ouvir" e o trilho. */
+  html[data-px='on'][data-quest-novo='true'] .q-palco.px-sessao {
+    padding-bottom: calc(var(--px-player-h, 110px) + 92px + 24px + env(safe-area-inset-bottom, 0px));
+  }
+  body:has(.px-sessao .px-player) .fab {
+    bottom: calc(92px + var(--px-player-h, 0px) + 12px + env(safe-area-inset-bottom, 0px));
+  }
 }
 html[data-quest-novo='true'] .qs-oculto {
   color: var(--t-mut);

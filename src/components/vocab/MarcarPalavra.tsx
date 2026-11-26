@@ -3,7 +3,7 @@ import '../../styles/etiquetas.css';
 import { Check, EyeOff, Undo2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { chaveDaPalavra } from '../../core/texto/palavra';
+import { chaveAtiva } from '../../core/texto/chaveAtiva';
 import { estadoNoCaderno } from '../../core/vocabulario/etiquetas';
 import { type EstadoDaMarcacao, estadoMarcado } from '../../core/vocabulario/marcadas';
 import { desmarcarNoIndice, useSnapshotDasEtiquetas } from '../../lib/etiquetas/indiceDeEtiquetas';
@@ -60,7 +60,7 @@ export default function MarcarPalavra({
       parar();
     };
   }, []);
-  const chave = chaveDaPalavra(palavra);
+  const chave = chaveAtiva(palavra, lang);
   if (!chave || !lang || estadoNoCaderno(s.caderno, chave, lang)) return null;
   const marcada = estadoMarcado(s.marcadas, chave, lang);
 

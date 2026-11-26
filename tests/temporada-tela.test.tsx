@@ -17,7 +17,7 @@ vi.mock('../src/lib/protecaoDoMenor', async (orig) => ({
 }))
 
 import TemporadaDoPrototipo from '../src/components/views/personalizar/polimento/TemporadaDoPrototipo'
-import { TEMPORADAS } from '../src/core/temporada'
+import { proximaTemporada, temporadaAtual, TEMPORADAS } from '../src/core/temporada'
 import type { TemporadaNoServidor } from '../src/data/api'
 
 const T1 = TEMPORADAS[0]
@@ -73,6 +73,24 @@ describe('fora das datas', () => {
   it('sem temporada anunciada, diz que ainda não tem data — e não desenha trilha', () => {
     montar({ ...antes, proxima: null })
     expect(screen.getByTestId('temporada').textContent).toMatch(/ainda não tem data/)
+    expect(document.querySelector('[data-px-premio]')).toBeNull()
+  })
+
+  it('relógio DEPOIS do fim da última temporada: a faixa existe e diz que ainda não tem data (sem temporada nova inventada)', () => {
+    const depois = new Date('2026-11-26T12:00:00-03:00')
+    vi.setSystemTime(depois)
+    expect(temporadaAtual(depois)).toBeNull()
+    expect(proximaTemporada(depois)).toBeNull()
+    montar({
+      temporada: temporadaAtual(depois),
+      proxima: proximaTemporada(depois),
+      xp: 0,
+      nivel: 0,
+      assinante: false,
+      creditados: [],
+    })
+    expect(faixa()).toMatch(/ainda não tem data/)
+    expect(screen.queryByRole('progressbar')).toBeNull()
     expect(document.querySelector('[data-px-premio]')).toBeNull()
   })
 

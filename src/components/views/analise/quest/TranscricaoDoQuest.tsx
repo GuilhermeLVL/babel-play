@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Fragment, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
-import { chaveDaPalavra } from '../../../../core/texto/palavra';
+import { chaveAtiva } from '../../../../core/texto/chaveAtiva';
 import { type EstadoNoCaderno, estadoNoCaderno, resumoDasEtiquetas } from '../../../../core/vocabulario/etiquetas';
 import type { FalaDaAnalise } from '../../../../lib/analise/tiposDaAnalise';
 import { type Etiquetador, useSnapshotDasEtiquetas } from '../../../../lib/etiquetas/indiceDeEtiquetas';
@@ -153,7 +153,7 @@ export default function TranscricaoDoQuest({
   /* O estado de cada palavra da sessão no caderno (vale com as etiquetas desligadas: é o filtro do diálogo). */
   const caderno = useSnapshotDasEtiquetas();
   const estadoDaPalavra = (c: PalavraDaSessao) =>
-    estadoNoCaderno(caderno.caderno, chaveDaPalavra(c.word), c.srcLang || idiomaDasFalas);
+    estadoNoCaderno(caderno.caderno, chaveAtiva(c.word, c.srcLang || idiomaDasFalas), c.srcLang || idiomaDasFalas);
   const filtradas = filtro === 'todas' ? palavras : palavras.filter((c) => estadoDaPalavra(c) === filtro);
   const [ajustando, setAjustando] = useState(false);
 

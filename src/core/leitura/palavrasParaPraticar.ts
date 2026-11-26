@@ -4,7 +4,7 @@
  * que ela ainda não conhece. Sem repetir (pelo lema: "apples" e "apple" são uma só). A que já está no caderno vem
  * desmarcada: ela já tem cartão, e marcar criaria um duplicado.
  */
-import { chaveDaPalavra } from '../texto/palavra';
+import { chaveAtiva } from '../texto/chaveAtiva';
 import { mesmoLema } from './textoDaLeitura';
 
 export const MAXIMO_DE_PALAVRAS_PARA_PRATICAR = 5;
@@ -39,9 +39,9 @@ export function palavrasParaPraticar(e: {
     for (const bruta of lista) {
       if (out.length >= MAXIMO_DE_PALAVRAS_PARA_PRATICAR) return out;
       const palavra = semBordas(bruta).toLowerCase();
-      if (!chaveDaPalavra(palavra)) continue;
+      if (!chaveAtiva(palavra, e.lang)) continue;
       if (out.some((x) => mesmoLema(x.palavra, palavra, e.lang))) continue;
-      out.push({ palavra, motivo, marcada: !e.noCaderno(chaveDaPalavra(palavra)) });
+      out.push({ palavra, motivo, marcada: !e.noCaderno(chaveAtiva(palavra, e.lang)) });
     }
   }
   return out;

@@ -22,8 +22,9 @@ import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { type Forca, forcaDoCartao } from '../../core/learning/forcaDoCartao';
 import type { Layout } from '../../core/legendas/janelaFlutuante';
 import { FLAG_FORCA_NA_LEGENDA } from '../../core/planos';
+import { chaveAtiva, versaoAtivaDaChave } from '../../core/texto/chaveAtiva';
 import { baseLang } from '../../core/texto/idioma';
-import { chaveDaPalavra } from '../../core/texto/palavra';
+import type { VersaoDaChaveDedup } from '../../core/texto/palavra';
 import {
   type EstadoNoCaderno,
   estadoNoCaderno,
@@ -58,6 +59,7 @@ import {
 import type { VocabCard } from '../../types';
 import { lerAjustesDoAssistente, useAjustesDoAssistente } from '../assistente/ajustesDoAssistente';
 import { useFlag } from '../flags';
+import { EVENTO_DAS_FLAGS } from '../flagsCache';
 import { aoMudarIdentidade } from '../identidade';
 import { estadoDoCartao } from '../pelesDeCartao';
 
@@ -113,7 +115,30 @@ function publicar(patch: Partial<SnapshotDasEtiquetas>) {
   for (const f of inscritos) f();
 }
 
+/* A versão da chave com que os índices foram montados. A flag `chave_dedup_v2` pode chegar (ou mudar) depois do
+   primeiro índice: aí as chaves antigas não casam mais com as palavras da tela. */
+let versaoDoIndice: VersaoDaChaveDedup | null = null;
+
+/** A flag mudou a versão da chave: remonta o caderno e as marcadas (estas relidas, porque as chaves do servidor mudaram). */
+function aoMudarAFlagDaChave() {
+  const v = versaoAtivaDaChave();
+  if (versaoDoIndice === null || v === versaoDoIndice) return;
+  if (cartoesLidos.length || fichadas.size) remontarCaderno();
+  if (marcadasLidas) {
+    publicarMarcadas();
+    marcadasLidas = false;
+    if (inscritos.size > 0) void carregarMarcadas();
+  }
+}
+let ouvindoAFlagDaChave = false;
+function ouvirAFlagDaChave() {
+  if (ouvindoAFlagDaChave || typeof window === 'undefined') return;
+  ouvindoAFlagDaChave = true;
+  window.addEventListener(EVENTO_DAS_FLAGS, aoMudarAFlagDaChave);
+}
+
 function remontarCaderno() {
+  versaoDoIndice = versaoAtivaDaChave();
   const todos = [
     ...cartoesLidos,
     ...[...fichadas.values()].map((f) => ({ ...f, estado: 'nova' as const, forca: 1 as Forca })),
@@ -160,6 +185,7 @@ let relogioDeConfirmacao = 0;
 let epoca = 0;
 
 function publicarMarcadas() {
+  versaoDoIndice = versaoAtivaDaChave();
   const porChave = new Map(confirmadas);
   for (const [k, p] of pendentes) {
     if (p.marcada) porChave.set(k, p.marcada);
@@ -233,7 +259,7 @@ function pedirMarcacao(idioma: string, chave: string, estado: EstadoDaMarcacao |
  * e a função devolve `false` (quem chama avisa). A chave e o idioma são os do núcleo (o servidor reduz de novo).
  */
 export async function marcarNoIndice(palavra: string, lang: string | undefined, estado: EstadoDaMarcacao) {
-  const chave = chaveDaPalavra(palavra);
+  const chave = chaveAtiva(palavra, lang);
   const idioma = baseLang(lang);
   if (!chave || !idioma) return false;
   return pedirMarcacao(idioma, chave, estado);
@@ -241,7 +267,7 @@ export async function marcarNoIndice(palavra: string, lang: string | undefined, 
 
 /** Desfaz a marcação (o "Desfazer" do cartão e o "Desmarcar" da lista). Mesmo contrato de `marcarNoIndice`. */
 export async function desmarcarNoIndice(chaveOuPalavra: string, lang: string | undefined) {
-  const chave = chaveDaPalavra(chaveOuPalavra);
+  const chave = chaveAtiva(chaveOuPalavra, lang);
   const idioma = baseLang(lang);
   if (!chave || !idioma) return false;
   return pedirMarcacao(idioma, chave, null);
@@ -257,7 +283,7 @@ export async function marcarLoteNoIndice(
   chaves: readonly string[],
 ): Promise<ResultadoDoLote | null> {
   const idioma = baseLang(lang);
-  const reduzidas = [...new Set(chaves.map((c) => chaveDaPalavra(c)).filter(Boolean))];
+  const reduzidas = [...new Set(chaves.map((c) => chaveAtiva(c, idioma)).filter(Boolean))];
   if (!idioma || !reduzidas.length) return null;
   const minhaEpoca = epoca;
   const r = await marcarLotePalavras(idioma, reduzidas);
@@ -353,7 +379,7 @@ export function renovarVistas(idiomas: ReadonlyArray<string | undefined>): void 
 
 /** A palavra acabou de ser fichada: pinta como salva já (o caderno relido confirma ou corrige). */
 export function marcarSalva(palavra: string, lang?: string): void {
-  const chave = chaveDaPalavra(palavra);
+  const chave = chaveAtiva(palavra, lang);
   if (!chave) return;
   const k = `${baseLang(lang)}|${chave}`;
   if (fichadas.has(k)) return;
@@ -368,6 +394,7 @@ export function esquecerIndiceDeEtiquetas(): void {
   esquecerMarcadas();
   cartoesLidos = [];
   geracaoDoCaderno = -1;
+  versaoDoIndice = null;
   cadernoEmVoo = null;
   vistasPedidas.clear();
   vistasEmVoo.clear();
@@ -392,6 +419,7 @@ function ouvirIdentidade() {
 
 function assinar(f: () => void) {
   ouvirIdentidade();
+  ouvirAFlagDaChave();
   const primeiro = inscritos.size === 0;
   inscritos.add(f);
   /* A primeira tela a assinar (de novo) relê o caderno se ele nunca foi lido ou se houve escrita desde então. */
@@ -404,7 +432,7 @@ function assinar(f: () => void) {
 
 /** A palavra está no caderno (qualquer estado, inclusive a fichada agora)? Vale com as etiquetas desligadas. */
 export function estaNoCaderno(s: SnapshotDasEtiquetas, palavra: string, lang: string | undefined): boolean {
-  return !!estadoNoCaderno(s.caderno, chaveDaPalavra(palavra), lang);
+  return !!estadoNoCaderno(s.caderno, chaveAtiva(palavra, lang), lang);
 }
 
 const VAZIO: SnapshotDasEtiquetas = { caderno: null, vistas: new Map(), marcadas: null, listaDeMarcadas: [] };
@@ -434,7 +462,7 @@ function criarEtiquetador(
   porForca = false,
 ): Etiquetador {
   const etiqueta = (palavra: string, lang: string | undefined, comNova: boolean) =>
-    etiquetaDaChave(chaveDaPalavra(palavra), lang, s.caderno, {
+    etiquetaDaChave(chaveAtiva(palavra, lang), lang, s.caderno, {
       nova: comNova,
       langDaPessoa,
       vistas: s.vistas.get(baseLang(lang)),
@@ -446,7 +474,7 @@ function criarEtiquetador(
   const e: Etiquetador = {
     etiqueta: (palavra, lang) => etiqueta(palavra, lang, nova),
     salva: (palavra, lang) => estaNoCaderno(s, palavra, lang),
-    forca: (palavra, lang) => (porForca ? forcaNoCaderno(s.forcas, chaveDaPalavra(palavra), lang) : undefined),
+    forca: (palavra, lang) => (porForca ? forcaNoCaderno(s.forcas, chaveAtiva(palavra, lang), lang) : undefined),
     semNova: () => {
       if (!nova) return e;
       sem ??= criarEtiquetador(s, false, langDaPessoa, porForca);

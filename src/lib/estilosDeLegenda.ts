@@ -14,7 +14,7 @@
  * A POSSE é a mesma régua da Loja (`estadoDoItem`): a clássica é livre; as outras são itens
  * `tipo: 'legenda'` de `src/core/catalogoV2.ts`, só com Seeds.
  */
-import { chaveDaPalavra as chaveDoNucleo } from '../core/texto/palavra';
+import { chaveAtiva } from '../core/texto/chaveAtiva';
 import { movimentoReduzido } from './juice';
 import { CATALOGO_DA_LOJA, estadoDoItem } from './loja';
 import { DEFAULT_TRANSCRIPT_SETTINGS } from './transcriptUtils';
@@ -118,8 +118,8 @@ export function equiparEstiloDeLegenda(id: string): void {
  * própria que mantinha o acento: "água" na legenda não casava com o cartão "agua", e a etiqueta e o destaque de
  * aprendida discordavam sobre a mesma palavra.
  */
-export function chaveDaPalavra(palavra: string): string {
-  return chaveDoNucleo(palavra);
+export function chaveDaPalavra(palavra: string, lang?: string | null): string {
+  return chaveAtiva(palavra, lang);
 }
 
 /**
@@ -129,11 +129,12 @@ export function chaveDaPalavra(palavra: string): string {
 export function pedacosDaLegenda(
   texto: string,
   aprendidas: ReadonlySet<string> | undefined,
+  lang?: string | null,
 ): { texto: string; aprendida: boolean }[] {
   if (!aprendidas?.size) return [{ texto, aprendida: false }];
   const partes = texto.split(/(\s+)/);
-  if (!partes.some((p) => aprendidas.has(chaveDaPalavra(p)))) return [{ texto, aprendida: false }];
+  if (!partes.some((p) => aprendidas.has(chaveDaPalavra(p, lang)))) return [{ texto, aprendida: false }];
   return partes
     .filter((p) => p !== '')
-    .map((p) => ({ texto: p, aprendida: !/^\s+$/.test(p) && aprendidas.has(chaveDaPalavra(p)) }));
+    .map((p) => ({ texto: p, aprendida: !/^\s+$/.test(p) && aprendidas.has(chaveDaPalavra(p, lang)) }));
 }

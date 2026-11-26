@@ -120,13 +120,13 @@ Atualizado em 25/11/2026. Staging recebeu cada onda; produção não mudou.
 
 1. **Dev ainda aberto**
    - `navegacao-mais-simples` (4.4): só depois de decidir 1.3/2.4 e aprovar o protótipo.
-   - `modelo-do-aluno-e-dados` 5.4: chave v2 no cliente (leitor, legenda, `useConhecimento`) e na edição estática. **Bloqueia ligar `chave_dedup_v2`**: sem ela, a palavra marcada com acento em es/pt/de/fr não casa na tela.
+   - `modelo-do-aluno-e-dados` 5.4: chave v2 no cliente (leitor, legenda, `useConhecimento`) FEITA; falta só a edição estática (migração do IndexedDB), que segue em v1 e não bloqueia ligar `chave_dedup_v2` no app com servidor.
    - `leitura-ativa-com-moonshine` 1.2 (simulação offline), `motor-anki-jogos` e `motor-anki-mapeador` (tarefas de dev restantes), `polimento-movimento` (1.10 e outras), `status-da-palavra-na-legenda` 3.1/3.2, `sombra-sem-web-speech` 4.1, `formatacao-e-lint-estrito` 1.8 e a passada geral (5.1).
    - Ondas 5.2: executar o que as decisões 20 a 29 mandarem para as 10 incertas.
 2. **Sessão de bancada única [B]** (depois da Onda 4, máquina sozinha): roteador 4.1 a 4.3, sombra e leitura com Moonshine (régua de atraso), `traducao-local-por-direcao` (`mt.mjs`), Kitten e áudio do trecho (escuta cega), diário 1.1/1.2, audiolivros, e a ida e volta da chave de duplicata em Postgres real. Ordem na seção "Janela de bancada".
 3. **Atos do dono [D]** (lista única em `docs/pendencias-do-dono.md`, Partes 1 a 5, e `docs/backlog/decisoes-do-dono.md`): publicar no R2 (decisão 3), parecer de privacidade (5), pedido jurídico único (6), tokens e segredos, parecer OpenRAIL-M, escolha de modelos e tetos.
 4. **Aparelho real [R]**: celular bom e fraco, Safari/iPhone, Quest 3, rodada com 10 a 20 brasileiros.
-5. **Migrações a aplicar em produção** (com backup e ensaio, no deploy único): PG 0034 a 0043 e SQLite 0074 a 0082 (as das ondas, já renumeradas; conferir também qualquer anterior que a produção ainda não tenha, como a 0028 de `pendencias-do-dono`), e a reescrita de chaves (`operacao.cjs chave-de-duplicata`) só junto com a flag `chave_dedup_v2` e depois da 5.4.
+5. **Migrações a aplicar em produção** (com backup e ensaio, no deploy único): PG 0034 a 0043 e SQLite 0074 a 0082 (as das ondas, já renumeradas; conferir também qualquer anterior que a produção ainda não tenha, como a 0028 de `pendencias-do-dono`), e a reescrita de chaves (`operacao.cjs chave-de-duplicata`) só junto com a flag `chave_dedup_v2` (o cliente já segue a flag).
 6. **Fechamento**: staging verde, portões de CI, todas as flags novas desligadas, deploy manual com OK do dono (5.3).
 
 ## Janela de bancada (máquina sozinha, tampa aberta e `caffeinate`)

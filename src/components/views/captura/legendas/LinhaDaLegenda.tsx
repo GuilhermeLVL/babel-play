@@ -66,7 +66,7 @@ function Palavras({
   etiquetador?: Etiquetador | null;
 }) {
   const marcadas = new Set(
-    pedacosDaLegenda(texto, aprendidas)
+    pedacosDaLegenda(texto, aprendidas, lang)
       .filter((p) => p.aprendida)
       .map((p) => p.texto),
   );

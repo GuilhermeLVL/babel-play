@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { chaveDaPalavra } from '../core/texto/palavra';
+import { chaveAtiva } from '../core/texto/chaveAtiva';
 import { fetchDeck } from '../data/api';
 import type { VocabCard } from '../types';
 import { estadoDoCartao } from './pelesDeCartao';
@@ -13,7 +13,7 @@ import { estadoDoCartao } from './pelesDeCartao';
  */
 export function palavrasAprendidas(cartas: readonly VocabCard[]): Set<string> {
   const s = new Set<string>();
-  for (const c of cartas) if (c.inDeck && c.word && estadoDoCartao(c) !== 'nova') s.add(chaveDaPalavra(c.word));
+  for (const c of cartas) if (c.inDeck && c.word && estadoDoCartao(c) !== 'nova') s.add(chaveAtiva(c.word, c.srcLang));
   return s;
 }
 

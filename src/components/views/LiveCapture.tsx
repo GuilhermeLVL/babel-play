@@ -33,7 +33,7 @@ import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho'
 import type { MotivoDaOfertaDeAlivio, SinaisDoAparelhoParaAlivio } from '../../core/nuvemDeAlivio';
 import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
 import { estadoDoTeto } from '../../core/tetoAnonimo';
-import { chaveDaPalavra as chaveDoNucleo } from '../../core/texto/palavra';
+import { chaveAtiva } from '../../core/texto/chaveAtiva';
 import { coberturaNoAparelho } from '../../core/traducao/coberturaNoAparelho';
 import { FLAG_VOZ_NATURAL } from '../../core/vozNatural';
 import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
@@ -3506,11 +3506,9 @@ export default function LiveCapture({
   };
   /* "Guardada" = está no caderno, em QUALQUER estado (a nova também), ou acabou de ser fichada. A chave é a do núcleo. */
   const palavraGuardada = (palavra: string) => {
-    const k = chaveDoNucleo(palavra);
-    return (
-      estaNoCaderno(caderno, palavra, palavraTocada?.lang ?? falaTocada?.lang) ||
-      addedWords.some((w) => chaveDoNucleo(w) === k)
-    );
+    const lang = palavraTocada?.lang ?? falaTocada?.lang;
+    const k = chaveAtiva(palavra, lang);
+    return estaNoCaderno(caderno, palavra, lang) || addedWords.some((w) => chaveAtiva(w, lang) === k);
   };
   const parPorExtenso = `${parResumido.auto ? t('Detectar') : langLabel(parResumido.de)} → ${langLabel(parResumido.para)}`;
   /* O SELO DA FALA: o previsto da política até a primeira fala; depois, o motor que atendeu a última

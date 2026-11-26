@@ -23,7 +23,7 @@ import { leituraValeAMissao, rodadaDaLeitura } from '../../../core/leitura/rodad
 import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
 import { chavesDeLema, mesmoLema } from '../../../core/leitura/textoDaLeitura';
 import { FLAG_LEITURA_VOZ_LOCAL } from '../../../core/planos';
-import { chaveDaPalavra } from '../../../core/texto/palavra';
+import { chaveAtiva } from '../../../core/texto/chaveAtiva';
 import { lerMissoes, salvarRodada } from '../../../data/api';
 import { creditoDoTexto } from '../../../data/leitura/acervo';
 import { buildGateway } from '../../../gateway';
@@ -411,7 +411,7 @@ export default function SessaoDeLeitura(props: {
   const salvarPalavras = async (lista: string[]): Promise<number> => {
     let n = 0;
     for (const w of lista) {
-      if (conhecimento.noCaderno(chaveDaPalavra(w))) continue;
+      if (conhecimento.noCaderno(chaveAtiva(w, IDIOMA_DOS_TEXTOS))) continue;
       const p = alinhador.palavras.find((x) => mesmoLema(x.texto, w, IDIOMA_DOS_TEXTOS));
       const frase = p ? alinhador.frases[p.frase].texto : '';
       try {
@@ -468,7 +468,7 @@ export default function SessaoDeLeitura(props: {
       aoOuvir={() => falar(palavra.vocab.word, IDIOMA_DOS_TEXTOS)}
       velocidade={1}
       aoMudarVelocidade={() => {}}
-      salva={conhecimento.noCaderno(chaveDaPalavra(palavra.vocab.word))}
+      salva={conhecimento.noCaderno(chaveAtiva(palavra.vocab.word, IDIOMA_DOS_TEXTOS))}
       aoSalvar={() =>
         void salvarPalavras([palavra.vocab.word]).then((n) => {
           if (n) setPalavra((p) => (p ? { ...p } : p));

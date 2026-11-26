@@ -12,7 +12,9 @@
  *    primeira abertura destruiria a lista de livros de todo mundo; o risco é só o aparelho que já era compartilhado);
  *  - marcador de OUTRA conta (recarga com outra conta, conta -> conta, sair): o conjunto inteiro sai;
  *  - marcador `anonimo` e o dono agora é uma conta (o visitante entrou): NÃO sai nem é adotado sozinho. Fica PENDENTE
- *    até a pessoa escolher, no aviso de entrada, "trazer para esta conta" ou "apagar" (`ModalDeMigracao`).
+ *    até a pessoa escolher, no aviso de entrada, "trazer para esta conta" ou "apagar" (`ModalDeMigracao`). Se a conta
+    SAI ou TROCA com a escolha pendente, o conjunto INTEIRO sai (fail-closed: a conta grava nas mesmas chaves e não há
+    como separar o dela do do visitante).
  * Bancos IndexedDB são ESVAZIADOS (não apagados): outra aba ou módulo pode estar com o banco aberto e `deleteDatabase`
  * ficaria bloqueado. E só se abre o que existe (`bancoExiste`): a guarda não cria banco onde ninguém gravou.
  *
@@ -101,15 +103,6 @@ export const CONJUNTOS: readonly Conjunto[] = [
   },
 ];
 
-/**
- * A IMPRESSÃO do conjunto do visitante no instante em que a conta entra (hash, não dado pessoal). Os armazéns gravam nas
- * MESMAS chaves e bancos, então não dá para separar, depois, o que a conta escreveu enquanto a escolha estava pendente.
- * Ao sair (ou trocar de conta) com a escolha pendente, a impressão atual é comparada com esta: igual = a conta não
- * gravou nada, o visitante continua; diferente (ou sem impressão) = o conjunto inteiro é apagado, para nada da conta
- * ficar no aparelho para a próxima pessoa.
- */
-const CHAVE_DA_IMPRESSAO = 'babel.dono-dos-armazens-locais.impressao-do-visitante';
-
 const fabrica = (): IDBFactory | null => (typeof indexedDB === 'undefined' ? null : indexedDB);
 
 const lerMarcador = (): string | null => {
@@ -143,101 +136,6 @@ function chavesPresentes(): string[] {
     return [];
   }
 }
-
-function hash(texto: string): string {
-  let h = 2166136261;
-  for (let i = 0; i < texto.length; i++) {
-    h ^= texto.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return (h >>> 0).toString(36) + ':' + texto.length;
-}
-
-/** Quantas linhas há em cada loja de um banco que existe (sem criá-lo). */
-async function contagemDoBanco(f: IDBFactory, nome: string): Promise<string> {
-  return new Promise<string>((ok) => {
-    try {
-      const r = f.open(nome);
-      r.onerror = () => ok('?');
-      r.onblocked = () => ok('?');
-      r.onsuccess = () => {
-        const db = r.result;
-        const lojas = [...db.objectStoreNames].sort();
-        if (!lojas.length) {
-          db.close();
-          return ok('');
-        }
-        const n: Record<string, number> = {};
-        const tx = db.transaction(lojas, 'readonly');
-        for (const l of lojas)
-          tx.objectStore(l).count().onsuccess = (e) => {
-            n[l] = (e.target as IDBRequest<number>).result ?? 0;
-          };
-        const fim = () => {
-          db.close();
-          ok(lojas.map((l) => `${l}=${n[l] ?? '?'}`).join(','));
-        };
-        tx.oncomplete = fim;
-        tx.onerror = fim;
-        tx.onabort = fim;
-      };
-    } catch {
-      ok('?');
-    }
-  });
-}
-
-/**
- * A impressão do conjunto agora: chaves (com valor) e contagem de linhas dos bancos. Não contam os marcadores passivos
- * nem `foto-e-avatar`, que a saída apaga sempre (é por usuário).
- */
-async function impressaoDoConjunto(): Promise<string> {
-  const partes: string[] = [];
-  const porUsuario = CONJUNTOS.find((c) => c.nome === 'foto-e-avatar');
-  const ehPorUsuario = (k: string) =>
-    !!porUsuario && (porUsuario.chaves.includes(k) || porUsuario.prefixos.some((p) => k.startsWith(p)));
-  try {
-    for (const k of chavesPresentes().sort()) {
-      if (k === CHAVE_DO_DONO || k === CHAVE_DA_IMPRESSAO || CHAVES_PASSIVAS.has(k) || ehPorUsuario(k)) continue;
-      partes.push(`${k}=${localStorage.getItem(k)}`);
-    }
-  } catch {
-    partes.push('?');
-  }
-  const f = fabrica();
-  if (f) {
-    for (const nome of CONJUNTOS.filter((c) => c !== porUsuario)
-      .flatMap((c) => c.bancos)
-      .sort()) {
-      if (!(await bancoExiste(f, nome))) continue;
-      partes.push(`${nome}:${await contagemDoBanco(f, nome)}`);
-    }
-  }
-  return hash(partes.join('\n'));
-}
-
-async function guardarImpressao(): Promise<void> {
-  const i = await impressaoDoConjunto();
-  try {
-    localStorage.setItem(CHAVE_DA_IMPRESSAO, i);
-  } catch {
-    /* sem armazenamento: sem impressão, e sem impressão ao sair apaga tudo (o lado seguro) */
-  }
-}
-const esquecerImpressao = (): void => {
-  try {
-    localStorage.removeItem(CHAVE_DA_IMPRESSAO);
-  } catch {
-    /* idem */
-  }
-};
-const lerImpressao = (): string | null => {
-  try {
-    return localStorage.getItem(CHAVE_DA_IMPRESSAO);
-  } catch {
-    return null;
-  }
-};
 
 /** Esvazia todas as lojas de um banco que EXISTE (sem criá-lo, sem mudar a versão e sem esperar por conexões abertas). */
 async function esvaziarBanco(nome: string): Promise<void> {
@@ -308,7 +206,6 @@ const ehConta = (dono: string | null): dono is string => !!dono && dono !== 'ano
 
 /** Apaga o conjunto e passa o marcador para o dono de agora (ou o remove, se ainda não se sabe). */
 async function apagarEReconhecer(): Promise<void> {
-  esquecerImpressao();
   gravarMarcador(null);
   await apagarConjuntos();
   gravarMarcador(donoDaIdentidade());
@@ -328,7 +225,6 @@ async function purgarDeOutros(): Promise<void> {
     /* O visitante só abriu o app (nada além dos marcadores passivos): não há o que escolher, a conta adota. Sem isto
        o que a própria conta grava logo depois (conquistas, cromas) faria o aviso aparecer a quem não deixou nada. */
     if (!(await haAlgoDoVisitante())) gravarMarcador(dono);
-    else if (lerImpressao() === null) await guardarImpressao();
     return; // senão, pendente: a pessoa escolhe no aviso de entrada
   }
   await apagarEReconhecer();
@@ -346,31 +242,16 @@ registrarArmazemPorConta({
     ) {
       gravarMarcador(donoDaIdentidade());
     }
-    /* O que é do VISITANTE não é da conta que entra nem da que sai: fica (pendente, a pessoa escolhe trazer ou apagar;
-       perdê-lo ao entrar e sair apagaria os livros que ele trouxe). MAS a conta que entrou grava nas mesmas chaves e
-       bancos, sem marcador que separe. Por isso a impressão do conjunto tirada na entrada decide:
-        - entrada do visitante (visitante -> conta): só tira a impressão; sai o que é da conta por chave de usuário;
-        - saída ou troca de conta: impressão igual = a conta não gravou nada, o visitante continua; diferente ou sem
-          impressão = a conta deixou dado ali, e o conjunto inteiro é apagado (o visitante perde o que deixou: é o
-          preço de nada da conta ficar para a próxima pessoa). */
-    if (lerMarcador() === 'anonimo') {
-      if (o?.preservarVisitante) {
-        if (await haAlgoDoVisitante()) await guardarImpressao();
-        await apagarConjuntos(['foto-e-avatar']);
-        return;
-      }
-      const guardada = lerImpressao();
-      if (guardada !== null && (await impressaoDoConjunto()) === guardada) {
-        esquecerImpressao();
-        await apagarConjuntos(['foto-e-avatar']);
-        try {
-          for (const k of CHAVES_PASSIVAS) localStorage.removeItem(k);
-        } catch {
-          /* idem */
-        }
-        return;
-      }
-      esquecerImpressao();
+    /* FAIL-CLOSED. A conta que entra grava nas MESMAS chaves e bancos do visitante, sem marcador que separe o que é de
+       quem, e não há como provar depois que ela não gravou (contar linhas ou tirar "impressão" deixa passar sobrescrita e
+       corrida). Então:
+        - ENTRADA do visitante (visitante -> conta): nada do visitante sai (a pessoa ainda vai escolher no aviso); só o
+          que é da conta por chave de usuário (foto e avatar);
+        - SAÍDA ou TROCA de conta com a escolha ainda pendente: o conjunto INTEIRO sai, inclusive o do visitante.
+          Perder o que ninguém reivindicou é aceitável; deixar dado de conta para a próxima pessoa não é. */
+    if (lerMarcador() === 'anonimo' && o?.preservarVisitante) {
+      await apagarConjuntos(['foto-e-avatar']);
+      return;
     }
     await apagarEReconhecer();
   },
@@ -441,7 +322,6 @@ async function bancoTemLinhas(f: IDBFactory, nome: string): Promise<boolean> {
 
 /** "Trazer para esta conta": o que o visitante deixou passa a ser da conta de agora. */
 export function trazerDadosDoVisitante(): void {
-  esquecerImpressao();
   const dono = donoDaIdentidade();
   if (ehConta(dono)) gravarMarcador(dono);
 }

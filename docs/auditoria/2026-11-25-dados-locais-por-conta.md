@@ -87,7 +87,14 @@ Decisões assumidas (recomendação do agente, 25/11):
   livros de todo mundo. Risco: aparelho que já era compartilhado.
 - O que o visitante deixou fica PENDENTE ao entrar numa conta (nem apagado nem adotado sozinho). O aviso de entrada
   (`ModalDeMigracao`) agora tem "Guardar na conta" (traz), "Apagar deste navegador" (com confirmação) e "Agora não".
-  Se a conta sai com o visitante ainda pendente, o dele continua pendente (não se apaga o que a conta não trouxe).
-- Enquanto pendente, o que a conta grava se mistura ao do visitante; "Apagar" leva os dois (são espelhos do servidor).
+  Se a conta SAI ou TROCA com a escolha ainda pendente, o conjunto INTEIRO sai do aparelho, inclusive o que o visitante
+  deixou (regra FAIL-CLOSED, revisão de segurança de 25/11).
+- Enquanto pendente, o que a conta grava se mistura ao do visitante (mesmas chaves e bancos, sem como separar), e contar
+  linhas ou tirar "impressão" do conjunto não prova que a conta não gravou (sobrescrita e corrida passam). Por isso a regra
+  acima: perder o dado do visitante que ninguém reivindicou é aceitável; vazar dado de conta para a próxima pessoa não é.
+  "Apagar" leva os dois (são espelhos do servidor); "Guardar na conta" não perde nada.
+- Chaves por conta acrescentadas na revisão: `frasy.avatar.receita.`, `frasy.avatar.sinais.marcacoes`, `leitor:recentes`,
+  `leitor:narracao:sessao:` e `leitor:migrou:`. Ficam de fora, por serem preferência do aparelho: `frasy.avatar.modo.*`,
+  `frasy.avatar.interprete.*`, `leitor:perfil`, `leitor:narracao:opcoes|meu-estilo|modo|seguir`, `leitor:glosa`.
 - Não migrados (risco baixo, seguem pendentes): cenas juntadas da revisão, curadoria, leitura ativa, perfis de mapeamento do Anki,
   apelido e envio do ranking.

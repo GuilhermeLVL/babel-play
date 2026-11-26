@@ -331,14 +331,15 @@ describe('o visitante que entra numa conta: fica pendente até a pessoa escolher
     expect(_lerMarcador()).toBe('A')
   })
 
-  it('"agora não": a conta sai e o que era do visitante continua pendente para a próxima vez', async () => {
+  it('"agora não": a conta sai com a escolha pendente e o conjunto inteiro sai (fail-closed)', async () => {
     await comoVisitante()
     entrar('A')
     await espera()
     sair()
     await espera()
     expect(_lerMarcador()).toBe('anonimo')
-    expect(localStorage.getItem('babel.perfis')).not.toBeNull()
+    expect(localStorage.getItem('babel.perfis')).toBeNull()
+    expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBe(0)
   })
 
   it('a foto e o avatar da conta (por usuário) saem ao sair, mesmo com o visitante pendente', async () => {
@@ -349,7 +350,6 @@ describe('o visitante que entra numa conta: fica pendente até a pessoa escolher
     sair()
     await espera()
     expect(localStorage.getItem('babel.fotoDoPerfil.A')).toBeNull()
-    expect(localStorage.getItem('babel.perfis')).not.toBeNull()
   })
 
   it('sem nada do visitante, não há aviso', async () => {
@@ -421,13 +421,41 @@ describe('o que a conta grava com a escolha do visitante pendente não fica para
     expect(localStorage.getItem('babel.conquistas')).toBeNull()
   })
 
-  it('a A não grava nada: o visitante continua pendente, como antes', async () => {
+  it('a A grava SEM mudar a contagem (sobrescreve um registro): o dado dela também não vaza', async () => {
     await comoVisitanteEConta()
+    await new Promise<void>((ok, falha) => {
+      const r = indexedDB.open('frasy-livros')
+      r.onsuccess = () => {
+        const tx = r.result.transaction('conteudo', 'readwrite')
+        tx.objectStore('conteudo').put({ x: 'segredo da A' }, 'k')
+        tx.oncomplete = () => {
+          r.result.close()
+          ok()
+        }
+        tx.onerror = () => falha(tx.error)
+      }
+    })
+    localStorage.setItem('babel.perfis', '["segredo da A"]')
     sair()
     await espera()
-    expect(_lerMarcador()).toBe('anonimo')
+    entrar('B')
+    await espera()
+    expect(localStorage.getItem('babel.perfis')).toBeNull()
+    expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBe(0)
+  })
+
+  it('"Guardar na conta": nada se perde, e o conjunto sai só quando a conta sai (como antes)', async () => {
+    await comoVisitanteEConta()
+    localStorage.setItem('babel.conquistas', '["da A"]')
+    trazerDadosDoVisitante()
+    expect(_lerMarcador()).toBe('A')
+    await espera()
     expect(localStorage.getItem('babel.perfis')).not.toBeNull()
+    expect(localStorage.getItem('babel.conquistas')).not.toBeNull()
     expect(await linhasNoBanco('frasy-livros', 'conteudo')).toBeGreaterThan(0)
+    sair()
+    await espera()
+    expect(localStorage.getItem('babel.perfis')).toBeNull()
   })
 })
 

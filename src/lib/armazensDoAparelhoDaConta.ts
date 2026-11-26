@@ -66,8 +66,11 @@ export const CONJUNTOS: readonly Conjunto[] = [
       'frasy.anki.perfis.v1',
       'babel.apelido',
       'babel.rank_enviado',
+      /* os casos "ruim" do iChat: guardam a pergunta e a resposta, texto da pessoa */
+      'ichat_avaliacoes',
     ],
-    prefixos: ['babel.vistas.', 'babel.precisoes.'],
+    /* o rascunho da escrita da leitura ativa, por texto e tarefa */
+    prefixos: ['babel.vistas.', 'babel.precisoes.', 'frasy.leituraAtiva.rascunho.'],
     bancos: [],
   },
   { nome: 'memoria-de-traducao', chaves: [], prefixos: [], bancos: ['babel-memoria-de-traducao'] },

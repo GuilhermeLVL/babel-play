@@ -477,6 +477,8 @@ describe('chaves por conta do avatar e do leitor', () => {
     'curadoria.mantidas',
     'babel.vistas.baralho',
     'babel.precisoes.jogo1',
+    'ichat_avaliacoes',
+    'frasy.leituraAtiva.rascunho.t1.escrita',
   ])('%s sai quando outra conta entra', async (chave) => {
     entrar('A')
     iniciarGuardaDosArmazensLocais()

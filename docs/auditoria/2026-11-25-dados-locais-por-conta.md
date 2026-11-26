@@ -95,7 +95,7 @@ Decisões assumidas (recomendação do agente, 25/11):
   "Apagar" leva os dois (são espelhos do servidor); "Guardar na conta" não perde nada.
 - Chaves por conta acrescentadas na revisão: `frasy.avatar.receita.`, `frasy.avatar.sinais.marcacoes`, `leitor:recentes`,
   `leitor:narracao:sessao:` e `leitor:migrou:`. Ficam de fora, por serem preferência do aparelho: `frasy.avatar.modo.*`,
-  `frasy.avatar.interprete.*`, `leitor:perfil`, `leitor:narracao:opcoes|meu-estilo|modo|seguir`, `leitor:glosa`.
+  `frasy.avatar.interprete.*`, `leitor:perfil`, `leitor:narracao:opcoes|modo|seguir` (o `meu-estilo` sai com o prefixo `leitor:narracao:meu-`), `leitor:glosa`.
 - Não migrados (risco baixo, seguem pendentes): cenas juntadas da revisão, curadoria, leitura ativa, perfis de mapeamento do Anki,
   apelido e envio do ranking.
 
@@ -113,3 +113,9 @@ Conferidos `localStorage.*Item` e `openDB`/`indexedDB.open` em `src` contra os c
 - Ficam de fora, por serem preferência do aparelho ou efêmeros: `babel.nivel*` (dificuldade escolhida), `babel.filtro_da_pratica`,
   `babel.ultimaCaptura`/`babel.ultimoInterprete` (métricas sem conteúdo), `babel.login.email` (e-mail lembrado de propósito, antes
   do login), `babel.assistente*`, `babel.legendasMeuPerfil`, `frasy.livros.nivel|idioma`, `babel.analise.*`, `babel.interprete.*`.
+- Achados da varredura estática (conjunto `estudo-e-ranking`): `ichat_avaliacoes` (pergunta e resposta do iChat nos casos "ruim") e
+  `frasy.leituraAtiva.rascunho.` (rascunho da escrita), que estavam sem conjunto.
+- A REGRA ESTÁTICA `tests/seguranca/chaves-locais-por-conta.test.ts` (varredura em `tests/seguranca/varredura-de-armazenamento.ts`)
+  falha se aparecer chave de `localStorage`/`sessionStorage` ou banco IndexedDB em `src/` que não esteja nos conjuntos, num armazém
+  da peça comum ou na lista de exceções com motivo. Limite: chave que só chega por parâmetro de helper é vista pelas constantes
+  `CHAVE_*`/`KEY`/`LS_*`/`PREFIXO_*` do arquivo; os arquivos assim ficam em `DINAMICOS`.

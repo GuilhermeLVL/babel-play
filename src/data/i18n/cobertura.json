@@ -7,16 +7,16 @@
       "cobertura": 1
     },
     "ar": {
-      "chaves": 2998,
-      "cobertura": 0.4657
+      "chaves": 2999,
+      "cobertura": 0.4659
     },
     "en": {
       "chaves": 6437,
       "cobertura": 1
     },
     "es": {
-      "chaves": 3140,
-      "cobertura": 0.4878
+      "chaves": 3141,
+      "cobertura": 0.488
     }
   }
 }

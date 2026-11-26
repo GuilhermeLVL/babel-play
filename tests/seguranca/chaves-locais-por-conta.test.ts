@@ -161,6 +161,8 @@ const EXCECOES: Array<{ motivo: string; chaves: string[] }> = [
     chaves: [
       'babel.bergamot.falha',
       'babel.captura.audioDaTelaFalhou',
+      'babel.captura.downloadConfirmado',
+      'babel.captura.ultimaSuperficie',
       'babel.flags',
       'babel.lab.gravarHipoteses',
       'babel.lab.parciaisMascara',

@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Frasy: legendar esta aba",
+  "version": "0.1.0",
+  "description": "Legenda o som da aba atual no Frasy com um clique, sem o seletor do navegador. O áudio não sai do seu aparelho.",
+  "minimum_chrome_version": "116",
+  "permissions": ["tabCapture", "offscreen", "activeTab"],
+  "action": {
+    "default_title": "Legendar esta aba no Frasy",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost/*"],
+      "js": ["ponte.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["contrato.js"],
+      "matches": ["http://localhost/*"]
+    }
+  ]
+}

@@ -93,6 +93,15 @@
 .etq-filtros .q-aba[aria-pressed='true'] {
   font-weight: 700;
 }
+/* No celular as quatro abas ficam em 2 × 2 (e não 3 + 1 com uma órfã), sem passar da largura da folha. */
+@media (max-width: 720px) {
+  .etq-filtros.q-abas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-self: stretch;
+    border-radius: 22px;
+  }
+}
 .q-linha [data-etiqueta] {
   /* Na lista, a palavra é um bloco: o tom fica do tamanho dela, não da linha. */
   width: fit-content;

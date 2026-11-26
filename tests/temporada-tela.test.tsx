@@ -17,7 +17,7 @@ vi.mock('../src/lib/protecaoDoMenor', async (orig) => ({
 }))
 
 import TemporadaDoPrototipo from '../src/components/views/personalizar/polimento/TemporadaDoPrototipo'
-import { proximaTemporada, temporadaAtual,TEMPORADAS } from '../src/core/temporada'
+import { proximaTemporada, temporadaAtual, TEMPORADAS } from '../src/core/temporada'
 import type { TemporadaNoServidor } from '../src/data/api'
 
 const T1 = TEMPORADAS[0]

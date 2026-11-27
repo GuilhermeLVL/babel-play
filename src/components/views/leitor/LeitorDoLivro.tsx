@@ -22,6 +22,7 @@ import {
   novaAnotacao,
   type TipoDeAnotacao,
 } from '../../../core/leitura/anotacao';
+import { type Area, type Caixa } from '../../../core/leitura/balaoDaTraducao';
 import { diagnosticarPdf } from '../../../core/leitura/diagnosticoDoPdf';
 import { OPCOES_PADRAO_DA_NARRACAO } from '../../../core/leitura/estilosDeLeitura';
 import {
@@ -42,7 +43,7 @@ import { CORES_DOS_TEMAS } from '../../../core/leitura/perfilDeLeitura';
 import type { Retangulo } from '../../../core/leitura/posicaoDoCartao';
 import { ancorar } from '../../../core/leitura/reancorar';
 import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
-import { FLAG_AUDIOLIVROS } from '../../../core/planos';
+import { FLAG_AUDIOLIVROS, FLAG_LEITOR_MODO_TRADUCAO } from '../../../core/planos';
 import { FLAG_VOZ_NATURAL } from '../../../core/vozNatural';
 import { fetchDeck } from '../../../data/api';
 import type { ModoDoParceiro } from '../../../data/rotas/parceiroDeLeitura';
@@ -62,11 +63,13 @@ import { buscarImagensDaPalavra } from '../../../lib/imagens/imagensDaPalavra';
 import { useLangConfig } from '../../../lib/langConfig';
 import { detectLanguage } from '../../../lib/langDetect';
 import { baseLang, toBcp47 } from '../../../lib/languages';
+import { type AcaoDoAtalho, acaoDoAtalho } from '../../../lib/leitor/atalhos';
 import { audiolivroDoLivro } from '../../../lib/leitor/audiolivroDoLivro';
 import { dicaDoElencoJaVista, marcarDicaDoElencoVista } from '../../../lib/leitor/dicaDoElenco';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
 import { type AudioGravadoDoLivro, Narrador, type VistaDoNarrador } from '../../../lib/leitor/narrador';
+import { paragrafoDoTrecho, retanguloDoTrecho } from '../../../lib/leitor/retanguloDoTrecho';
 import {
   citacaoDoRange,
   ehUmaPalavra,
@@ -77,6 +80,7 @@ import {
   selecaoDoDocumento,
   vigiarSelecao,
 } from '../../../lib/leitor/selecao';
+import { guardarTraducao, lerTraducoesGuardadas } from '../../../lib/leitor/traducoesGuardadas';
 import { lerAnotacoes } from '../../../lib/leitura/anotacaoDaFrase';
 import { anotacoesDoLivro, type EstadoDaSincronizacao } from '../../../lib/livros/anotacoesDoLivro';
 import type { LivroGuardado } from '../../../lib/livros/armazem';
@@ -123,6 +127,8 @@ import PainelDoSumario from './PainelDoSumario';
 
 /* "Baixar este capítulo" puxa o código do CDN de áudio: só com o áudio gravado em uso (flag `audiolivros`). */
 const BotaoBaixarCapitulo = lazy(() => import('./BotaoBaixarCapitulo'));
+/* O balão da tradução (flag `leitor_modo_traducao`): só carrega com a flag ligada e uma seleção na tela. */
+const BalaoDaTraducao = lazy(() => import('./BalaoDaTraducao'));
 import { useElencoDoLivro } from './useElencoDoLivro';
 import { useFatosDasFerramentas } from './useFatosDasFerramentas';
 import { usePerfilDeLeitura } from './usePerfilDeLeitura';
@@ -134,6 +140,7 @@ const LS_MODO = 'leitor:narracao:modo';
 const LS_SEGUIR = 'leitor:narracao:seguir';
 /* "Mostrar tradução das palavras novas": desligado por padrão, guardado neste aparelho. */
 const LS_GLOSA = 'leitor:glosa';
+const LS_MODO_TRADUCAO = 'leitor:modo-traducao';
 const lerLocal = (chave: string): string | null => {
   try {
     return localStorage.getItem(chave);
@@ -164,6 +171,9 @@ interface Selecao {
   cfi: string;
   citacao: AnotacaoDeLeitura['alvo']['citacao'];
   capitulo: string;
+  /** O trecho na janela do app e o parágrafo dele (o balão da tradução, flag `leitor_modo_traducao`). */
+  rect?: Caixa | null;
+  paragrafo?: string;
 }
 
 interface PalavraAberta {
@@ -273,6 +283,18 @@ export default function LeitorDoLivro({
   useEffect(() => {
     if (selecao || painel !== 'ia') setTrechoDaIa(null);
   }, [selecao, painel]);
+  /* ── o modo tradução (flag `leitor_modo_traducao`): o balão da tradução junto do trecho ── */
+  const balaoLigado = useFlag(FLAG_LEITOR_MODO_TRADUCAO);
+  const [modoTraducao, setModoTraducao] = useState(() => lerLocal(LS_MODO_TRADUCAO) === '1');
+  const [balaoAberto, setBalaoAberto] = useState(false);
+  const [comandoDoBalao, setComandoDoBalao] = useState<{ acao: AcaoDoAtalho; n: number } | null>(null);
+  const [incluirTraducoes, setIncluirTraducoes] = useState(false);
+  const selecaoRef = useRef<Selecao | null>(null);
+  selecaoRef.current = selecao;
+  const balaoLigadoRef = useRef(false);
+  balaoLigadoRef.current = balaoLigado;
+  /* Outra seleção, outro balão: o pedido manual de "Traduzir" vale só para o trecho em que foi feito. */
+  useEffect(() => setBalaoAberto(false), [selecao?.cfi]);
   const [ttsSpeed, setTtsSpeed] = useState(1);
   /* ── a narração (L3) ── */
   const narradorRef = useRef<Narrador | null>(null);
@@ -691,6 +713,7 @@ export default function LeitorDoLivro({
           cfi: m.cfiDe(indice, r),
           citacao: citacaoDoRange(r),
           capitulo: capituloRef.current,
+          ...(balaoLigadoRef.current ? { rect: retanguloDoTrecho(r), paragrafo: paragrafoDoTrecho(r) } : {}),
         });
       },
       /* SÓ O TOQUE LIMPO chega aqui (`core/leitura/gestoDoLeitor.ts`): arrastar, segurar e o toque duplo são
@@ -842,6 +865,16 @@ export default function LeitorDoLivro({
       e.preventDefault();
       return;
     }
+    /* Atalhos do trecho selecionado (T traduz, V lê, C copia): só com a flag, com um trecho e fora de campo de texto. */
+    const atalho = balaoLigadoRef.current
+      ? acaoDoAtalho(e, { temTrecho: !!selecaoRef.current?.rect, emCampo: ehCampo(e.target) })
+      : null;
+    if (atalho && atalho !== 'ajustar') {
+      if (atalho === 'traduzir') setBalaoAberto(true);
+      setComandoDoBalao((c) => ({ acao: atalho, n: (c?.n ?? 0) + 1 }));
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'ArrowLeft') void m.esquerda();
     else if (e.key === 'ArrowRight') void m.direita();
     else if (e.key === 'PageDown') void m.proxima();
@@ -940,6 +973,19 @@ export default function LeitorDoLivro({
     }
   };
 
+  /** O miolo visível do leitor na janela do app (onde o balão da tradução pode ficar). */
+  const areaDoLeitor = (): Area => {
+    const r = hospedeiro.current?.getBoundingClientRect();
+    return r
+      ? { x0: r.left, y0: r.top, x1: r.right, y1: r.bottom }
+      : { x0: 0, y0: 0, x1: window.innerWidth, y1: window.innerHeight };
+  };
+  /** O paginador usa duas colunas em tela larga (paisagem) e uma em coluna única ou rolagem. */
+  const colunasDoLeitor = (): 1 | 2 => {
+    const r = hospedeiro.current?.getBoundingClientRect();
+    return perfil.modo !== 'rolagem' && r && r.width > r.height ? 2 : 1;
+  };
+
   const traduzir = async (texto: string): Promise<string | null> => {
     const de = idiomaRef.current;
     const para = baseLang(langConfig.mine);
@@ -993,10 +1039,12 @@ export default function LeitorDoLivro({
       baixarTexto(
         paraMarkdown(livro, todas, {
           agora: Date.now(),
+          ...(balaoLigado && incluirTraducoes ? { traducoes: lerTraducoesGuardadas(livroId) } : {}),
           rotulos: {
             semCapitulo: t('Sem capítulo'),
             nota: t('Nota'),
             palavra: t('Palavra'),
+            traducao: t('Tradução'),
             abrirNoFrasy: t('abrir no Frasy'),
             exportadoEm: (d) => t('Exportado em {data}', { data: d }),
           },
@@ -1361,12 +1409,41 @@ export default function LeitorDoLivro({
                   aoEditarNota={(a, n) => void editarNota(a, n)}
                   aoApagar={(a) => void apagar(a)}
                   aoExportar={(f) => void exportar(f)}
+                  incluirTraducoes={balaoLigado ? { valor: incluirTraducoes, aoMudar: setIncluirTraducoes } : undefined}
                 />
               )}
             </div>
           </aside>
         )}
       </div>
+
+      {balaoLigado && selecao?.rect && (modoTraducao || balaoAberto) && (
+        <Suspense fallback={null}>
+          <BalaoDaTraducao
+            key={selecao.cfi}
+            trecho={{
+              texto: selecao.trecho.texto,
+              frase: selecao.trecho.frase,
+              paragrafo: selecao.paragrafo || selecao.trecho.frase,
+              idioma: selecao.trecho.idioma,
+            }}
+            rect={selecao.rect}
+            area={areaDoLeitor()}
+            colunas={colunasDoLeitor()}
+            destino={toBcp47(langConfig.mine)}
+            estado={estadosDeIa['traduzir-trecho']}
+            modoAuto={modoTraducao}
+            traduzir={traduzirFrase}
+            aoTraduzir={(texto, traducao) => guardarTraducao(livroId, texto, traducao)}
+            aoFechar={() => {
+              setBalaoAberto(false);
+              setModoTraducao(false);
+              gravarLocal(LS_MODO_TRADUCAO, '0');
+            }}
+            comando={comandoDoBalao}
+          />
+        </Suspense>
+      )}
 
       {selecao && (
         <BarraDaSelecao
@@ -1389,6 +1466,19 @@ export default function LeitorDoLivro({
             motorRef.current?.desmarcar();
           }}
           aoConhecerPlanos={aoConhecerPlanos}
+          modoTraducao={
+            balaoLigado && selecao.rect
+              ? {
+                  ligado: modoTraducao,
+                  aoAlternar: () => {
+                    const v = !modoTraducao;
+                    setModoTraducao(v);
+                    gravarLocal(LS_MODO_TRADUCAO, v ? '1' : '0');
+                  },
+                  aoTraduzir: () => setBalaoAberto(true),
+                }
+              : undefined
+          }
           explicar={estadosDeIa.explicar}
           parceiro={estadosDeIa.parceiro}
           aoPerguntar={() => {

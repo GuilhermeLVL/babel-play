@@ -142,6 +142,8 @@ export interface RotulosDoMarkdown {
   semCapitulo: string;
   nota: string;
   palavra: string;
+  /** O rótulo da tradução do trecho (só aparece quando a exportação inclui traduções). */
+  traducao: string;
   abrirNoFrasy: string;
   exportadoEm: (data: string) => string;
 }
@@ -150,6 +152,7 @@ const ROTULOS_PADRAO: RotulosDoMarkdown = {
   semCapitulo: 'Sem capítulo',
   nota: 'Nota',
   palavra: 'Palavra',
+  traducao: 'Tradução',
   abrirNoFrasy: 'abrir no Frasy',
   exportadoEm: (d) => `Exportado em ${d}`,
 };
@@ -161,11 +164,23 @@ const emBloco = (s: string) =>
     .map((l) => `> ${l.replace(/^([#>*+-]|\d+\.)\s/, '\\$1 ')}`)
     .join('\n');
 
+/** A chave de um trecho no mapa de traduções: o texto com os espaços normalizados (quebra de linha do livro não importa). */
+export const chaveDoTrecho = (texto: string) => texto.replace(/\s+/g, ' ').trim();
+
+/**
+ * Traduções JÁ FEITAS pelo leitor (openspec `leitura-assistida`, fatia B), por trecho. A exportação só LÊ este mapa:
+ * trecho sem tradução sai só com o original, e nada é traduzido de novo.
+ */
+export type TraducoesDosTrechos = Readonly<Record<string, string>>;
+
+const traducaoDoTrecho = (traducoes: TraducoesDosTrechos | undefined, exato: string): string =>
+  (traducoes && Object.hasOwn(traducoes, chaveDoTrecho(exato)) ? traducoes[chaveDoTrecho(exato)] : '') || '';
+
 /** Markdown por capítulo, na ordem de leitura. */
 export function paraMarkdown(
   livro: LivroDaExportacao,
   anotacoes: readonly AnotacaoDeLeitura[],
-  opcoes: { agora: number; rotulos?: Partial<RotulosDoMarkdown> } = { agora: 0 },
+  opcoes: { agora: number; rotulos?: Partial<RotulosDoMarkdown>; traducoes?: TraducoesDosTrechos } = { agora: 0 },
 ): string {
   const r = { ...ROTULOS_PADRAO, ...opcoes.rotulos };
   const vivas = anotacoesVivas(anotacoes.filter((a) => a.livroId === livro.id));
@@ -183,6 +198,8 @@ export function paraMarkdown(
     linhas.push('');
     if (a.tipo === 'palavra' && a.palavra) linhas.push(`**${r.palavra}:** ${a.palavra}`, '');
     if (a.alvo.citacao.exact) linhas.push(emBloco(a.alvo.citacao.exact));
+    const traducao = traducaoDoTrecho(opcoes.traducoes, a.alvo.citacao.exact);
+    if (traducao) linhas.push('', `**${r.traducao}:** ${traducao.replace(/\r?\n/g, '  \n')}`);
     if (a.nota) linhas.push('', `**${r.nota}:** ${a.nota.replace(/\r?\n/g, '  \n')}`);
     linhas.push('', `[${r.abrirNoFrasy}](${linkDaAnotacao(a)})`);
   }
@@ -199,7 +216,12 @@ const escaparHtml = (v: string) =>
 export function paraHtml(
   livro: LivroDaExportacao,
   anotacoes: readonly AnotacaoDeLeitura[],
-  opcoes: { agora: number; rotulos?: Partial<RotulosDoMarkdown>; idioma?: string } = { agora: 0 },
+  opcoes: {
+    agora: number;
+    rotulos?: Partial<RotulosDoMarkdown>;
+    idioma?: string;
+    traducoes?: TraducoesDosTrechos;
+  } = { agora: 0 },
 ): string {
   const r = { ...ROTULOS_PADRAO, ...opcoes.rotulos };
   const vivas = anotacoesVivas(anotacoes.filter((a) => a.livroId === livro.id));
@@ -216,6 +238,10 @@ export function paraHtml(
       partes.push(`<p><b>${escaparHtml(r.palavra)}:</b> ${escaparHtml(a.palavra)}</p>`);
     }
     if (a.alvo.citacao.exact) partes.push(`<blockquote>${escaparHtml(a.alvo.citacao.exact)}</blockquote>`);
+    const traducao = traducaoDoTrecho(opcoes.traducoes, a.alvo.citacao.exact);
+    if (traducao) {
+      partes.push(`<p><b>${escaparHtml(r.traducao)}:</b> ${escaparHtml(traducao).replace(/\r?\n/g, '<br>')}</p>`);
+    }
     if (a.nota) partes.push(`<p><b>${escaparHtml(r.nota)}:</b> ${escaparHtml(a.nota).replace(/\r?\n/g, '<br>')}</p>`);
     partes.push('</section>');
   }

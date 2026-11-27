@@ -461,6 +461,14 @@ export const FLAG_DIARIO = 'diario';
 export const FLAG_CARTAO_COM_CENA = 'cartao_com_cena';
 
 /**
+ * O MODO TRADUÇÃO DO LEITOR (openspec `leitura-assistida`, fatia B; migrações PG 0045 e SQLite 0084): ao grifar um trecho, a
+ * tradução aparece num balão ancorado a ele (sem cobri-lo), sem cliques extras; mais "ler em voz alta", copiar, atalhos T/V/C/A,
+ * exportar grifos com as traduções e ditado de uma frase. A tradução usa o motor do aparelho primeiro e a nuvem só como hoje
+ * (plano, idade, consentimento); nada do livro é gravado no servidor. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono.
+ */
+export const FLAG_LEITOR_MODO_TRADUCAO = 'leitor_modo_traducao';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

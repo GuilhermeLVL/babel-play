@@ -582,6 +582,13 @@
       "when": 1794800003017,
       "tag": "0082_flag_cartao_com_cena",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "6",
+      "when": 1794800005017,
+      "tag": "0084_flag_leitor_modo_traducao",
+      "breakpoints": true
     }
   ]
 }

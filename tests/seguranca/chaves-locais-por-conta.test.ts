@@ -82,6 +82,7 @@ const EXCECOES: Array<{ motivo: string; chaves: string[] }> = [
       'ichat_tamanho',
       'leitor:dica-elenco',
       'leitor:glosa',
+      'leitor:modo-traducao',
       'leitor:narracao:modo',
       'leitor:narracao:opcoes',
       'leitor:narracao:seguir',

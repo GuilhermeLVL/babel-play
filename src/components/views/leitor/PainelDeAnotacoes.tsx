@@ -23,6 +23,7 @@ export default function PainelDeAnotacoes({
   aoEditarNota,
   aoApagar,
   aoExportar,
+  incluirTraducoes,
 }: {
   anotacoes: AnotacaoDeLeitura[];
   naoLocalizadas: Set<string>;
@@ -34,6 +35,8 @@ export default function PainelDeAnotacoes({
   aoEditarNota: (a: AnotacaoDeLeitura, nota: string) => void;
   aoApagar: (a: AnotacaoDeLeitura) => void;
   aoExportar: (f: FormatoDeExportacao) => void;
+  /** Só com a flag `leitor_modo_traducao`: "incluir traduções" no Markdown (as já feitas; nada é traduzido de novo). */
+  incluirTraducoes?: { valor: boolean; aoMudar: (v: boolean) => void };
 }) {
   const [editando, setEditando] = useState<string | null>(null);
   const [texto, setTexto] = useState('');
@@ -160,6 +163,16 @@ export default function PainelDeAnotacoes({
         <h3 id="leitor-exportar" className="leitor-subtitulo">
           {t('Exportar')}
         </h3>
+        {incluirTraducoes && (
+          <label className="leitor-apoio leitor-incluir-traducoes">
+            <input
+              type="checkbox"
+              checked={incluirTraducoes.valor}
+              onChange={(e) => incluirTraducoes.aoMudar(e.target.checked)}
+            />{' '}
+            {t('Incluir as traduções que já fiz (Markdown)')}
+          </label>
+        )}
         <div className="leitor-exportacoes">
           <button type="button" className="btn btn-outline leitor-alvo" onClick={() => aoExportar('markdown')}>
             <Download aria-hidden /> Markdown

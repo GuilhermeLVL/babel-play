@@ -18,13 +18,13 @@
 
 ## 2. Fatia B: tradução e ações de leitura
 
-- [ ] B1 `BalaoDaTraducao` com colisão contra `rect` (acima/abaixo, mesma coluna). Verificar: testes de posição (bordas, coluna dupla, celular), 0 sobreposição.
-- [ ] B2 Modo tradução (interruptor no aparelho, debounce 250 ms, cancela se a seleção mudar). Verificar: teste com relógio falso; sem chamada duplicada.
-- [ ] B3 Frase sob o dedo e parágrafo (reusam rota e cache atuais; local primeiro). Verificar: teste de que a nuvem só é chamada se o plano e a idade permitem.
-- [ ] B4 "Ler em voz alta este trecho" (`lerEmVozAlta`) e copiar. Verificar: teste de componente; cancelar ao limpar a seleção.
-- [ ] B5 Atalhos T, V, C, A em `atalhos.ts` (só com foco no leitor, nunca em campo de texto). Verificar: teste de teclado.
-- [ ] B6 Exportar grifos com as traduções; ditado de uma frase grifada. Verificar: teste do exportador (golden) e do ditado com TTS falso.
-- [ ] B7 Botão "Ajustar nível" no balão (só com `ia_ajustar_nivel`), chamando `abrirAjustarNivel`. Verificar: teste com a flag ligada e desligada.
+- [x] B1 `BalaoDaTraducao` com colisão contra `rect` (acima/abaixo, mesma coluna). Verificar: testes de posição (bordas, coluna dupla, celular), 0 sobreposição.
+- [x] B2 Modo tradução (interruptor no aparelho, debounce 250 ms, cancela se a seleção mudar). Verificar: teste com relógio falso; sem chamada duplicada.
+- [x] B3 Frase sob o dedo e parágrafo (reusam rota e cache atuais; local primeiro). Verificar: teste de que a nuvem só é chamada se o plano e a idade permitem.
+- [x] B4 "Ler em voz alta este trecho" (`lerEmVozAlta`) e copiar. Verificar: teste de componente; cancelar ao limpar a seleção.
+- [x] B5 Atalhos T, V, C, A em `atalhos.ts` (só com foco no leitor, nunca em campo de texto). Verificar: teste de teclado.
+- [x] B6 Exportar grifos com as traduções; ditado de uma frase grifada. Verificar: teste do exportador (golden) e do ditado com TTS falso.
+- [ ] B7 (botão pronto no balão via `aoAjustarNivel`; falta ligar a `abrirAjustarNivel` da fatia D e a flag `ia_ajustar_nivel`) Botão "Ajustar nível" no balão (só com `ia_ajustar_nivel`), chamando `abrirAjustarNivel`. Verificar: teste com a flag ligada e desligada.
 
 ## 3. Fatia C: destaque por vocabulário
 

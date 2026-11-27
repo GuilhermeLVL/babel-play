@@ -1,0 +1,207 @@
+{
+  "versao": 1,
+  "nota": "Parágrafos ORIGINAIS escritos para a bancada (sem direito autoral de terceiros). `nivelEscrito` é o nível que o autor quis; `alvos` são os níveis pedidos na rodada; `conhecidas` são palavras que a pessoa já sabe e devem sobreviver; `referencia` é um ajuste escrito à mão (só para o ensaio gratuito).",
+  "paragrafos": [
+    {
+      "id": "en-01",
+      "idioma": "en",
+      "nivelEscrito": "A1",
+      "alvos": ["A2", "B1"],
+      "conhecidas": ["dog", "park", "happy"],
+      "texto": "I have a dog. The dog is big and brown. Every day we go to the park. My dog runs and plays. I am happy when he is happy.",
+      "referencia": {
+        "B1": "I have a big brown dog, and every day we go to the park together. He loves to run and play there. When he is happy, I am happy too."
+      }
+    },
+    {
+      "id": "en-02",
+      "idioma": "en",
+      "nivelEscrito": "A2",
+      "alvos": ["A1", "B1"],
+      "conhecidas": ["market", "buy", "bread"],
+      "texto": "On Saturday morning, Maria goes to the market near her house. She wants to buy bread, some fruit and a little cheese. The market is busy, but the people are friendly and the prices are good.",
+      "referencia": {
+        "A1": "On Saturday, Maria goes to the market. She wants to buy bread, fruit and cheese. The market has many people. They are nice. The prices are good."
+      }
+    },
+    {
+      "id": "en-03",
+      "idioma": "en",
+      "nivelEscrito": "A2",
+      "alvos": ["B1", "B2"],
+      "conhecidas": ["rain", "umbrella", "late"],
+      "texto": "It was raining when Tom left the office. He did not have an umbrella, so he waited under a tree. After twenty minutes the rain stopped and he walked home. He was late for dinner, but his family understood."
+    },
+    {
+      "id": "en-04",
+      "idioma": "en",
+      "nivelEscrito": "B1",
+      "alvos": ["A2", "B2"],
+      "conhecidas": ["journey", "ticket", "station"],
+      "texto": "The journey to the coast takes about three hours by train. You can buy a ticket at the station or online, which is usually cheaper. If you travel early in the morning, the trains are quiet and you will probably find a seat by the window.",
+      "referencia": {
+        "A2": "The train to the coast takes three hours. You can buy a ticket at the station or online. Online tickets cost less. Early trains are quiet, so you can sit by the window."
+      }
+    },
+    {
+      "id": "en-05",
+      "idioma": "en",
+      "nivelEscrito": "B1",
+      "alvos": ["A2", "C1"],
+      "conhecidas": ["decision", "company", "change"],
+      "texto": "When the company announced a big change, many workers were worried. The manager explained that the decision was necessary because sales had fallen for two years. He promised that nobody would lose their job, and slowly the mood in the office improved."
+    },
+    {
+      "id": "en-06",
+      "idioma": "en",
+      "nivelEscrito": "B2",
+      "alvos": ["B1", "C1"],
+      "conhecidas": ["research", "evidence", "climate"],
+      "texto": "Although researchers disagree about the exact speed of warming, the evidence that the climate is changing is now overwhelming. Governments face a difficult dilemma: acting quickly is expensive, yet delaying action would almost certainly cost far more in the long run.",
+      "referencia": {
+        "B1": "Researchers do not agree on how fast the climate is warming, but the evidence says it is changing. Governments have a hard choice. Acting fast costs a lot of money, but waiting will probably cost much more later."
+      }
+    },
+    {
+      "id": "en-07",
+      "idioma": "en",
+      "nivelEscrito": "B2",
+      "alvos": ["A2", "B1"],
+      "conhecidas": ["economy", "price", "market"],
+      "texto": "Economists often argue that a free market allocates resources efficiently, because prices reflect scarcity. Critics counter that such a view overlooks inequality, since people with little money cannot meaningfully participate in that supposedly efficient exchange."
+    },
+    {
+      "id": "en-08",
+      "idioma": "en",
+      "nivelEscrito": "C1",
+      "alvos": ["B1", "B2"],
+      "conhecidas": ["memory", "language", "brain"],
+      "texto": "The consolidation of long-term memory appears to depend on sleep, during which the brain replays recent experiences and integrates them with existing knowledge. Consequently, learners who sacrifice rest for additional study hours may inadvertently undermine the very retention they are striving to achieve."
+    },
+    {
+      "id": "en-09",
+      "idioma": "en",
+      "nivelEscrito": "C1",
+      "alvos": ["A2", "B2"],
+      "conhecidas": ["city", "history", "river"],
+      "texto": "The city's origins, long obscured by contradictory chronicles, are now being reassessed by historians who contend that the settlement along the river predates the official founding by nearly two centuries, a revision with considerable implications for local identity."
+    },
+    {
+      "id": "en-10",
+      "idioma": "en",
+      "nivelEscrito": "C2",
+      "alvos": ["B1", "B2"],
+      "conhecidas": ["truth", "word", "silence"],
+      "texto": "There is a species of silence that is not the absence of speech but its distillation: a pause so freighted with what remains unsaid that any word, however carefully chosen, would seem a clumsy betrayal of the truth it purports to serve."
+    },
+    {
+      "id": "es-01",
+      "idioma": "es",
+      "nivelEscrito": "A1",
+      "alvos": ["A2", "B1"],
+      "conhecidas": ["casa", "gato", "grande"],
+      "texto": "Tengo una casa grande. En mi casa hay un gato negro. El gato duerme en el sofá. Yo bebo café y miro la tele."
+    },
+    {
+      "id": "es-02",
+      "idioma": "es",
+      "nivelEscrito": "A2",
+      "alvos": ["A1", "B1"],
+      "conhecidas": ["mercado", "comprar", "fruta"],
+      "texto": "Los sábados voy al mercado con mi madre. Compramos fruta, verduras y pan. A veces nos encontramos con vecinos y hablamos un rato antes de volver a casa."
+    },
+    {
+      "id": "es-03",
+      "idioma": "es",
+      "nivelEscrito": "B1",
+      "alvos": ["A2", "B2"],
+      "conhecidas": ["viaje", "tren", "ciudad"],
+      "texto": "El viaje en tren desde la ciudad hasta la costa dura unas tres horas. Si compras el billete con antelación, es mucho más barato, y además puedes elegir un asiento junto a la ventana para disfrutar del paisaje."
+    },
+    {
+      "id": "es-04",
+      "idioma": "es",
+      "nivelEscrito": "B2",
+      "alvos": ["B1", "C1"],
+      "conhecidas": ["economía", "precio", "trabajo"],
+      "texto": "Aunque la economía del país creció el año pasado, muchos trabajadores no notaron ninguna mejora en su vida cotidiana, ya que el aumento de los precios absorbió casi por completo las subidas salariales."
+    },
+    {
+      "id": "es-05",
+      "idioma": "es",
+      "nivelEscrito": "C1",
+      "alvos": ["B1", "B2"],
+      "conhecidas": ["memoria", "lengua", "historia"],
+      "texto": "La memoria colectiva de una comunidad, lejos de ser un archivo neutro, se reconstruye continuamente a la luz de las preocupaciones del presente, de modo que cada generación reescribe, a menudo sin advertirlo, el relato de su propia historia."
+    },
+    {
+      "id": "pt-01",
+      "idioma": "pt",
+      "nivelEscrito": "A1",
+      "alvos": ["A2", "B1"],
+      "conhecidas": ["casa", "cachorro", "feliz"],
+      "texto": "Eu moro em uma casa pequena. Tenho um cachorro. Ele é branco e muito feliz. Todo dia eu brinco com ele no quintal."
+    },
+    {
+      "id": "pt-02",
+      "idioma": "pt",
+      "nivelEscrito": "A2",
+      "alvos": ["A1", "B1"],
+      "conhecidas": ["feira", "comprar", "fruta"],
+      "texto": "No domingo de manhã, a gente vai à feira perto de casa. Meu pai gosta de comprar frutas frescas e eu escolho o pão. Depois voltamos para casa e tomamos café juntos."
+    },
+    {
+      "id": "pt-03",
+      "idioma": "pt",
+      "nivelEscrito": "B1",
+      "alvos": ["A2", "B2"],
+      "conhecidas": ["viagem", "ônibus", "cidade"],
+      "texto": "A viagem de ônibus até a cidade vizinha leva cerca de duas horas. Se você sair cedo, pega a estrada ainda vazia e chega a tempo de passear antes do almoço."
+    },
+    {
+      "id": "pt-04",
+      "idioma": "pt",
+      "nivelEscrito": "B2",
+      "alvos": ["B1", "C1"],
+      "conhecidas": ["empresa", "decisão", "futuro"],
+      "texto": "Embora a empresa tenha anunciado lucros recordes, a decisão de reduzir a equipe provocou um debate acalorado, pois muitos funcionários consideram que o futuro do negócio depende justamente da experiência que será dispensada."
+    },
+    {
+      "id": "pt-05",
+      "idioma": "pt",
+      "nivelEscrito": "C1",
+      "alvos": ["B1", "B2"],
+      "conhecidas": ["língua", "memória", "tempo"],
+      "texto": "A língua, longe de ser um mero instrumento de comunicação, sedimenta no tempo as inquietações de quem a fala, de sorte que cada vocábulo carrega uma memória que o falante nem sempre consegue, ou quer, reconhecer."
+    }
+  ],
+  "exemplosDoJuiz": [
+    {
+      "id": "juiz-bom",
+      "idioma": "en",
+      "alvo": "A2",
+      "conhecidas": ["market", "buy"],
+      "original": "On Saturday morning, Maria goes to the market near her house. She wants to buy bread, some fruit and a little cheese. The market is busy, but the people are friendly and the prices are good.",
+      "ajustado": "On Saturday, Maria goes to the market near her house. She wants to buy bread, fruit and cheese. The market has many people, but they are friendly. The prices are good.",
+      "esperado": "bom"
+    },
+    {
+      "id": "juiz-infiel",
+      "idioma": "en",
+      "alvo": "A2",
+      "conhecidas": ["market", "buy"],
+      "original": "On Saturday morning, Maria goes to the market near her house. She wants to buy bread, some fruit and a little cheese. The market is busy, but the people are friendly and the prices are good.",
+      "ajustado": "On Sunday, Maria stays at home. She likes to watch television and sleep. Her house is very big and quiet.",
+      "esperado": "infiel"
+    },
+    {
+      "id": "juiz-robotico",
+      "idioma": "en",
+      "alvo": "A2",
+      "conhecidas": ["market", "buy"],
+      "original": "On Saturday morning, Maria goes to the market near her house. She wants to buy bread, some fruit and a little cheese. The market is busy, but the people are friendly and the prices are good.",
+      "ajustado": "Maria goes market. Maria buy bread. Maria buy fruit. Maria buy cheese. People good. Price good.",
+      "esperado": "pouco-natural"
+    }
+  ]
+}

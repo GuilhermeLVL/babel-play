@@ -400,6 +400,7 @@
     "one": "{n} coming back because you missed it",
     "other": "{n} coming back because you missed them"
   },
+  "{n}% conhecidas": "{n}% known",
   "{n}% das pessoas": "{n}% of people",
   "{n}% de acerto": "{n}% correct",
   "{n}% de acerto no conjunto": "{n}% correct overall",
@@ -1517,6 +1518,7 @@
     "other": "about {n} new words"
   },
   "cerca de {n} palavras por minuto": "about {n} words per minute",
+  "cerca de {n}%": "about {n}%",
   "certa: {palavra}": "correct: {palavra}",
   "certo": "right",
   "Certo, palavra por palavra.": "Correct, word for word.",
@@ -1753,6 +1755,7 @@
   "Conta suspensa.": "Account suspended.",
   "Conta vinculada": "Account linked",
   "Contado nas contas mais recentes que a rota devolve (no máximo 200).": "Counted among the newest accounts the route returns (at most 200).",
+  "Contado neste aparelho, com o seu vocabulário. Nada disso sai daqui.": "Counted on this device, with your vocabulary. None of it leaves here.",
   "Contas": "Accounts",
   "Contas de menores de 18 anos não fazem compras. Peça ao seu responsável: pela conta dele, vinculada à sua, ele assina por você.": "Accounts of people under 18 do not make purchases. Ask your guardian: through their account, linked to yours, they subscribe for you.",
   "Contas listadas": "Accounts listed",
@@ -4706,6 +4709,7 @@
   "Palavras que podem ser novas": "Words that may be new",
   "Palavras que você conhece": "Words you know",
   "Palavras que você está aprendendo e usou:": "Words you are learning and used:",
+  "Palavras que você já conhece": "Words you already know",
   "Palavras revisadas por dia": "Words reviewed per day",
   "Palavras únicas": "Unique words",
   "palavras usadas:": "words used:",

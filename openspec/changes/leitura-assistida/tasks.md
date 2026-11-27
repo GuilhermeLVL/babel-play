@@ -37,8 +37,9 @@
 - [x] C3 `destaqueNoDocumento.ts` com `CSS.highlights`, uma passada por seção, orçamento 50 ms. Verificar: teste de desempenho com seção de 5 mil palavras; fallback sem a API não lança.
       Feito em `lib/leitor/destaqueNoDocumento.ts`; classificar 5 mil palavras < 50 ms e refazer o grifo < 100 ms nos testes; fallback sem a API testado.
 
-- [ ] C4 Legenda/chave e régua de densidade (% de novas); % de palavras conhecidas antes do capítulo. Verificar: teste de componente e de cálculo.
-      PARCIAL: legenda de 3 itens, interruptor e régua de densidade (% de novas e % de conhecidas do capítulo EM EXIBIÇÃO) feitos em `LegendaDoDestaque`. FALTA a % de conhecidas no sumário ANTES de abrir o capítulo (exige ler o texto de cada seção sem abri-la; `PainelDoSumario` não é da Fatia C).
+- [x] C4 Legenda/chave e régua de densidade (% de novas); % de palavras conhecidas antes do capítulo. Verificar: teste de componente e de cálculo.
+      Feito: legenda de 3 itens, interruptor e régua de densidade em `LegendaDoDestaque`; a % de conhecidas ANTES de abrir: cálculo puro em `core/leitura/conhecidasDoTexto.ts` (mesma régua do destaque), leitura das seções pelo `createDocument` do livro em `lib/leitor/conhecidasDoSumario.ts` (sem abrir o capítulo), "N% conhecidas" por capítulo no sumário (`ConhecidasDoSumario`, só com a flag `leitor_destaque_vocab` e o destaque ligados) e "Palavras que você já conhece" na página do livro (`ConhecidasDoLivro`, só com a flag). Tudo no aparelho. Testes em `tests/leitor-conhecidas-do-sumario.test.tsx`.
+      LIMITE: na página do livro só aparece quando a cópia do EPUB já está na estante do aparelho (o servidor não tem o texto; baixar o livro só para contar não vale); livros com mais de 400 seções ficam sem número; itens do sumário que apontam para a mesma seção mostram a % da seção.
 
 - [x] C5 Cartão da palavra de 1 toque (Não sei, 1 a 4, Já sei, Ignorar, Revisar). Verificar: testes que conferem a escrita pelas APIs existentes e que o destaque atualiza em <= 100 ms.
       Feito: `ControleDeForcaDaPalavra` no cartão (Não sei, 2, 3, 4, Revisar agora) + `MarcarPalavra` (Já sei, Ignorar). Força 2 a 4 só em palavra sem revisões, pela rota `desfazer` existente; cartão com revisões mantém a força do histórico.
@@ -55,8 +56,9 @@
 
       Feito no cartão: `data-forca` no `.cartao-palavra`, sem mudar o texto acessível. Os grifos do capítulo (CSS Highlight) não têm atributo; combinar com a dona da change `status-da-palavra-na-legenda` se o 3.2 pedia atributo no texto do livro.
 
-- [ ] D1 Simular antes de ligar: script `scripts/leitura/simular-nivel.ts` mede acerto de nível (classificador local) em 50 parágrafos por nível com 2 modelos baratos candidatos, 1 e 2 chamadas. Verificar: tabela em `docs/` e escolha do modelo registrada no `design.md`. Rodar em bancada com juízes sem créditos de API.
+- [ ] [B][D] D1 Simular antes de ligar: script `scripts/leitura/simular-nivel.ts` mede acerto de nível (classificador local) em 50 parágrafos por nível com 2 modelos baratos candidatos, 1 e 2 chamadas. Verificar: tabela em `docs/` e escolha do modelo registrada no `design.md`. Rodar em bancada com juízes sem créditos de API.
       PARCIAL: `scripts/leitura/simular-nivel.ts` roda a parte offline (classificador contra o acervo: 11/12 dentro de ±1 nível, 7/12 exatos, só A1 a B1). A comparação de 2 modelos com 1 e 2 chamadas em 50 parágrafos por nível NÃO foi feita (gasta chamada de modelo); a escolha do modelo segue a cascata `rapida` até essa rodada.
+      Bancada pronta (2026-11-27): `scripts/eval-ia/ajustar-nivel.mjs` (`--ensaio` gratuito feito; `--real` pede `--confirmo`), corpus de 20 parágrafos em `scripts/eval-ia/fixtures/`, relatório `docs/auditoria/2026-11-27-ajustar-nivel-bancada.md` (estimativa da rodada real: ~US$ 0,017 esperado, US$ 0,025 pior caso). Recomendação provisória: gemma-4-26b (o mais barato da cascata). Falta a rodada real pelo dono para fechar D1.
 - [x] D2 `src/core/leitura/ajustarNivel.ts` puro: classificador de nível (`cefrWordlist`), checagem de palavras conhecidas preservadas, montagem do pedido. Verificar: testes de unidade.
       Feito: `src/core/leitura/ajustarNivel.ts` + `tests/ajustar-nivel-core.test.ts` (calibração no acervo: 11/12 dentro de ±1 nível, só A1 a B1 e só inglês).
 - [x] D3 `server/ai/nucleo/ajustarNivel.ts` + rota, com cascata `rapida`, no máximo 2 chamadas, `custo` na resposta, recusa tipada. Verificar: teste de integração com provedor falso, incluindo falha na 2a chamada.
@@ -80,3 +82,8 @@
 - [ ] 5.1 `npm run i18n`, `npx knip`, lint, typecheck, `npm test`, e2e Chromium e WebKit, `npm run ci:local`. Verificar: tudo verde antes do push (skill `pre-envio`).
 - [ ] 5.2 Medir todas as métricas do `design.md`, anexar em `docs/auditoria/` e deixar as flags DESLIGADAS; ligar é ato do dono.
 - [ ] 5.3 Atualizar `CLAUDE.md` (mapa do leitor) e `docs/` com as 5 flags e o contrato.
+
+## Fechamento WebKit (Safari)
+
+- [x] W1 e2e do leitor (seleção firme, modo tradução, destaque, ajustar nível com IA mockada) e da escuta guiada no projeto `playwright.webkit.config.ts` (iPhone 13 e Safari desktop; `escuta*.e2e.ts` entrou no `testMatch`). Rodada completa: 97 de 108 passaram na primeira volta; 7 falhas, 3 causas: 1. CORRIGIDO (bug real do WebKit): com o foco DENTRO do iframe do capítulo (sem `allow-scripts`, bug 218086), o `Esc` não chegava ao app e o cartão da palavra não fechava. Em `LeitorDoLivro.tsx`, quando os ouvintes do capítulo não funcionam, ao abrir o cartão o foco vai para ele (que trata o `Esc`). Passam: `leitor.e2e`, `leitor-seguranca`, e as mesmas no Chromium. 2. CORRIGIDO (teste, não produto): a conquista "Ouvinte" (de outras suítes, mesmo banco) cobria a tela em `leitor-destaque-vocab.e2e.ts`; o teste agora resgata e segue (`addLocatorHandler`). Passa em WebKit iPhone e desktop. 3. NÃO TRATADO (fora do pedido): `livros.e2e.ts` "Trocar capa" só no WebKit iPhone (timeout de clique); investigar à parte.
+      LIMITES REAIS do WebKit: o capítulo não entrega eventos de toque/teclado ao app (a seleção é amostrada de fora, `vigiarSelecao`); teclas digitadas com o foco no livro só funcionam depois de o cartão abrir (foco migra) e, sem cartão, o foco no livro segue sem atalhos de teclado no Safari. A WebKit não roda na CI obrigatória (instalação pesada): rodar `playwright.webkit.config.ts` antes de cada merge do leitor.

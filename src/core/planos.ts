@@ -461,6 +461,18 @@ export const FLAG_DIARIO = 'diario';
 export const FLAG_CARTAO_COM_CENA = 'cartao_com_cena';
 
 /**
+ * O PLAYER COMPACTO DA ESCUTA GUIADA (openspec `leitura-assistida`, Fatia A; migrações PG 0044 e SQLite 0083): o player vira UMA barra e a
+ * transcrição reserva o espaço dele. Só desenho. Nasce DESLIGADA e sem regra de plano; nenhuma cota. Desligada = o player de hoje.
+ */
+export const FLAG_ESCUTA_PLAYER_COMPACTO = 'escuta_player_compacto';
+
+/**
+ * A SELEÇÃO FIRME DO LEITOR (openspec `leitura-assistida`, Fatia A; mesma migração PG 0044 e SQLite 0083): bordas de palavra, sem deriva
+ * para outro bloco ou coluna, toque/duplo/triplo previsíveis e alças. Só no navegador. Nasce DESLIGADA e sem regra de plano; nenhuma cota.
+ */
+export const FLAG_LEITOR_SELECAO_FIRME = 'leitor_selecao_firme';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

@@ -1,0 +1,136 @@
+/*
+ * O PLAYER COMPACTO DA ESCUTA GUIADA (flag `escuta_player_compacto`, openspec `leitura-assistida`, Fatia A).
+ *
+ * Só vale sob `.px-player-compacto` (a classe que o `PlayerInterativo` põe com a flag ligada): desligada, nada aqui casa e o
+ * player é o de hoje. Uma BARRA só, no desenho do app (mesmos tokens de cor, raio e sombra): o seletor do modo, "Frase por
+ * frase", anterior, Ouvir, próxima, o trilho e "Fala n de N" na mesma fileira. Os blocos `.px-escuta` (modo e frase a frase)
+ * viram itens da barra (`display: contents`); a dica ("Sugerido: …") fica só para o leitor de tela.
+ *
+ * A altura da barra vira `--px-player-h` (medida em `PlayerInterativo`): a transcrição reserva esse espaço (`scroll-padding`
+ * e, no celular, o `padding-bottom` de `questSessao.css`), então nenhuma linha fica coberta. Passos da escuta guiada
+ * ("Próximo passo") e os ajustes do "Frase por frase" ligado quebram para uma segunda fileira só quando existem.
+ * A especificidade vem de `:root` e da classe repetida: ganha das regras do player de hoje sem `!important`.
+ */
+:root .px-player.px-player-compacto.px-player-compacto {
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  margin-top: 8px;
+}
+:root .px-player.px-player-compacto.px-player-compacto > .px-escuta {
+  display: contents;
+}
+
+/* Rótulos que o seletor já diz: continuam lidos, não ocupam lugar. A dica sai da vista. */
+:root .px-player-compacto .px-escuta-dica,
+:root .px-player-compacto .px-escuta-modo:has(> .px-escuta-select) > span:first-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+:root .px-player-compacto .px-escuta-passo:empty {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+:root .px-player-compacto .px-escuta-modo {
+  min-height: 0;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+:root .px-player-compacto .px-escuta-select {
+  min-height: 36px;
+  max-width: 190px;
+  padding: 0 8px;
+  border-radius: 999px;
+  text-overflow: ellipsis;
+}
+:root .px-player-compacto .px-escuta-modo input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+}
+:root .px-player-compacto .px-escuta-proximo {
+  margin-left: 0;
+}
+
+/* Os controles: menores que os 60 px de hoje, o principal em destaque. */
+:root .px-player.px-player-compacto.px-player-compacto > .q-ctl {
+  min-width: 40px;
+  min-height: 40px;
+  padding-inline: 12px;
+  font-size: 15px;
+}
+:root .px-player.px-player-compacto.px-player-compacto > .q-ctl.pri {
+  padding-inline: 18px;
+}
+:root .px-player-compacto > .q-ctl svg {
+  width: 18px;
+  height: 18px;
+}
+:root .px-player-compacto .px-trilho-do-player {
+  flex: 1 1 60px;
+  min-width: 32px;
+}
+:root .px-player.px-player-compacto.px-player-compacto .q-tempo {
+  padding: 0 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* A transcrição reserva a barra: o foco do teclado e a rolagem até um item nunca o deixam sob o player. */
+html[data-quest-novo='true'] .q-palco.qs:has(.px-player-compacto) {
+  scroll-padding-bottom: calc(var(--px-player-h, 56px) + 16px);
+}
+
+@media (max-width: 720px) {
+  /* Celular: a MESMA barra, de uma fileira só. "Frase por frase" fica na caixa de marcar (o nome vai no `title`), o botão
+     principal vira só o ícone e "Fala n de N" sai da vista (o trilho mostra o andamento; o leitor de tela continua lendo). */
+  :root .px-player.px-player-compacto.px-player-compacto {
+    flex-wrap: wrap;
+    padding: 6px 8px 6px 10px;
+    gap: 4px 6px;
+    border-radius: 28px;
+  }
+  :root .px-player-compacto .px-escuta-select {
+    min-height: 40px;
+    max-width: 96px;
+    font-size: 13px;
+  }
+  :root .px-player-compacto .px-frase > .px-escuta-modo:first-child > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  :root .px-player.px-player-compacto.px-player-compacto > .q-ctl {
+    min-width: 40px;
+    min-height: 40px;
+    padding-inline: 10px;
+  }
+  :root .px-player.px-player-compacto.px-player-compacto > .q-ctl.pri {
+    font-size: 0;
+    gap: 0;
+    padding-inline: 12px;
+  }
+  :root .px-player.px-player-compacto.px-player-compacto .px-onde {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    flex: none;
+  }
+  :root .px-player-compacto .px-trilho-do-player {
+    flex: 1 1 40px;
+  }
+}

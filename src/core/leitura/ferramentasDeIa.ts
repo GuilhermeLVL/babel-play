@@ -92,3 +92,50 @@ export function janelaDaFalha(motivo: string): JanelaDaCota | null {
   if (motivo === 'cota_do_mes') return 'mes';
   return null;
 }
+
+/**
+ * O "AJUSTAR NÍVEL" (openspec `leitura-assistida`, fatia D): a MESMA régua de motivos, mas FORA da lista `FERRAMENTAS_DE_IA`
+ * de propósito. Com a flag `ia_ajustar_nivel` desligada, nenhuma entrada aparece (a lista do painel não muda); quem mostra o
+ * ajuste (o balão e o painel novo) pergunta aqui, e as ações de 1 toque passam pelo MESMO estado.
+ *
+ * A ordem dos motivos é a de sempre: em-breve (flag) → entrar → idade → plano → cota → sem-conexao.
+ */
+export const ACOES_DO_AJUSTAR_NIVEL = ['ajustar', 'gramatica', 'resumo', 'exemplo', 'simplificar', 'elevar'] as const;
+export type AcaoDoAjustarNivel = (typeof ACOES_DO_AJUSTAR_NIVEL)[number];
+
+export interface FatosDoAjustarNivel {
+  /** `ia_ajustar_nivel` ligada (o servidor responde 404 `recurso_indisponivel` sem ela). */
+  flagLigada: boolean;
+  temConta: boolean;
+  /** A nuvem está restrita pela idade (menor de 16 sem vínculo aceito, ou idade ainda não informada). */
+  nuvemRestritaPelaIdade: boolean;
+  /** `ajustesDeNivelMes` do plano: `0` = não inclui; `null` = sem teto. */
+  ajustesDeNivelMes: number | null;
+  /** `ajustesDeCapituloMes` do plano: `0` = não inclui; `null` = sem teto. */
+  ajustesDeCapituloMes: number | null;
+  online: boolean;
+  /** A cota que o servidor já recusou nesta visita (429), e até quando. */
+  cotaEsgotada?: { nivel?: JanelaDaCota; capitulo?: JanelaDaCota };
+}
+
+/** O estado do ajuste de palavra, trecho e parágrafo (`capitulo: false`) ou do capítulo inteiro (`capitulo: true`). */
+export function estadoDoAjustarNivel(f: FatosDoAjustarNivel, capitulo = false): EstadoDaFerramenta {
+  if (!f.flagLigada) return { disponivel: false, motivo: 'em-breve' };
+  if (!f.temConta) return { disponivel: false, motivo: 'entrar' };
+  if (f.nuvemRestritaPelaIdade) return { disponivel: false, motivo: 'idade' };
+  const teto = capitulo ? f.ajustesDeCapituloMes : f.ajustesDeNivelMes;
+  if (teto === 0) return { disponivel: false, motivo: 'plano' };
+  const esgotada = capitulo ? f.cotaEsgotada?.capitulo : f.cotaEsgotada?.nivel;
+  if (esgotada) return { disponivel: false, motivo: 'cota', janela: esgotada };
+  if (!f.online) return { disponivel: false, motivo: 'sem-conexao' };
+  return { disponivel: true };
+}
+
+/**
+ * O estado de cada ação do painel. Todas passam pelo MESMO estado (flag, entrar, idade, plano, cota, conexão): "Explicar a
+ * gramática" e "Resumo até aqui" também, mesmo reusando as rotas que já existem, porque são ações do painel do ajuste.
+ */
+export function estadoDasAcoesDoAjuste(f: FatosDoAjustarNivel): Record<AcaoDoAjustarNivel, EstadoDaFerramenta> {
+  const e = estadoDoAjustarNivel(f);
+  return { ajustar: e, gramatica: e, resumo: e, exemplo: e, simplificar: e, elevar: e };
+}

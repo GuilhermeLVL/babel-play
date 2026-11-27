@@ -70,6 +70,10 @@ export const IA_NIVEIS: Readonly<Record<FuncaoDeIa, NiveisDaFuncao>> = {
   /* O diário (openspec `diario-com-correcao-que-vira-cartao`): o MAIS BARATO que não piora a experiência — a rápida para
      todo plano, como a escrita, até a bancada 1.2 dizer o contrário (relatório em `docs/auditoria/`). */
   diario: { semNuance: 'rapida', comNuance: 'rapida' },
+  /* O "Ajustar nível" da leitura (openspec `leitura-assistida`, fatia D): o MAIS BARATO que não piora a experiência, a rápida
+     para todo plano; a qualidade é garantida por MEDIR o nível com o classificador local e reescrever uma vez, não por um modelo
+     maior (a bancada `scripts/leitura/simular-nivel.ts` registra o acerto antes de qualquer flag ligar). */
+  ajustarNivel: { semNuance: 'rapida', comNuance: 'rapida' },
 }
 
 /** O nível que a função entrega a este plano — pela capacidade `traducaoNuance`. */

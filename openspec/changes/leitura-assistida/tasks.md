@@ -56,16 +56,26 @@
       Feito no cartão: `data-forca` no `.cartao-palavra`, sem mudar o texto acessível. Os grifos do capítulo (CSS Highlight) não têm atributo; combinar com a dona da change `status-da-palavra-na-legenda` se o 3.2 pedia atributo no texto do livro.
 
 - [ ] D1 Simular antes de ligar: script `scripts/leitura/simular-nivel.ts` mede acerto de nível (classificador local) em 50 parágrafos por nível com 2 modelos baratos candidatos, 1 e 2 chamadas. Verificar: tabela em `docs/` e escolha do modelo registrada no `design.md`. Rodar em bancada com juízes sem créditos de API.
-- [ ] D2 `src/core/leitura/ajustarNivel.ts` puro: classificador de nível (`cefrWordlist`), checagem de palavras conhecidas preservadas, montagem do pedido. Verificar: testes de unidade.
-- [ ] D3 `server/ai/nucleo/ajustarNivel.ts` + rota, com cascata `rapida`, no máximo 2 chamadas, `custo` na resposta, recusa tipada. Verificar: teste de integração com provedor falso, incluindo falha na 2a chamada.
-- [ ] D4 `saidaFiltrada` com perfil protegido e corpus adversarial. Verificar: 0 vazamentos; teste de que o servidor não persiste o texto (retenção zero).
-- [ ] D5 Cotas `ajustesDeNivelMes` e `ajustesDeCapituloMes` em `planos.ts` (0 no Grátis e convidado) e reflexo em `ferramentasDeIa`. Verificar: testes da matriz de planos e dos motivos (`plano`, `cota`, `idade`).
-- [ ] D6 `PainelAjustarNivel` (original ao lado, custo exibido, seletor A1 a C2, Simplificar/Elevar) e `abrirAjustarNivel`. Verificar: teste de componente; e2e em 390x844 (abas).
-- [ ] D7 Cache no aparelho (IndexedDB) por hash. Verificar: segundo pedido igual não chama a rede.
-- [ ] D8 Escopo capítulo: estimativa e confirmação, blocos por parágrafo, cancelável, cota própria. Verificar: teste de cancelamento e de cota.
-- [ ] D9 Ações de 1 toque (gramática, resumo até aqui, exemplo) reusando `explicarFrase`/`resumir`. Verificar: testes de roteamento.
+      PARCIAL: `scripts/leitura/simular-nivel.ts` roda a parte offline (classificador contra o acervo: 11/12 dentro de ±1 nível, 7/12 exatos, só A1 a B1). A comparação de 2 modelos com 1 e 2 chamadas em 50 parágrafos por nível NÃO foi feita (gasta chamada de modelo); a escolha do modelo segue a cascata `rapida` até essa rodada.
+- [x] D2 `src/core/leitura/ajustarNivel.ts` puro: classificador de nível (`cefrWordlist`), checagem de palavras conhecidas preservadas, montagem do pedido. Verificar: testes de unidade.
+      Feito: `src/core/leitura/ajustarNivel.ts` + `tests/ajustar-nivel-core.test.ts` (calibração no acervo: 11/12 dentro de ±1 nível, só A1 a B1 e só inglês).
+- [x] D3 `server/ai/nucleo/ajustarNivel.ts` + rota, com cascata `rapida`, no máximo 2 chamadas, `custo` na resposta, recusa tipada. Verificar: teste de integração com provedor falso, incluindo falha na 2a chamada.
+      Feito: `server/ai/nucleo/ajustarNivel.ts`, `server/routes/ajustarNivel.ts` (montada em `/api/leitura/ajustar-nivel`), `tests/integration/ajustar-nivel.test.ts` (inclui falha na 2a chamada e o teto de 2 chamadas).
+- [x] D4 `saidaFiltrada` com perfil protegido e corpus adversarial. Verificar: 0 vazamentos; teste de que o servidor não persiste o texto (retenção zero).
+      Feito com um caso de contato externo (`tests/integration/ajustar-nivel.test.ts`); o corpus adversarial inteiro continua sendo o de `tests/saida-filtrada-*.test.ts`. O servidor não guarda texto (teste de log + sem cache).
+- [x] D5 Cotas `ajustesDeNivelMes` e `ajustesDeCapituloMes` em `planos.ts` (0 no Grátis e convidado) e reflexo em `ferramentasDeIa`. Verificar: testes da matriz de planos e dos motivos (`plano`, `cota`, `idade`).
+      Feito: `ajustesDeNivelMes`/`ajustesDeCapituloMes` em `planos.ts` (pagos 60/4 PROVISÓRIOS) e `estadoDoAjustarNivel` em `ferramentasDeIa.ts`, FORA de `FERRAMENTAS_DE_IA` para a flag desligada não mudar a lista. `tests/ajustar-nivel-flag-e-planos.test.ts`.
+- [x] D6 `PainelAjustarNivel` (original ao lado, custo exibido, seletor A1 a C2, Simplificar/Elevar) e `abrirAjustarNivel`. Verificar: teste de componente; e2e em 390x844 (abas).
+      Feito o painel e o teste de componente (`tests/painel-ajustar-nivel.test.tsx`). PENDENTE: o e2e em 390x844, porque o painel só tem onde montar depois da Fatia 0 (`<PainelAjustarNivel/>` no `Leitor.tsx`).
+- [x] D7 Cache no aparelho (IndexedDB) por hash. Verificar: segundo pedido igual não chama a rede.
+      Feito: `src/lib/leitor/ajustesNoAparelho.ts` (IndexedDB `frasy-ajustes`, teto 300) e `ajustarComCache` (`tests/ajustar-nivel-capitulo.test.ts`).
+- [x] D8 Escopo capítulo: estimativa e confirmação, blocos por parágrafo, cancelável, cota própria. Verificar: teste de cancelamento e de cota.
+      Feito: `ajustarCapitulo` + estimativa e confirmação no painel; cancelar após 3 de 10 conta só 3; cota do capítulo é 1 por capítulo (`inicioDeCapitulo`), com teto de continuação à parte.
+- [x] D9 Ações de 1 toque (gramática, resumo até aqui, exemplo) reusando `explicarFrase`/`resumir`. Verificar: testes de roteamento.
 
 ## 5. Fechamento (um PR)
+
+      Feito, com um desvio da spec: gramática, resumo e exemplo vão pela MESMA rota do ajuste (`acao`), em vez de reusar `explicarFrase`/`resumirSessao` (que exigem frase com tradução e sessão gravada, e têm cotas e flag próprias). Assim a cota, o filtro de menores e o custo declarado são os mesmos.
 
 - [ ] 5.1 `npm run i18n`, `npx knip`, lint, typecheck, `npm test`, e2e Chromium e WebKit, `npm run ci:local`. Verificar: tudo verde antes do push (skill `pre-envio`).
 - [ ] 5.2 Medir todas as métricas do `design.md`, anexar em `docs/auditoria/` e deixar as flags DESLIGADAS; ligar é ato do dono.

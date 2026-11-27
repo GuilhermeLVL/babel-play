@@ -48,6 +48,8 @@ const grifados = (f: Frame) =>
   })
 
 async function abrirLivro(page: Page) {
+  /* A conquista "Ouvinte" (de outras suítes que usam o mesmo banco) cobre a tela: resgata e segue. */
+  await page.addLocatorHandler(page.getByRole('button', { name: 'Resgatar e continuar' }), (b) => b.click())
   await page.goto('/leitor')
   await expect(page.getByTestId('estante')).toBeVisible({ timeout: 30_000 })
   await page.evaluate(() => {

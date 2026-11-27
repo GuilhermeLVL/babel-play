@@ -1,9 +1,12 @@
 import { Search, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
 
 import { t } from '../../../lib/i18n';
 import type { ItemDoSumario } from '../../../lib/leitor/foliate/view.js';
 import type { MotorDoLeitor } from '../../../lib/leitor/motor';
+
+/* A % de conhecidas por capítulo (flag `leitor_destaque_vocab`): só carrega com a flag e o destaque ligados. */
+const ConhecidasDoSumario = lazy(() => import('./ConhecidasDoSumario'));
 
 interface Resultado {
   cfi: string;
@@ -19,13 +22,17 @@ export default function PainelDoSumario({
   sumario,
   atual,
   aoIr,
+  idiomaDoVocabulario,
 }: {
   motor: MotorDoLeitor;
   sumario: ItemDoSumario[];
   /** `href` do item do sumário onde a leitura está. */
   atual?: string;
   aoIr: () => void;
+  /** Com o idioma, o sumário mostra a % de palavras conhecidas de cada capítulo (contada no aparelho). Sem ele, nada é lido. */
+  idiomaDoVocabulario?: string;
 }) {
+  const [conhecidas, setConhecidas] = useState<ReadonlyMap<string, number>>(new Map());
   const [consulta, setConsulta] = useState('');
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -84,6 +91,11 @@ export default function PainelDoSumario({
             }}
           >
             {item.label?.trim() || t('Sem título')}
+            {idiomaDoVocabulario && conhecidas.has(item.href) && (
+              <small className="leitor-apoio leitor-conhecidas" data-testid="sumario-conhecidas">
+                {t('{n}% conhecidas', { n: conhecidas.get(item.href) ?? 0 })}
+              </small>
+            )}
           </button>
           {item.subitems?.length ? itens(item.subitems, nivel + 1) : null}
         </li>
@@ -93,6 +105,16 @@ export default function PainelDoSumario({
 
   return (
     <div className="leitor-sumario-painel">
+      {idiomaDoVocabulario && (
+        <Suspense fallback={null}>
+          <ConhecidasDoSumario
+            motor={motor}
+            sumario={sumario}
+            idioma={idiomaDoVocabulario}
+            aoCalcular={setConhecidas}
+          />
+        </Suspense>
+      )}
       <form role="search" className="leitor-busca" onSubmit={buscar}>
         <label htmlFor="leitor-busca-campo" className="sr">
           {t('Buscar no livro')}

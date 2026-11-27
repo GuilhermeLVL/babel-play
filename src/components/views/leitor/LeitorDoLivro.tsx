@@ -355,6 +355,19 @@ export default function LeitorDoLivro({
     setEstadoDoDestaque(e);
     if (secaoRef.current !== undefined) candidatasPorSecao.current.set(secaoRef.current, e.candidatas);
   }, []);
+  /* WEBKIT: sem ouvinte no capítulo, uma tecla digitada com o foco DENTRO do iframe não chega ao app (nem o Esc que
+     fecha o cartão). Ao abrir o cartão, o foco sai do iframe e vai para o cartão, que trata o Esc. (A raiz do leitor
+     é sombra fechada: não dá para olhar o iframe por dentro, então se vê só que o foco está no livro.) */
+  const semOuvintesNoLivro = useRef(false);
+  useEffect(() => {
+    if (!palavra || !semOuvintesNoLivro.current) return;
+    const quadro = requestAnimationFrame(() => {
+      const foco = document.activeElement;
+      if (!foco || !hospedeiro.current?.contains(foco)) return;
+      document.querySelector<HTMLElement>('.cartao-palavra')?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(quadro);
+  }, [palavra]);
   /* As palavras tocadas em cada capítulo. */
   useEffect(() => {
     const w = palavra?.vocab.word;
@@ -810,6 +823,7 @@ export default function LeitorDoLivro({
     /* WEBKIT (Safari): o iframe sem `allow-scripts` não entrega eventos nem ao app (bug 218086). O gesto é
        amostrado de fora, pelo `:active` e pela seleção do documento (`vigiarSelecao`). */
     if (!ouvintesDoDocumentoFuncionam(doc)) {
+      semOuvintesNoLivro.current = true;
       vigiarSelecao(
         doc,
         gestos,
@@ -1398,6 +1412,7 @@ export default function LeitorDoLivro({
                   motor={motorRef.current}
                   sumario={info?.sumario ?? []}
                   atual={local?.tocItem?.href}
+                  idiomaDoVocabulario={destaqueNaFlag && destaqueLigado && !info?.ehPdf ? idioma : undefined}
                   aoIr={() => {
                     if (window.matchMedia?.('(max-width: 900px)').matches) setPainel(null);
                   }}

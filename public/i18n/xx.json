@@ -401,6 +401,7 @@
     "one": "[{n} völtáñdö pörqüé vöçê érröü ············]",
     "other": "[{n} völtáñdö pörqüé vöçê érröü ············]"
   },
+  "{n}% conhecidas": "[{n}% çöñhéçídáš ······]",
   "{n}% das pessoas": "[{n}% dáš péššöáš ······]",
   "{n}% de acerto": "[{n}% dé áçértö ······]",
   "{n}% de acerto no conjunto": "[{n}% dé áçértö ñö çöñjüñtö ··········]",
@@ -1518,6 +1519,7 @@
     "other": "[çérçá dé {n} pálávráš ñöváš ···········]"
   },
   "cerca de {n} palavras por minuto": "[çérçá dé {n} pálávráš pör míñütö ·············]",
+  "cerca de {n}%": "[çérçá dé {n}% ·····]",
   "certa: {palavra}": "[çértá: {palavra} ······]",
   "certo": "[çértö ··]",
   "Certo, palavra por palavra.": "[Çértö, pálávrá pör pálávrá. ···········]",
@@ -1754,6 +1756,7 @@
   "Conta suspensa.": "[Çöñtá šüšpéñšá. ······]",
   "Conta vinculada": "[Çöñtá víñçüládá ······]",
   "Contado nas contas mais recentes que a rota devolve (no máximo 200).": "[Çöñtádö ñáš çöñtáš máíš réçéñtéš qüé á rötá dévölvé (ñö máxímö 200). ···························]",
+  "Contado neste aparelho, com o seu vocabulário. Nada disso sai daqui.": "[Çöñtádö ñéšté ápárélhö, çöm ö šéü vöçábüláríö. Ñádá díššö šáí dáqüí. ···························]",
   "Contas": "[Çöñtáš ··]",
   "Contas de menores de 18 anos não fazem compras. Peça ao seu responsável: pela conta dele, vinculada à sua, ele assina por você.": "[Çöñtáš dé méñöréš dé 18 áñöš ñãö fážém çömpráš. Péçá áö šéü réšpöñšávél: pélá çöñtá délé, víñçüládá à šüá, élé áššíñá pör vöçê. ···················································]",
   "Contas listadas": "[Çöñtáš líštádáš ······]",
@@ -4707,6 +4710,7 @@
   "Palavras que podem ser novas": "[Pálávráš qüé pödém šér ñöváš ···········]",
   "Palavras que você conhece": "[Pálávráš qüé vöçê çöñhéçé ··········]",
   "Palavras que você está aprendendo e usou:": "[Pálávráš qüé vöçê éštá ápréñdéñdö é üšöü: ················]",
+  "Palavras que você já conhece": "[Pálávráš qüé vöçê já çöñhéçé ···········]",
   "Palavras revisadas por dia": "[Pálávráš révíšádáš pör díá ··········]",
   "Palavras únicas": "[Pálávráš úñíçáš ······]",
   "palavras usadas:": "[pálávráš üšádáš: ······]",

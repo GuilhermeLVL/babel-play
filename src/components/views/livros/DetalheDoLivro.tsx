@@ -1,9 +1,11 @@
 import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, ExternalLink, ImagePlus, ShieldCheck } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 
 import { capaDoLivro } from '../../../core/livros/capas';
 import { tamanhoDe } from '../../../core/livros/catalogo';
 import type { LivroDoCatalogo, Pessoa } from '../../../core/livros/tipos';
+import { FLAG_LEITOR_DESTAQUE_VOCAB } from '../../../core/planos';
+import { useFlag } from '../../../lib/flags';
 import { t } from '../../../lib/i18n';
 import { direcaoDoTexto } from '../../../lib/languages';
 import { idDoCatalogo } from '../../../lib/livros/abrir';
@@ -14,6 +16,9 @@ import { autoresDe, CapaDoLivro, rotuloDoTempo } from './CartaoDoLivro';
 import OutrosIdiomasDaObra from './OutrosIdiomasDaObra';
 import { rotuloDaCategoria, rotuloDaClassificacao, rotuloDaFonte, rotuloDoIdioma, rotuloDoTamanho } from './rotulos';
 import TrocarCapa from './TrocarCapa';
+
+/* A % de palavras conhecidas antes de abrir (flag `leitor_destaque_vocab`): só carrega com a flag ligada. */
+const ConhecidasDoLivro = lazy(() => import('./ConhecidasDoLivro'));
 
 const comAno = (p: Pessoa) => (p.anoMorte != null ? `${p.nome} (†${p.anoMorte})` : p.nome);
 const numero = (n: number) => n.toLocaleString('pt-BR');
@@ -40,6 +45,7 @@ export default function DetalheDoLivro({
   aoLerEdicao?: (l: LivroDoCatalogo) => void;
 }) {
   const meus = useMeusLivros();
+  const contarConhecidas = useFlag(FLAG_LEITOR_DESTAQUE_VOCAB);
   const [trocando, setTrocando] = useState(false);
   const capaLocal = useCapaLocal(idDoCatalogo(livro.id));
   const capaDoCatalogo = capaDoLivro(livro);
@@ -154,6 +160,11 @@ export default function DetalheDoLivro({
                 </small>
               </dd>
             </div>
+            {contarConhecidas && (
+              <Suspense fallback={null}>
+                <ConhecidasDoLivro livroId={livro.id} idioma={livro.idioma} />
+              </Suspense>
+            )}
             {livro.categorias.length > 0 && (
               <div>
                 <dt>{t('Categorias')}</dt>

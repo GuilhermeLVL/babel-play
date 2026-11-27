@@ -3565,6 +3565,8 @@
   "Mostrar tradução das palavras novas": "Show translation of new words",
   "Mostrar: {o_que}. Trocar": "Show: {o_que}. Change",
   "Motivo": "Reason",
+  "Mover o fim da seleção": "Move the selection end",
+  "Mover o início da seleção": "Move the selection start",
   "Mover para a direita": "Move right",
   "Mover para a esquerda": "Move left",
   "Mover para antes": "Move earlier",
@@ -6827,7 +6829,5 @@
   "XP da temporada": "Season XP",
   "XP do dia": "XP of the day",
   "XP do nível": "Level XP",
-  "XP por dia": "XP per day",
-  "Mover o início da seleção": "Move the selection start",
-  "Mover o fim da seleção": "Move the selection end"
+  "XP por dia": "XP per day"
 }

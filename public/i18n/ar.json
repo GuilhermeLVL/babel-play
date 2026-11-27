@@ -1827,6 +1827,8 @@
   "Mostrar tradução": "إظهار الترجمة",
   "Mostrar tradução das palavras novas": "إظهار ترجمة الكلمات الجديدة",
   "Motivo": "السبب",
+  "Mover o fim da seleção": "تحريك نهاية التحديد",
+  "Mover o início da seleção": "تحريك بداية التحديد",
   "Muda o tom dos textos e o tamanho das coisas. Não trava nada.": "يغيّر نبرة النصوص وحجم العناصر. لا يمنع أي شيء.",
   "Mudar de plano": "تغيير الخطة",
   "Mudar o limite do dia": "تغيير حدّ اليوم",
@@ -3387,7 +3389,5 @@
   "Voz natural para ouvir as frases": "صوت طبيعي لسماع العبارات",
   "Voz neural básica no intérprete": "صوت عصبي أساسي في المترجم الفوري",
   "Voz neural boa no intérprete": "صوت عصبي جيد في المترجم الفوري",
-  "Voz para ouvir as frases": "صوت لسماع العبارات",
-  "Mover o início da seleção": "تحريك بداية التحديد",
-  "Mover o fim da seleção": "تحريك نهاية التحديد"
+  "Voz para ouvir as frases": "صوت لسماع العبارات"
 }

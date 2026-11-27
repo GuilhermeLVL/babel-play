@@ -1737,6 +1737,8 @@
   "Mostrar tradução": "Mostrar traducción",
   "Mostrar tradução das palavras novas": "Mostrar traducción de las palabras nuevas",
   "Motivo": "Motivo",
+  "Mover o fim da seleção": "Mover el final de la selección",
+  "Mover o início da seleção": "Mover el inicio de la selección",
   "Muda o tom dos textos e o tamanho das coisas. Não trava nada.": "Cambia el tono de los textos y el tamaño de las cosas. No bloquea nada.",
   "Mudar de plano": "Cambiar de plan",
   "Mudar o limite do dia": "Cambiar el límite del día",
@@ -3332,7 +3334,5 @@
   "Voz para ouvir as frases": "Voz para escuchar las frases",
   "Voz sintetizada que roda neste aparelho. Baixa uma vez (≈ {mb} MB) e depois funciona sem internet.": "Voz sintetizada que funciona en este dispositivo. Se descarga una vez (≈ {mb} MB) y luego funciona sin internet.",
   "Vozes de alta qualidade": "Voces de alta calidad",
-  "Vozes deste aparelho": "Voces de este dispositivo",
-  "Mover o início da seleção": "Mover el inicio de la selección",
-  "Mover o fim da seleção": "Mover el final de la selección"
+  "Vozes deste aparelho": "Voces de este dispositivo"
 }

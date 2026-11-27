@@ -44,7 +44,12 @@ import { CORES_DOS_TEMAS } from '../../../core/leitura/perfilDeLeitura';
 import type { Retangulo } from '../../../core/leitura/posicaoDoCartao';
 import { ancorar } from '../../../core/leitura/reancorar';
 import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
-import { FLAG_AUDIOLIVROS, FLAG_LEITOR_DESTAQUE_VOCAB, FLAG_LEITOR_MODO_TRADUCAO, FLAG_LEITOR_SELECAO_FIRME } from '../../../core/planos';
+import {
+  FLAG_AUDIOLIVROS,
+  FLAG_LEITOR_DESTAQUE_VOCAB,
+  FLAG_LEITOR_MODO_TRADUCAO,
+  FLAG_LEITOR_SELECAO_FIRME,
+} from '../../../core/planos';
 import { FLAG_VOZ_NATURAL } from '../../../core/vozNatural';
 import { fetchDeck } from '../../../data/api';
 import type { ModoDoParceiro } from '../../../data/rotas/parceiroDeLeitura';

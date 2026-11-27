@@ -1398,6 +1398,7 @@ export default function LeitorDoLivro({
                   motor={motorRef.current}
                   sumario={info?.sumario ?? []}
                   atual={local?.tocItem?.href}
+                  idiomaDoVocabulario={destaqueNaFlag && destaqueLigado && !info?.ehPdf ? idioma : undefined}
                   aoIr={() => {
                     if (window.matchMedia?.('(max-width: 900px)').matches) setPainel(null);
                   }}

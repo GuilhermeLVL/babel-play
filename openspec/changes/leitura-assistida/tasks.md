@@ -37,8 +37,9 @@
 - [x] C3 `destaqueNoDocumento.ts` com `CSS.highlights`, uma passada por seção, orçamento 50 ms. Verificar: teste de desempenho com seção de 5 mil palavras; fallback sem a API não lança.
       Feito em `lib/leitor/destaqueNoDocumento.ts`; classificar 5 mil palavras < 50 ms e refazer o grifo < 100 ms nos testes; fallback sem a API testado.
 
-- [ ] C4 Legenda/chave e régua de densidade (% de novas); % de palavras conhecidas antes do capítulo. Verificar: teste de componente e de cálculo.
-      PARCIAL: legenda de 3 itens, interruptor e régua de densidade (% de novas e % de conhecidas do capítulo EM EXIBIÇÃO) feitos em `LegendaDoDestaque`. FALTA a % de conhecidas no sumário ANTES de abrir o capítulo (exige ler o texto de cada seção sem abri-la; `PainelDoSumario` não é da Fatia C).
+- [x] C4 Legenda/chave e régua de densidade (% de novas); % de palavras conhecidas antes do capítulo. Verificar: teste de componente e de cálculo.
+      Feito: legenda de 3 itens, interruptor e régua de densidade em `LegendaDoDestaque`; a % de conhecidas ANTES de abrir: cálculo puro em `core/leitura/conhecidasDoTexto.ts` (mesma régua do destaque), leitura das seções pelo `createDocument` do livro em `lib/leitor/conhecidasDoSumario.ts` (sem abrir o capítulo), "N% conhecidas" por capítulo no sumário (`ConhecidasDoSumario`, só com a flag `leitor_destaque_vocab` e o destaque ligados) e "Palavras que você já conhece" na página do livro (`ConhecidasDoLivro`, só com a flag). Tudo no aparelho. Testes em `tests/leitor-conhecidas-do-sumario.test.tsx`.
+      LIMITE: na página do livro só aparece quando a cópia do EPUB já está na estante do aparelho (o servidor não tem o texto; baixar o livro só para contar não vale); livros com mais de 400 seções ficam sem número; itens do sumário que apontam para a mesma seção mostram a % da seção.
 
 - [x] C5 Cartão da palavra de 1 toque (Não sei, 1 a 4, Já sei, Ignorar, Revisar). Verificar: testes que conferem a escrita pelas APIs existentes e que o destaque atualiza em <= 100 ms.
       Feito: `ControleDeForcaDaPalavra` no cartão (Não sei, 2, 3, 4, Revisar agora) + `MarcarPalavra` (Já sei, Ignorar). Força 2 a 4 só em palavra sem revisões, pela rota `desfazer` existente; cartão com revisões mantém a força do histórico.

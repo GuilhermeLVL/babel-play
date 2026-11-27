@@ -42,7 +42,7 @@ export interface AparenciaDaGlosa {
   tamanho: number;
 }
 
-interface Segmento {
+export interface Segmento {
   no: Text;
   inicio: number;
   fim: number;
@@ -85,7 +85,7 @@ function ponto(segmentos: readonly Segmento[], pos: number, fimDoTrecho: boolean
   return null;
 }
 
-function rangeDaPalavra(doc: Document, segmentos: readonly Segmento[], p: PalavraDoCapitulo): Range | null {
+export function rangeDaPalavra(doc: Document, segmentos: readonly Segmento[], p: PalavraDoCapitulo): Range | null {
   const a = ponto(segmentos, p.inicio, false);
   const b = ponto(segmentos, p.fim, true);
   if (!a || !b) return null;

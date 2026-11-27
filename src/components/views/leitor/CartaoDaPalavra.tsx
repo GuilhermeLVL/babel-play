@@ -14,6 +14,7 @@ import Provenance from '../../Provenance';
 import MarcarPalavra from '../../vocab/MarcarPalavra';
 import { DE_DICIONARIO, MT_ENGINE_LABELS } from '../../VocabularyPanel';
 import ExplicacaoDaFrase from '../captura/estudo/ExplicacaoDaFrase';
+import ControleDeForcaDaPalavra, { useForcaDaPalavra, type VocabularioDoCartao } from './ControleDeForcaDaPalavra';
 
 /** O cartão antes da primeira medida (o tamanho real chega no `useLayoutEffect`). */
 const TAMANHO_ESTIMADO = { largura: 520, altura: 200 };
@@ -60,6 +61,8 @@ export interface CartaoDaPalavraProps {
   /** Uma linha à vista logo abaixo da palavra (a Leitura ativa: "Praticar esta palavra no fim"). */
   destaque?: ReactNode;
   etiqueta?: string;
+  /** Com a flag `leitor_destaque_vocab`: a força 1 a 4 em 1 toque no lugar do "Salvar". Ausente = o cartão de sempre. */
+  vocabulario?: VocabularioDoCartao;
   aoConhecerPlanos?: () => void;
   aoFechar: () => void;
 }
@@ -78,6 +81,7 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
   const idioma = vocab.lang ?? contexto.idioma ?? '';
   const raiz = useRef<HTMLDivElement>(null);
   const titulo = useId();
+  const { forca } = useForcaDaPalavra(props.vocabulario ? vocab.word : '', idioma);
   const [entrada, setEntrada] = useState<DictionaryResult | null>(null);
   const [aberta, setAberta] = useState<'frase' | 'sentido' | null>(null);
   const [mais, setMais] = useState(false);
@@ -194,6 +198,7 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
       data-modo={posicao.modo}
       data-lado={posicao.modo === 'ancorado' ? posicao.lado : posicao.borda}
       data-etiqueta={props.etiqueta}
+      data-forca={props.vocabulario && forca ? forca : undefined}
       style={estilo}
       onKeyDown={(e) => {
         if (e.key !== 'Escape') return;
@@ -260,7 +265,9 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
       {/* O PRINCIPAL primeiro: guardar a palavra (Salvar) ou dizer que já a sabe (Já sei, Ignorar); o resto (traduzir a
           frase, o sentido, "Mais") fica na fileira de baixo. */}
       <div className="cartao-palavra-principais" role="group" aria-label={t('Guardar a palavra')}>
-        {props.salva ? (
+        {props.vocabulario ? (
+          <ControleDeForcaDaPalavra palavra={vocab.word} idioma={idioma} vocabulario={props.vocabulario} />
+        ) : props.salva ? (
           <span className="cartao-palavra-chip" data-estado="salva" role="status">
             <Check aria-hidden /> {t('Salva')}
           </span>

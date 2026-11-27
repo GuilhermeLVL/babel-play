@@ -10,6 +10,7 @@ import {
   TEMAS_DE_LEITURA,
 } from '../../../core/leitura/perfilDeLeitura';
 import { t } from '../../../lib/i18n';
+import LegendaDoDestaque, { type AjustesDoDestaque } from './LegendaDoDestaque';
 
 const NOME_DO_TEMA: Record<TemaDeLeitura, string> = {
   claro: 'Claro',
@@ -49,6 +50,7 @@ export default function PainelDeTipografia({
   ehPdf,
   glosa,
   mudarGlosa,
+  destaque,
 }: {
   perfil: PerfilDeLeitura;
   mudar: (m: Partial<PerfilDeLeitura>) => void;
@@ -58,6 +60,8 @@ export default function PainelDeTipografia({
   /** "Mostrar tradução das palavras novas" (a glosa sobre o texto). */
   glosa: boolean;
   mudarGlosa: (v: boolean) => void;
+  /** Flag `leitor_destaque_vocab`: o interruptor, a legenda e a densidade do destaque por vocabulário. Ausente = desligada. */
+  destaque?: AjustesDoDestaque;
 }) {
   const faixa = (
     chave: 'entrelinha' | 'espacoLetra' | 'espacoPalavra' | 'largura' | 'margem',
@@ -198,6 +202,8 @@ export default function PainelDeTipografia({
           <p id="leitor-glosa-apoio" className="leitor-apoio">
             {t('Uma tradução curta aparece sobre as palavras que você ainda não conhece e some quando você aprende.')}
           </p>
+
+          {destaque && <LegendaDoDestaque {...destaque} />}
 
           <fieldset className="leitor-grupo">
             <legend>{t('Modo de leitura')}</legend>

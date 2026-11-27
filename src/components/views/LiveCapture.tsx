@@ -109,6 +109,12 @@ import { abrirContextoDoClique } from '../../lib/captura/contextoDoClique';
 import type { PonteDoInterprete } from '../../lib/captura/controleDoInterprete';
 // Callbacks estáveis e o texto da conversa para o App, sem re-renderizar a conversa à toa.
 import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversaEstavel';
+import {
+  downloadConfirmadoAntes,
+  jaLegendouOSistema,
+  lembrarDownloadConfirmado,
+  podeLegendarAgora,
+} from '../../lib/captura/dicasDoSeletor';
 import { carregarAoEntrarNoInterprete } from '../../lib/captura/downloadDoInterprete';
 import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
@@ -2707,7 +2713,11 @@ export default function LiveCapture({
      falta (só o que não está no navegador). Confirmado uma vez, não pergunta de novo nesta tela. */
   /* Agora é a folha do início (`inicioDaCaptura.ts`, logo abaixo): o tamanho é o que a escolha do
      motor baixa de verdade, e o cache é conferido quando a tela abre (`usePreparoDoInicio`). */
-  const downloadConfirmadoRef = useRef(false);
+  const downloadConfirmadoRef = useRef(
+    perfilDoAparelho.capturaDoSistema && (perfilDoAparelho.confirmarDownloadAcimaDeMb ?? 0) > 0
+      ? downloadConfirmadoAntes()
+      : false,
+  );
 
   /** O tamanho do modelo que a captura baixa (o selo "modelo local · N MB" do protótipo). */
   /* Só o STT (o primeiro da lista, ver `expectedModelIds`): o selo fala do modelo de transcrição. O
@@ -2951,6 +2961,31 @@ export default function LiveCapture({
     iniciarCaptura();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando as fontes viram "só o microfone"
   }, [systemEnabled, micEnabled]);
+  /**
+   * "LEGENDAR AGORA" (captura-com-menos-passos): para quem já legendou o som do computador, UM toque que
+   * deixa só o som do computador (desliga o microfone, se estava ligado), usa as escolhas lembradas
+   * (idiomas, motor já decidido, download já confirmado) e abre o seletor do navegador pré-arrumado.
+   * O microfone desligado só vale no render seguinte, então o início espera por ele (mesmo padrão do
+   * `usarMicrofoneNoLugarDaTela`); o gesto do toque segue valendo (a ativação dura ~5 s).
+   */
+  const legendarAgoraPendenteRef = useRef(false);
+  const legendarAgora = () => {
+    if (abrindoCaptura || isRecordingRef.current) return;
+    if (tetoAtingido && !resumeId) return avisarTeto();
+    void preaquecerRef.current();
+    if (micEnabled) {
+      legendarAgoraPendenteRef.current = true;
+      marcarMicrofone(false);
+      return;
+    }
+    iniciarCaptura();
+  };
+  useEffect(() => {
+    if (!legendarAgoraPendenteRef.current || micEnabled) return;
+    legendarAgoraPendenteRef.current = false;
+    iniciarCaptura();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando o microfone vira "desligado"
+  }, [micEnabled]);
   /** A ação do aviso da falha do início (DISP-04): tentar de novo é o mesmo toque do Iniciar. */
   const agirNaFalhaDoInicio = (acao: TipoDeAcao) => {
     setFalhaDoInicio(null);
@@ -3317,6 +3352,7 @@ export default function LiveCapture({
     ativo: !noQuest,
     celular: perfilDoAparelho.tipo.startsWith('celular'),
     gravando: isRecording,
+    nivelRef: currentLevelRef,
     falas: legendasAoVivo,
     contexto: () => ({
       interprete: interpreteAberto,
@@ -3562,6 +3598,16 @@ export default function LiveCapture({
         aoFlutuante={noQuest ? undefined : alternarFlutuante}
         flutuante={{ aberta: flutuante.aberta, dica: flutuante.dica }}
         intencao={{ entrou: aquecimento.ponteiroEntrou, saiu: aquecimento.ponteiroSaiu }}
+        legendarAgora={
+          podeLegendarAgora({
+            capturaDoSistema: systemEnabled,
+            gravando: isRecording,
+            abrindo: abrindoCaptura,
+            jaLegendou: jaLegendouOSistema(),
+          })
+            ? legendarAgora
+            : undefined
+        }
         letra={{
           menor: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, -1)),
           maior: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, 1)),
@@ -4568,6 +4614,7 @@ export default function LiveCapture({
                            baixa: a escolha "Rápido" fica guardada, como na folha "Rápido ou Privado?". */
                         trocarEscolhaDoMic('rapido');
                         downloadConfirmadoRef.current = true;
+                        lembrarDownloadConfirmado();
                         setFolhaDoInicio(null);
                         comecarCaptura();
                       },
@@ -4585,6 +4632,7 @@ export default function LiveCapture({
               className="btn btn-solid"
               onClick={(e) => {
                 downloadConfirmadoRef.current = true;
+                lembrarDownloadConfirmado();
                 fecharDialogoDe(e.currentTarget);
                 comecarCaptura();
               }}
@@ -4611,6 +4659,7 @@ export default function LiveCapture({
           aoEscolher={(e) => {
             trocarEscolhaDoMic(e);
             downloadConfirmadoRef.current = true;
+            lembrarDownloadConfirmado();
             setFolhaDoInicio(null);
             comecarCaptura();
           }}

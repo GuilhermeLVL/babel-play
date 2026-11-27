@@ -223,6 +223,12 @@ async function abrirComFalas(page: Page) {
 test.beforeEach(async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-1280', 'a janela flutuante é do computador (abaixo de 720 px o botão some)')
   await page.route(/huggingface\.co|hf\.co|cdn-lfs/, (r) => r.abort())
+  /* Estes testes partem de "tela inteira" (formato Faixa sugerido). A dica `displaySurface` do seletor (aba como padrão,
+     captura-com-menos-passos) só vale onde o navegador a declara: aqui ele não declara, e o simulador não a espelha. */
+  await page.addInitScript(() => {
+    const md = navigator.mediaDevices
+    if (md) md.getSupportedConstraints = () => ({}) as MediaTrackSupportedConstraints
+  })
   await page.addInitScript(() => {
     if (sessionStorage.getItem('assist-limpo')) return
     sessionStorage.setItem('assist-limpo', '1')

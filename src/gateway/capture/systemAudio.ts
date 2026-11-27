@@ -2,6 +2,7 @@ import type { MicVAD, RealTimeVADOptions } from '@ricky0123/vad-web';
 
 import { erroDoDetectorDeFala, mostraDetalheTecnico } from '../../core/falhas/mensagemDeFalha';
 import { apiFetch } from '../../data/api';
+import { dicasDoSeletor, lembrarSuperficie, superficieLembrada } from '../../lib/captura/dicasDoSeletor';
 import { navegadorSemAudioDaTela } from '../../lib/captura/navegadorSemAudioDaTela';
 import { marcarAberturaDoVad } from '../../lib/captura/vigiaDoMainThread';
 import { ortDoVadNumaThread } from '../../lib/dispositivo/orcamentoDeThreads';
@@ -208,8 +209,16 @@ function releaseActiveDisplayStream(): void {
 const QUALIDADE_DO_VIDEO_DA_TELA = { frameRate: { max: 1 }, width: { max: 640 }, height: { max: 360 } } as const;
 
 function constraintsDeDisplay(): MediaStreamConstraints {
+  /* As dicas que encurtam o seletor (`dicasDoSeletor.ts`): a aba pré-selecionada, sem a janela do Frasy. */
+  let suportadas: Record<string, unknown> | null = null;
+  try {
+    suportadas = (navigator.mediaDevices?.getSupportedConstraints?.() as Record<string, unknown>) ?? null;
+  } catch {
+    /* sem a consulta: só as dicas que o navegador ignora quando não conhece */
+  }
+  const dicas = dicasDoSeletor({ suportadas, ultima: superficieLembrada() });
   return {
-    video: { ...QUALIDADE_DO_VIDEO_DA_TELA },
+    video: { ...QUALIDADE_DO_VIDEO_DA_TELA, ...dicas.video },
     audio: {
       suppressLocalAudioPlayback: false,
       restrictOwnAudio: true,
@@ -217,10 +226,7 @@ function constraintsDeDisplay(): MediaStreamConstraints {
       noiseSuppression: false,
       autoGainControl: false,
     } as MediaTrackConstraints,
-    systemAudio: 'include',
-    monitorTypeSurfaces: 'include',
-    selfBrowserSurface: 'exclude',
-    surfaceSwitching: 'include',
+    ...dicas.topo,
   } as MediaStreamConstraints;
 }
 
@@ -1020,6 +1026,7 @@ export async function startSystemAudioCapture(
     const audioTracks = stream.getAudioTracks();
     vlog('superfície:', surface ?? '?', '| vídeo:', stream.getVideoTracks().length, '| áudio:', audioTracks.length);
     registrarSuperficieComAudio(surface, audioTracks.length);
+    if (audioTracks.length > 0) lembrarSuperficie(surface);
     if (audioTracks.length === 0) {
       stream.getTracks().forEach((t) => t.stop());
       /* Firefox e Safari nunca entregam o som da tela/aba: mandar "marcar o áudio" (opção do Chrome/Edge)

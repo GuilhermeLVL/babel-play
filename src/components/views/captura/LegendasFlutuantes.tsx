@@ -3,7 +3,7 @@ import '../../../styles/legendasFlutuantes.css';
 import '../../../styles/assistenteAoVivo.css';
 import '../../../styles/etiquetas.css';
 
-import { ArrowDown, AudioLines, Info, MessageCircleReply, MousePointerClick, X } from 'lucide-react';
+import { ArrowDown, Info, MessageCircleReply, MousePointerClick, X } from 'lucide-react';
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { assistenteNoLayout, type MarcaNaLinha, noIdiomaDaPessoa } from '../../../core/assistente/telaDoAssistente';
@@ -65,6 +65,7 @@ import {
 } from './legendas/aparenciaDaLegenda';
 import BarraDaLegenda from './legendas/BarraDaLegenda';
 import CartaoDaPalavra, { type PalavraTocada } from './legendas/CartaoDaPalavra';
+import EstadoVazio, { type EscutaDaJanela } from './legendas/EstadoVazio';
 import LinhaDaLegenda, { type LegendaAoVivo } from './legendas/LinhaDaLegenda';
 import PainelDaLegenda from './legendas/PainelDaLegenda';
 
@@ -163,6 +164,7 @@ export default function LegendasFlutuantes({
   assistente,
   aoMudarPausa,
   etiquetador,
+  escuta,
 }: {
   /** As últimas falas da captura, em ordem. A janela decide quais e quando aparecem. */
   falas: LegendaAoVivo[];
@@ -193,6 +195,8 @@ export default function LegendasFlutuantes({
   aoMudarPausa?: (parada: boolean) => void;
   /** As ETIQUETAS DE PALAVRAS da captura (`lib/etiquetas`): `null`/ausente = desligadas. */
   etiquetador?: Etiquetador | null;
+  /** De onde a captura ouve e o nível do som: o estado vazio ("ouvindo…") os mostra até a primeira fala. */
+  escuta?: EscutaDaJanela;
 }) {
   /* Parciais vivos (V6): o texto vivo do parcial vem do armazém e re-renderiza só esta janela, não a tela de captura. */
   const falas = useFalasComParcialVivo(falasDoEstado);
@@ -541,6 +545,10 @@ export default function LegendasFlutuantes({
       alternarPausa();
     } else if (tecla === 'ArrowLeft') navegar(-1);
     else if (tecla === 'ArrowRight') navegar(1);
+    else if (tecla === '+' || tecla === '=') mudarLetra(1);
+    else if (tecla === '-') mudarLetra(-1);
+    else if (tecla === 'o') mudar({ mostrar: proximoDe(MOSTRAS, ap.mostrar) });
+    else if (tecla === 'f') mudar({ fundo: proximoDe(FUNDOS, ap.fundo) });
     else if (tecla === 't' && emFoco) alternarTraducao(emFoco);
     else if (tecla === 'p' && emFoco) ouvirFala(emFoco, false);
     else if (tecla === 's' && emFoco && aoSalvarPalavra) salvarFrase(emFoco);
@@ -590,9 +598,7 @@ export default function LegendasFlutuantes({
   const corpo = recolhido ? null : oculto ? (
     <p className="leg-vazio">{t('Legenda escondida')}</p>
   ) : !janela.ids.length ? (
-    <p className="leg-vazio">
-      <AudioLines aria-hidden /> {t('Esperando a primeira fala')}
-    </p>
+    <EstadoVazio escuta={escuta} />
   ) : (
     janela.ids.map((id) => {
       const f = porId.get(id)!;

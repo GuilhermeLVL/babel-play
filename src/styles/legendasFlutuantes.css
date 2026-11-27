@@ -724,3 +724,63 @@ html[data-dispositivo^='celular'] .leg-ajuda {
 .leg-flut.leg-limpa[data-layout='estudo'] > .leg-corpo {
   padding-top: 50px;
 }
+
+/*
+ * O ESTADO VAZIO COMPACTO (`legendas/EstadoVazio.tsx`): a linha "ouvindo…" com o medidor do som, no lugar do
+ * retângulo mudo. A janela abre baixa quando não há fala (`ALTURA_COMPACTA`), então isto é o que se vê.
+ */
+.leg-flut.leg-limpa .leg-escuta {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+  line-height: 1.3;
+}
+.leg-escuta svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.leg-escuta-txt {
+  min-width: 0;
+}
+.leg-nivel {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  flex: none;
+}
+.leg-nivel i {
+  display: block;
+  width: 3px;
+  height: 4px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.3;
+  transition: opacity 0.12s;
+}
+.leg-nivel i:nth-child(2) {
+  height: 6px;
+}
+.leg-nivel i:nth-child(3) {
+  height: 9px;
+}
+.leg-nivel i:nth-child(4) {
+  height: 12px;
+}
+.leg-nivel i:nth-child(5) {
+  height: 14px;
+}
+.leg-nivel i.acesa {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .leg-nivel i {
+    transition: none;
+  }
+}
+/* Sem fala, o corpo não puxa o espaço da janela: o estado vazio fica no centro, do tamanho do conteúdo. */
+.leg-flut.leg-limpa > .leg-corpo:has(> .leg-escuta) {
+  justify-content: center;
+  align-items: center;
+}

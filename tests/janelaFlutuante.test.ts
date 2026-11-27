@@ -6,13 +6,18 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  ALTURA_COMPACTA,
   falasAVista,
   formatoSugerido,
   layoutPorTamanho,
+  NIVEL_DE_SOM,
   normalizarTamanhos,
   quebrarLinhas,
+  rotuloDaEscuta,
+  suavizarNivel,
   TAMANHO_DO_FORMATO,
   tamanhoDaLetra,
+  tamanhoDeAbertura,
   tamanhoParaAbrir,
 } from '../src/core/legendas/janelaFlutuante'
 import { caminhoDaJanela, suportaPiPDeVideo } from '../src/lib/legendas/janelaDoNavegador'
@@ -154,5 +159,37 @@ describe('que janela este navegador dá', () => {
     expect(
       caminhoDaJanela({ ...comVideo, documentPictureInPicture: { requestWindow: () => null } }, { celular: true }),
     ).toBe('painel')
+  })
+})
+
+describe('o estado vazio compacto', () => {
+  it('sem fala a janela abre baixa, na largura do formato (o guardado também); com fala, cheia', () => {
+    expect(tamanhoDeAbertura('legenda', {}, true)).toEqual({ largura: 600, altura: ALTURA_COMPACTA })
+    expect(tamanhoDeAbertura('legenda', {}, false)).toEqual(TAMANHO_DO_FORMATO.legenda)
+    expect(tamanhoDeAbertura('conversa', { conversa: { largura: 500, altura: 700 } }, true)).toEqual({
+      largura: 500,
+      altura: ALTURA_COMPACTA,
+    })
+    /* A faixa já é mais baixa que a compacta: não cresce. */
+    expect(tamanhoDeAbertura('faixa', {}, true).altura).toBe(ALTURA_COMPACTA)
+  })
+
+  it('diz do que está ouvindo, pelo que o app sabe da captura', () => {
+    const base = { interprete: false, cenario: 'media' as const }
+    expect(rotuloDaEscuta({ ...base, superficie: 'browser' })).toBe('Ouvindo o som da aba')
+    expect(rotuloDaEscuta({ ...base, superficie: 'monitor' })).toBe('Ouvindo o som da tela')
+    expect(rotuloDaEscuta({ ...base, superficie: 'window' })).toBe('Ouvindo o som da janela')
+    expect(rotuloDaEscuta(base)).toBe('Ouvindo o som do computador')
+    expect(rotuloDaEscuta({ ...base, cenario: 'mic' })).toBe('Ouvindo o microfone')
+    expect(rotuloDaEscuta({ ...base, cenario: 'conversation' })).toMatch(/microfone/)
+    expect(rotuloDaEscuta({ ...base, interprete: true })).toBe('Ouvindo a conversa')
+  })
+
+  it('o nível sobe de uma vez, cai devagar e ignora lixo', () => {
+    expect(suavizarNivel(0.1, 0.8)).toBe(0.8)
+    expect(suavizarNivel(0.8, 0)).toBeCloseTo(0.56)
+    expect(suavizarNivel(0.5, Number.NaN)).toBeCloseTo(0.35)
+    expect(suavizarNivel(0, 5)).toBe(1)
+    expect(NIVEL_DE_SOM).toBeGreaterThan(0)
   })
 })

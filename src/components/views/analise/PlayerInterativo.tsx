@@ -7,7 +7,15 @@
  * `lib/analise/playerDaSessao.ts`.
  */
 import { Pause, Play, SkipBack, SkipForward } from 'lucide-react';
-import { type Dispatch, type ReactNode, type RefObject, type SetStateAction } from 'react';
+import {
+  type Dispatch,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+} from 'react';
 
 import type { FalaDaAnalise } from '../../../lib/analise/tiposDaAnalise';
 import { noHeadset } from '../../../lib/dispositivo/telaNovaDoQuest';
@@ -53,7 +61,36 @@ export interface PropsDoPlayerInterativo {
   pararNoFim?: boolean;
 }
 
+/**
+ * A ALTURA DO PLAYER vira `--px-player-h` na raiz: ele é fixo sobre a barra de baixo no celular e varia (a linha da escuta
+ * guiada, as quebras), então o conteúdo reserva o espaço dele e o iChat sobe acima dele, sem número chutado em CSS.
+ */
+function useAlturaDoPlayer() {
+  const observador = useRef<ResizeObserver | null>(null);
+  useEffect(
+    () => () => {
+      observador.current?.disconnect();
+      document.documentElement.style.removeProperty('--px-player-h');
+    },
+    [],
+  );
+  return useCallback((el: HTMLDivElement | null) => {
+    observador.current?.disconnect();
+    observador.current = null;
+    if (!el) {
+      document.documentElement.style.removeProperty('--px-player-h');
+      return;
+    }
+    const medir = () => document.documentElement.style.setProperty('--px-player-h', `${Math.ceil(el.offsetHeight)}px`);
+    medir();
+    if (typeof ResizeObserver === 'undefined') return;
+    observador.current = new ResizeObserver(medir);
+    observador.current.observe(el);
+  }, []);
+}
+
 export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
+  const refDoPlayer = useAlturaDoPlayer();
   const {
     recording,
     parsedSentences,
@@ -160,6 +197,7 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
   const largura = total > 0 && (isPlaying || activeSentenceIndex > 0) ? ((naFala + 1) / total) * 100 : 0;
   return (
     <div
+      ref={refDoPlayer}
       className={escuta || frase ? 'q-faixa px-player px-player-guiada' : 'q-faixa px-player'}
       role="group"
       aria-label={t('Player')}

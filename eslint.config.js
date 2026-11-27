@@ -217,4 +217,28 @@ export default tseslint.config(
       globals: { document: 'readonly', getComputedStyle: 'readonly', CSS: 'readonly', window: 'readonly' },
     },
   },
+  {
+    // A extensão do Chrome/Edge (`extensao/`, MV3): roda no navegador (service worker, offscreen, worklet,
+    // content script), não no app nem no Node. Globais declarados à mão; fora do app, dentro do lint.
+    files: ['extensao/**/*.js'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: {
+        chrome: 'readonly',
+        document: 'readonly',
+        window: 'readonly',
+        location: 'readonly',
+        navigator: 'readonly',
+        performance: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        AudioContext: 'readonly',
+        AudioWorkletNode: 'readonly',
+        AudioWorkletProcessor: 'readonly',
+        registerProcessor: 'readonly',
+        btoa: 'readonly',
+        atob: 'readonly',
+      },
+    },
+  },
 )

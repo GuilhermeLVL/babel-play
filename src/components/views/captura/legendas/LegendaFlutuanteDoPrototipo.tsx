@@ -17,6 +17,7 @@ import {
   type Flutuante,
   ligarFlutuante,
 } from '../../../../lib/polimento/captura';
+import EstadoVazio, { type EscutaDaJanela } from './EstadoVazio';
 import type { LegendaAoVivo } from './LinhaDaLegenda';
 
 /** Uma fala no espelho: a original e, quando chega, a tradução (`telas.js:269-279`). */
@@ -87,6 +88,7 @@ export default function LegendaFlutuanteDoPrototipo({
   aberta,
   falas: falasDoEstado,
   idiomaDaTraducao,
+  escuta,
   aoFechar,
 }: {
   aberta: boolean;
@@ -94,6 +96,8 @@ export default function LegendaFlutuanteDoPrototipo({
   falas: LegendaAoVivo[];
   /** O idioma da tradução de uma fala (o "outro" do par). */
   idiomaDaTraducao?: (lang: string | undefined) => string | undefined;
+  /** De onde se ouve e o nível do som, para o estado vazio. */
+  escuta?: EscutaDaJanela;
   aoFechar: () => void;
 }) {
   /* Parciais vivos (V6): o texto vivo do parcial vem do armazém e re-renderiza só esta janela, não a tela de captura. */
@@ -167,6 +171,18 @@ export default function LegendaFlutuanteDoPrototipo({
     return () => window.clearTimeout(id);
   }, [ritmo, doRitmo, montada, pausada, tique]);
 
+  /* Leitor de tela: só a fala nova e já fechada é anunciada, nunca cada parcial. */
+  const anunciada = useRef<string | null>(null);
+  const [anuncio, setAnuncio] = useState('');
+  const ultimaFechada = [...daJanela].reverse().find((f) => !f.parcial);
+  useEffect(() => {
+    if (!ultimaFechada || anunciada.current === ultimaFechada.id) return;
+    anunciada.current = ultimaFechada.id;
+    setAnuncio(
+      ultimaFechada.traducao ? `${ultimaFechada.original} — ${ultimaFechada.traducao}` : ultimaFechada.original,
+    );
+  }, [ultimaFechada]);
+
   if (!montada) return null;
 
   const reveladas = new Set(ritmo.reveladas);
@@ -212,7 +228,7 @@ export default function LegendaFlutuanteDoPrototipo({
         </button>
       </div>
       <div className="leg-corpo">
-        {aVista.length === 0 && <p className="leg-vazio">{t('Esperando a primeira fala')}</p>}
+        {aVista.length === 0 && <EstadoVazio escuta={escuta} />}
         {aVista.map((f, k) => (
           <Fala
             key={f.id}
@@ -223,6 +239,9 @@ export default function LegendaFlutuanteDoPrototipo({
           />
         ))}
       </div>
+      <p className="leg-anuncio" aria-live="polite">
+        {anuncio}
+      </p>
     </div>,
     document.body,
   );

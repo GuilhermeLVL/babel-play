@@ -589,6 +589,13 @@
       "when": 1794800004017,
       "tag": "0083_flags_escuta_e_selecao",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "6",
+      "when": 1794800005017,
+      "tag": "0084_flag_leitor_modo_traducao",
+      "breakpoints": true
     }
   ]
 }

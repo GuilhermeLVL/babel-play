@@ -48,6 +48,7 @@ const FLAGS_SENSIVEIS = new Set([
   'cartao_com_cena',
   'escuta_player_compacto',
   'leitor_selecao_firme',
+  'leitor_modo_traducao',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

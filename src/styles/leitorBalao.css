@@ -1,0 +1,130 @@
+/* O BALÃO DA TRADUÇÃO DO LEITOR (openspec `leitura-assistida`, fatia B). Mesmos tokens do leitor (`--leitor-*`); posição
+   calculada em `core/leitura/balaoDaTraducao.ts` (nunca sobre o trecho). Só existe com a flag `leitor_modo_traducao`. */
+.leitor-balao {
+  position: fixed;
+  z-index: 30;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 12px;
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--leitor-texto) 22%, transparent);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.leitor-balao-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.leitor-balao-escopo {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 999px;
+}
+.leitor-balao-escopo button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.leitor-balao-escopo button[aria-pressed='true'] {
+  background: var(--leitor-sutil);
+  font-weight: 700;
+}
+.leitor-balao-fechar {
+  margin-left: auto;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--leitor-suave);
+  cursor: pointer;
+}
+.leitor-balao-fechar svg {
+  width: 16px;
+  height: 16px;
+}
+.leitor-balao-corpo {
+  font-family: Georgia, serif;
+  overflow-wrap: anywhere;
+}
+.leitor-balao-carregando {
+  color: var(--leitor-suave);
+}
+.leitor-balao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--leitor-borda);
+}
+.leitor-balao-acoes button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--leitor-acento);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.leitor-balao-acoes button[aria-pressed='true'] {
+  background: var(--leitor-sutil);
+}
+.leitor-balao-acoes svg {
+  width: 16px;
+  height: 16px;
+}
+.leitor-ditado form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.leitor-ditado-faltou {
+  background: color-mix(in srgb, #2e9d57 28%, transparent);
+  color: inherit;
+  border-radius: 3px;
+}
+.leitor-ditado-sobrou {
+  color: #b3261e;
+}
+.leitor-incluir-traducoes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+/* Celular: o balão usa a largura do leitor (a posição já a limita), sem animar o que o movimento reduzido evita. */
+@media (prefers-reduced-motion: no-preference) {
+  .leitor-balao {
+    animation: leitor-balao-entra 120ms ease-out;
+  }
+}
+@keyframes leitor-balao-entra {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}

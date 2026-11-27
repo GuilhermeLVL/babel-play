@@ -51,6 +51,8 @@ export const CONJUNTOS: readonly Conjunto[] = [
       'leitor:narracao:cat:',
       'leitor:narracao:sessao:',
       'leitor:migrou:',
+      /* as traduções de trechos já feitas no leitor (texto do livro e tradução), por livro: só no aparelho */
+      'leitor:traducoes:',
     ],
     bancos: ['frasy-livros', 'frasy-leitor', 'frasy-capas'],
   },

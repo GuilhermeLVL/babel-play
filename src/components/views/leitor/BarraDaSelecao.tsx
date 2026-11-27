@@ -1,4 +1,4 @@
-import { BookA, Highlighter, Languages, Lightbulb, MessageCircleQuestion, StickyNote, X } from 'lucide-react';
+import { BookA, Highlighter, Languages, Lightbulb, MessageCircleQuestion, StickyNote, X, Zap } from 'lucide-react';
 import { useId, useState } from 'react';
 
 import { type CorDeAnotacao, CORES_DE_ANOTACAO } from '../../../core/leitura/anotacao';
@@ -39,6 +39,7 @@ export default function BarraDaSelecao({
   explicar,
   parceiro,
   aoPerguntar,
+  modoTraducao,
 }: {
   trecho: TrechoSelecionado;
   /** O idioma da tradução (o da pessoa). */
@@ -55,6 +56,11 @@ export default function BarraDaSelecao({
   parceiro: EstadoDaFerramenta;
   /** Abre o parceiro de leitura já com este trecho. */
   aoPerguntar: () => void;
+  /**
+   * Só com a flag `leitor_modo_traducao` (fatia B): a tradução sai no balão junto do trecho, e o interruptor "Modo tradução"
+   * faz soltar a seleção traduzir sozinho. Sem isto, "Traduzir" abre a tradução aqui na barra, como sempre foi.
+   */
+  modoTraducao?: { ligado: boolean; aoAlternar: () => void; aoTraduzir: () => void };
 }) {
   const [modo, setModo] = useState<'acoes' | 'nota' | 'traducao' | 'explicar'>('acoes');
   /* Quem pode explicar (plano ou amostra) é o servidor; aqui só o que já se sabe. O botão indisponível não some:
@@ -98,9 +104,25 @@ export default function BarraDaSelecao({
           <button type="button" className="btn btn-outline leitor-alvo" onClick={() => setModo('nota')}>
             <StickyNote aria-hidden /> {t('Nota')}
           </button>
-          <button type="button" className="btn btn-outline leitor-alvo" onClick={() => void pedirTraducao()}>
+          <button
+            type="button"
+            className="btn btn-outline leitor-alvo"
+            onClick={() => (modoTraducao ? modoTraducao.aoTraduzir() : void pedirTraducao())}
+          >
             <Languages aria-hidden /> {t('Traduzir')}
           </button>
+          {modoTraducao && (
+            <button
+              type="button"
+              className="btn btn-outline leitor-alvo"
+              role="switch"
+              aria-checked={modoTraducao.ligado}
+              data-testid="selecao-modo-traducao"
+              onClick={modoTraducao.aoAlternar}
+            >
+              <Zap aria-hidden /> {t('Modo tradução')}
+            </button>
+          )}
           {(
             [
               ['explicar', explicar, Lightbulb, t('Explicar'), () => setModo('explicar')],

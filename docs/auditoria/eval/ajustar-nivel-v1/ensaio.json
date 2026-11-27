@@ -1,0 +1,360 @@
+{
+  "modo": "ensaio",
+  "gastoUsd": 0,
+  "candidatos": [
+    "google/gemma-4-26b-a4b-it",
+    "meta-llama/llama-3.3-70b-instruct",
+    "deepseek/deepseek-v4.1-flash"
+  ],
+  "classificadorNoOriginal": {
+    "paragrafos": 20,
+    "medidos": 10,
+    "exatos": 3,
+    "dentroDeUm": 9,
+    "naoMedidos": [
+      "es-01",
+      "es-02",
+      "es-03",
+      "es-04",
+      "es-05",
+      "pt-01",
+      "pt-02",
+      "pt-03",
+      "pt-04",
+      "pt-05"
+    ],
+    "linhas": [
+      {
+        "id": "en-01",
+        "idioma": "en",
+        "declarado": "A1",
+        "medido": true,
+        "nivel": "A1",
+        "exato": true,
+        "dentro1": true
+      },
+      {
+        "id": "en-02",
+        "idioma": "en",
+        "declarado": "A2",
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      {
+        "id": "en-03",
+        "idioma": "en",
+        "declarado": "A2",
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": true
+      },
+      {
+        "id": "en-04",
+        "idioma": "en",
+        "declarado": "B1",
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      {
+        "id": "en-05",
+        "idioma": "en",
+        "declarado": "B1",
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      {
+        "id": "en-06",
+        "idioma": "en",
+        "declarado": "B2",
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      {
+        "id": "en-07",
+        "idioma": "en",
+        "declarado": "B2",
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      {
+        "id": "en-08",
+        "idioma": "en",
+        "declarado": "C1",
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      {
+        "id": "en-09",
+        "idioma": "en",
+        "declarado": "C1",
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      {
+        "id": "en-10",
+        "idioma": "en",
+        "declarado": "C2",
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": false
+      },
+      {
+        "id": "es-01",
+        "idioma": "es",
+        "declarado": "A1",
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      {
+        "id": "es-02",
+        "idioma": "es",
+        "declarado": "A2",
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      {
+        "id": "es-03",
+        "idioma": "es",
+        "declarado": "B1",
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      {
+        "id": "es-04",
+        "idioma": "es",
+        "declarado": "B2",
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      {
+        "id": "es-05",
+        "idioma": "es",
+        "declarado": "C1",
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      {
+        "id": "pt-01",
+        "idioma": "pt",
+        "declarado": "A1",
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      {
+        "id": "pt-02",
+        "idioma": "pt",
+        "declarado": "A2",
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      {
+        "id": "pt-03",
+        "idioma": "pt",
+        "declarado": "B1",
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      {
+        "id": "pt-04",
+        "idioma": "pt",
+        "declarado": "B2",
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      {
+        "id": "pt-05",
+        "idioma": "pt",
+        "declarado": "C1",
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      }
+    ]
+  },
+  "referencias": [
+    {
+      "id": "en-01->B1",
+      "alvo": "B1",
+      "nivel": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      }
+    },
+    {
+      "id": "en-02->A1",
+      "alvo": "A1",
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      }
+    },
+    {
+      "id": "en-04->A2",
+      "alvo": "A2",
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 0.6666666666666666,
+        "perdidas": [
+          "journey"
+        ]
+      }
+    },
+    {
+      "id": "en-06->B1",
+      "alvo": "B1",
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      }
+    }
+  ],
+  "juiz": [
+    {
+      "id": "juiz-bom",
+      "esperado": "bom",
+      "resultado": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Perde \"morning\", \"some\", \"a little\", o movimento do mercado vira \"many people\" e omite os bons preços? Não, preços mantidos. Sentido essencial preservado.",
+          "natural": "Frases gramaticais e fluentes, simples. \"The market has many people\" é um pouco menos idiomático, mas aceitável; não é telegráfico nem truncado."
+        }
+      },
+      "concorda": true
+    },
+    {
+      "id": "juiz-infiel",
+      "esperado": "infiel",
+      "resultado": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "A adaptação troca sábado por domingo e substitui a ida ao mercado por ficar em casa. Inventa fatos e omite compras, movimento, pessoas e preços.",
+          "natural": "As frases são gramaticais, completas e fluentes, com linguagem simples adequada ao nível A2. Não soam telegráficas nem truncadas."
+        }
+      },
+      "concorda": true
+    },
+    {
+      "id": "juiz-robotico",
+      "esperado": "pouco-natural",
+      "resultado": {
+        "valido": true,
+        "fiel": false,
+        "natural": false,
+        "raciocinio": {
+          "fiel": "Omite sábado de manhã, a proximidade do mercado, o movimento e as quantidades (um pouco de queijo, algumas frutas). Transforma a intenção de comprar em ações.",
+          "natural": "Texto telegráfico e agramatical: faltam artigos e preposições, e há erros de concordância (\"Maria buy\", \"People good\", \"Price good\")."
+        }
+      },
+      "concorda": true
+    }
+  ],
+  "pedidos": [
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "foraDaProducao": false,
+      "piorCasoDaChamadaUsd": 0.00028208249999999997
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "foraDaProducao": false,
+      "piorCasoDaChamadaUsd": 0.0004059
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "foraDaProducao": false,
+      "piorCasoDaChamadaUsd": 0.00076185
+    }
+  ],
+  "estimativa": {
+    "porCandidato": [
+      {
+        "candidato": "google/gemma-4-26b-a4b-it",
+        "ajustes": 40,
+        "usdUmaChamada": 0.0023597325000000004,
+        "usdEsperado": 0.003452611500000001,
+        "usdPiorCaso": 0.0050919300000000015,
+        "usdPorAjusteEsperado": 0.00008631528750000002
+      },
+      {
+        "candidato": "meta-llama/llama-3.3-70b-instruct",
+        "ajustes": 40,
+        "usdUmaChamada": 0.00345158,
+        "usdEsperado": 0.005052932,
+        "usdPiorCaso": 0.007454960000000001,
+        "usdPorAjusteEsperado": 0.0001263233
+      },
+      {
+        "candidato": "deepseek/deepseek-v4.1-flash",
+        "ajustes": 40,
+        "usdUmaChamada": 0.005742450000000001,
+        "usdEsperado": 0.008370510000000001,
+        "usdPiorCaso": 0.012312600000000002,
+        "usdPorAjusteEsperado": 0.00020926275000000003
+      }
+    ],
+    "totalEsperadoUsd": 0.0168760535,
+    "totalPiorCasoUsd": 0.024859490000000005
+  }
+}

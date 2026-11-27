@@ -198,6 +198,15 @@ export interface QuotasDoPlano {
    */
   escritasMes: number | null;
   /**
+   * O "AJUSTAR NÍVEL" DA LEITURA (openspec `leitura-assistida`, fatia D; `POST /api/leitura/ajustar-nivel`): reescritas de
+   * palavra, trecho ou parágrafo (`ajustesDeNivelMes`) e de capítulo inteiro (`ajustesDeCapituloMes`, 1 por capítulo, não por
+   * parágrafo) por mês, com contadores próprios (`server/lib/ajustesDeNivel.ts`). Os tokens saem da `tokensMes`. `0` = o plano
+   * não tem (Grátis, convidado e teste de 3 dias); `null` = sem teto. Os valores dos pagos são PROVISÓRIOS (decisão do dono,
+   * depois da medição de custo); com a flag `ia_ajustar_nivel` desligada nada é cobrado.
+   */
+  ajustesDeNivelMes: number | null;
+  ajustesDeCapituloMes: number | null;
+  /**
    * O ASSISTENTE AO VIVO (`docs/specs/2026-10-25-assistente-ao-vivo.md`): chamadas de nuvem POR DIA LOCAL, somando
    * expressões, termos, "Como respondo?" e a correção da fala (contador próprio, `server/lib/assistenteAoVivo.ts`). Os
    * tokens de cada chamada saem da `tokensMes` do plano (como a IA de estudo), então o custo já está na conta do plano;
@@ -468,6 +477,20 @@ export const FLAG_CARTAO_COM_CENA = 'cartao_com_cena';
 export const ESCRITAS_MES_DOS_PAGOS = 30;
 
 /**
+ * A FLAG DO "AJUSTAR NÍVEL" (openspec `leitura-assistida`, fatia D; migrações PG 0047 e SQLite 0086, reservadas): reescrever
+ * palavra, trecho, parágrafo ou capítulo de A1 a C2 com IA, com o original ao lado. Nasce DESLIGADA e sem regra de plano.
+ * Ligar é ato do dono, depois de medir o custo e o acerto de nível (`scripts/leitura/simular-nivel.ts`).
+ */
+export const FLAG_IA_AJUSTAR_NIVEL = 'ia_ajustar_nivel';
+
+/**
+ * As cotas do "Ajustar nível" nos planos pagos (PROVISÓRIAS, a proposta da spec; o dono decide depois de medir o custo por
+ * parágrafo). Um ajuste de parágrafo leva ~700 tokens de entrada e ~400 de saída por chamada, no máximo 2 chamadas.
+ */
+export const AJUSTES_DE_NIVEL_MES_DOS_PAGOS = 60;
+export const AJUSTES_DE_CAPITULO_MES_DOS_PAGOS = 4;
+
+/**
  * OS AVATARES (`docs/specs/2026-10-28-avatar-interprete.md`; migração PG 0016). Três flags que nascem DESLIGADAS:
  * `avatar_3d` (a base: o avatar da pessoa e o do intérprete, em 3D com fallback 2D), `avatar_sinais` (soletração
  * rotulada como demonstração, nunca "tradução para Libras") e `avatar_elenco` (narrador e personagens nos livros).
@@ -531,6 +554,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 0,
       resumosMes: 0,
       escritasMes: 0,
+      ajustesDeNivelMes: 0,
+      ajustesDeCapituloMes: 0,
       assistenteDia: 0,
       assistenteTokensMes: 0,
       parceiroDia: 0,
@@ -573,6 +598,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       escritasMes: ESCRITAS_MES_DOS_PAGOS,
+      ajustesDeNivelMes: AJUSTES_DE_NIVEL_MES_DOS_PAGOS,
+      ajustesDeCapituloMes: AJUSTES_DE_CAPITULO_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 187_500,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -628,6 +655,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       escritasMes: ESCRITAS_MES_DOS_PAGOS,
+      ajustesDeNivelMes: AJUSTES_DE_NIVEL_MES_DOS_PAGOS,
+      ajustesDeCapituloMes: AJUSTES_DE_CAPITULO_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 750_000,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -674,6 +703,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       escritasMes: ESCRITAS_MES_DOS_PAGOS,
+      ajustesDeNivelMes: AJUSTES_DE_NIVEL_MES_DOS_PAGOS,
+      ajustesDeCapituloMes: AJUSTES_DE_CAPITULO_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 1_125_000,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -714,6 +745,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       escritasMes: ESCRITAS_MES_DOS_PAGOS,
+      ajustesDeNivelMes: AJUSTES_DE_NIVEL_MES_DOS_PAGOS,
+      ajustesDeCapituloMes: AJUSTES_DE_CAPITULO_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 500_000,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -753,6 +786,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       escritasMes: ESCRITAS_MES_DOS_PAGOS,
+      ajustesDeNivelMes: AJUSTES_DE_NIVEL_MES_DOS_PAGOS,
+      ajustesDeCapituloMes: AJUSTES_DE_CAPITULO_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 750_000,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -792,6 +827,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       escritasMes: ESCRITAS_MES_DOS_PAGOS,
+      ajustesDeNivelMes: AJUSTES_DE_NIVEL_MES_DOS_PAGOS,
+      ajustesDeCapituloMes: AJUSTES_DE_CAPITULO_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 750_000,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -829,6 +866,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: null,
       resumosMes: null,
       escritasMes: null,
+      ajustesDeNivelMes: null,
+      ajustesDeCapituloMes: null,
       assistenteDia: null,
       assistenteTokensMes: null,
       parceiroDia: null,
@@ -891,6 +930,8 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     explicacoesMes: 0,
     resumosMes: 0,
     escritasMes: 0,
+    ajustesDeNivelMes: 0,
+    ajustesDeCapituloMes: 0,
     assistenteDia: 0,
     assistenteTokensMes: 0,
     parceiroDia: 0,

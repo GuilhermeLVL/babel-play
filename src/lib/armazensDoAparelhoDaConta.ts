@@ -52,7 +52,8 @@ export const CONJUNTOS: readonly Conjunto[] = [
       'leitor:narracao:sessao:',
       'leitor:migrou:',
     ],
-    bancos: ['frasy-livros', 'frasy-leitor', 'frasy-capas'],
+    /* `frasy-ajustes`: os ajustes de nível (texto do livro e o texto ajustado) guardados SÓ aqui, por hash do pedido. */
+    bancos: ['frasy-livros', 'frasy-leitor', 'frasy-capas', 'frasy-ajustes'],
   },
   /* As anotações por frase da Leitura (`readingAnnotations:<sessão>`): texto escrito pela pessoa sobre as falas dela. */
   { nome: 'anotacoes-da-leitura', chaves: [], prefixos: ['readingAnnotations:'], bancos: [] },

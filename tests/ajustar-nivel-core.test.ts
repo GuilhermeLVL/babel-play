@@ -109,7 +109,7 @@ describe('decidirReescrita', () => {
     const d = decidirReescrita({
       ...base,
       original: 'The market is big.',
-      ajustado: FACIL.replace('go to the market', 'go to the market'),
+      ajustado: FACIL,
       alvo: 'A2',
     })
     expect(d.reescrever).toBe(false)

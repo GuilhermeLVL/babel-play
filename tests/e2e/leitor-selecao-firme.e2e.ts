@@ -210,7 +210,7 @@ test.describe('Leitor: a seleção firme', () => {
     await page.mouse.down()
     await page.mouse.move(alvo.x, alvo.y + 22 + alvo.h / 2, { steps: 6 })
     await page.mouse.up()
-    await expect.poll(() => selecionado(f)).toBe(`${FRASE1} He`.replace('orchard. He', 'orchard. He'))
+    await expect.poll(() => selecionado(f)).toBe(`${FRASE1} He`)
     // teclado: → avança mais uma palavra
     await alca.focus()
     await page.keyboard.press('ArrowRight')

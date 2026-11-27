@@ -290,7 +290,17 @@ export function systemDaAcao(p: {
 }
 
 /** Um livro que traz `</texto>` fecharia o cercado e viraria instrução: o delimitador some do conteúdo. */
-const semDelimitador = (t: string): string => t.replace(/<\s*\/?\s*texto\s*>/gi, '');
+const semDelimitador = (t: string): string => {
+  /* Quantificadores LIMITADOS (sem ReDoS) e repetição até estabilizar (`<<texto>texto>` não remonta o delimitador). */
+  const re = /<\s{0,16}\/?\s{0,16}texto\s{0,16}>/gi;
+  let atual = t;
+  for (let i = 0; i < 8; i++) {
+    const prox = atual.replace(re, '');
+    if (prox === atual) break;
+    atual = prox;
+  }
+  return atual;
+};
 
 /** O USER: o texto (e, na palavra, a frase em volta), cercado e sem execução. */
 export function userDoAjuste(p: {

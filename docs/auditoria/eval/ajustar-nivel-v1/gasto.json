@@ -1,0 +1,11 @@
+{
+  "totalUsd": 0.015824341,
+  "porSistema": {
+    "ajustar:google/gemma-4-26b-a4b-it": 0.0014049400000000004,
+    "ajustar2:google/gemma-4-26b-a4b-it": 0.000108715,
+    "ajustar:meta-llama/llama-3.3-70b-instruct": 0.009617928,
+    "ajustar2:meta-llama/llama-3.3-70b-instruct": 0.00128162,
+    "ajustar:deepseek/deepseek-v4.1-flash": 0.002878516,
+    "ajustar2:deepseek/deepseek-v4.1-flash": 0.000532622
+  }
+}

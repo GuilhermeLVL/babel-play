@@ -60,3 +60,17 @@ Saída em `docs/auditoria/eval/ajustar-nivel-v1/resultado.json` (+ `gasto.json`)
 ## 7. Recomendação provisória
 
 Manter **`google/gemma-4-26b-a4b-it`**, o mais barato da cascata `rapida` (menos da metade do custo do DeepSeek v4.1 flash e 30% abaixo do Llama 3.3 70B), como primário do Ajustar nível, com os outros dois de reserva na ordem atual. É provisória: sem a rodada real não há medida de nível, preservação nem fidelidade por modelo. D1 segue **[B][D] pendente da rodada real**; o `design.md` só registra a escolha definitiva depois dela.
+
+## 8. Rodada real (27/11/2026) e decisão
+
+Rodada paga autorizada pelo dono: `--real --confirmo --teto 1`, 3 candidatos x 40 ajustes, OpenRouter com retenção zero. Gasto real: **US$ 0,0158** (estimativa era US$ 0,017). Um ajuste do Llama voltou inválido (39 válidos). Dados brutos em `docs/auditoria/eval/ajustar-nivel-v1/resultado.json` e `gasto.json`.
+
+| Candidato                         | Nível exato (en) | Nível ±1 (en) | Preservação | Fiel | Natural | US$ por ajuste |
+| --------------------------------- | ---------------- | ------------- | ----------- | ---- | ------- | -------------- |
+| google/gemma-4-26b-a4b-it         | 37% (19)         | 89%           | 100%        | 85%  | 97,5%   | 0,000038       |
+| meta-llama/llama-3.3-70b-instruct | 35% (20)         | 95%           | 100%        | 72%  | 97%     | 0,000272       |
+| deepseek/deepseek-v4.1-flash      | 32% (19)         | 89%           | 100%        | 100% | 100%    | 0,000085       |
+
+Pela regra combinada antes da rodada (preservação >= 95%, fiel >= 90%, natural >= 90%, o mais barato entre os que passam), **só o DeepSeek v4.1 flash passa**: o Gemma muda o sentido em 6 de 40 reescritas e o Llama em 11 de 39. O acerto de nível não separa os três (amostra pequena, só inglês).
+
+**Decisão (dono, 27/11/2026):** `deepseek/deepseek-v4.1-flash` é o primário do Ajustar nível (sem raciocínio, como na explicação), com Gemma e Llama de reserva. Custo na cota cheia (60 ajustes/mês): menos de US$ 0,01 por assinante.

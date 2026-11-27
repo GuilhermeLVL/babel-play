@@ -255,10 +255,16 @@ test.describe('leitor', () => {
   })
 
   test('cartão da palavra: Salvar e Já sei à vista, alvos de 44 px e cabe na tela', async ({ page }) => {
-    await selecionar(page, FRASES_DO_LIVRO[0], 'garden')
-    await page.getByTestId('barra-da-selecao').getByRole('button', { name: 'Ver a palavra' }).click()
     const cartao = page.getByTestId('folha-da-palavra')
-    await expect(cartao).toBeVisible()
+    /* O banco de dev guarda o que outros testes salvaram: usa a primeira palavra da frase que ainda NÃO está salva
+       (palavra salva mostra "Salva", sem "Salvar" nem "Já sei"). */
+    for (const palavra of ['garden', 'evening', 'quiet', 'settled']) {
+      await selecionar(page, FRASES_DO_LIVRO[0], palavra)
+      await page.getByTestId('barra-da-selecao').getByRole('button', { name: 'Ver a palavra' }).click()
+      await expect(cartao).toBeVisible()
+      if (await cartao.getByRole('button', { name: 'Salvar', exact: true }).isVisible()) break
+      await cartao.getByRole('button', { name: 'Fechar' }).first().click()
+    }
     await foto(page, 'leitor-cartao-da-palavra')
     const c = await caixa(cartao)
     const vp = page.viewportSize()!

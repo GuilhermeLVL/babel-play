@@ -108,6 +108,7 @@ const NOME_DA_FUNCAO = {
   stt: 'STT',
   tts: 'voz natural',
   explicacao: 'explicação da frase',
+  ajustarNivel: 'ajuste de nível',
 } as const
 
 /**

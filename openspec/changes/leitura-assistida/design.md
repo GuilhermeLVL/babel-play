@@ -160,6 +160,7 @@ knip, CI espelhada), seguindo "PR pequeno, CI verde, sem empilhar".
 - Desempenho do destaque em capítulo longo: orçamento e medição em C.
 - Custo de IA do capítulo: estimativa e confirmação, cota, e custo medido antes de qualquer valor de plano.
 - O modelo erra o nível: classificador local + 1 reescrita + original ao lado; nunca prometer "exatamente B1".
+- Modelo do Ajustar nível (D1, 27/11/2026): `deepseek/deepseek-v4.1-flash` primeiro (fiel 100% na bancada, US$ 0,000085 por ajuste), Gemma 4 26B e Llama 3.3 70B de reserva; ordem própria pela função `ajustarNivel` do registro (`docs/auditoria/2026-11-27-ajustar-nivel-bancada.md`, seção 8).
 
 ## Métricas de sucesso (medidas antes de ligar qualquer flag)
 

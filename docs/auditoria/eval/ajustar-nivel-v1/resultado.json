@@ -1,0 +1,3974 @@
+{
+  "modo": "real",
+  "gastoUsd": 0.015824341,
+  "parado": null,
+  "invalidos": 1,
+  "erros": 0,
+  "agregado": [
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "ajustes": 40,
+      "nivelMedidos": 19,
+      "nivelExato": 0.3684210526315789,
+      "nivelDentroDeUm": 0.8947368421052632,
+      "preservacao": 1,
+      "usdPorAjuste": 0.000037841375000000005,
+      "fiel": 0.85,
+      "natural": 0.975,
+      "juizados": 40
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "ajustes": 39,
+      "nivelMedidos": 20,
+      "nivelExato": 0.35,
+      "nivelDentroDeUm": 0.95,
+      "preservacao": 1,
+      "usdPorAjuste": 0.00027223430769230766,
+      "fiel": 0.717948717948718,
+      "natural": 0.9743589743589743,
+      "juizados": 39
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "ajustes": 40,
+      "nivelMedidos": 19,
+      "nivelExato": 0.3157894736842105,
+      "nivelDentroDeUm": 0.8947368421052632,
+      "preservacao": 1,
+      "usdPorAjuste": 0.00008527845,
+      "fiel": 1,
+      "natural": 1,
+      "juizados": 40
+    }
+  ],
+  "linhas": [
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-01",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000258975,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "A adaptação é idêntica ao original, então preserva todo o sentido, os fatos e a ordem das ideias, sem acrescentar nem omitir nada.",
+          "natural": "Inglês gramatical e fluente, com frases curtas e simples adequadas ao nível A2. Soa como texto escrito por uma pessoa, sem parecer telegráfico ou truncado."
+        }
+      },
+      "ajustado": "I have a dog. The dog is big and brown. Every day we go to the park. My dog runs and plays. I am happy when he is happy."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-01",
+      "alvo": "B1",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000626275,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém cão grande e marrom, idas diárias ao parque, correr e brincar, e a felicidade compartilhada, na mesma ordem. Acréscimos como \"local\" e \"together\" são triviais.",
+          "natural": "Texto gramatical e fluente, com conectores naturais e frases bem formadas. Soa como escrito por uma pessoa, sem truncamento."
+        }
+      },
+      "ajustado": "I own a big, brown dog. Every day, we visit the local park together. While we are there, my dog loves to run and play around. I feel very happy whenever he is happy."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-02",
+      "alvo": "A1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000407,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "A adaptação é idêntica ao original: preserva sentido, fatos, nome, local, itens da compra e ordem das ideias, sem acréscimos nem omissões.",
+          "natural": "Texto gramatical e fluente, com frases simples bem ligadas por conectivos como \"but\" e \"and\". Soa como escrito por uma pessoa, sem truncamento."
+        }
+      },
+      "ajustado": "On Saturday morning, Maria goes to the market near her house. She wants to buy bread, some fruit and a little cheese. The market is busy, but the people are friendly and the prices are good."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-02",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000386,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém todos os fatos, nomes e a ordem das ideias; a única mudança é uma vírgula antes de “and a little cheese”.",
+          "natural": "Texto gramatical e fluente, com frases bem ligadas e vocabulário simples. A vírgula serial é correta em inglês."
+        }
+      },
+      "ajustado": "On Saturday morning, Maria goes to the market near her house. She wants to buy bread, some fruit, and a little cheese. The market is busy, but the people are friendly and the prices are good."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-03",
+      "alvo": "B1",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00006105,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos, nome e ordem. Pequenas mudanças (\"his office\", \"decided to wait\", \"started walking home\") não alteram o essencial nem inventam informação relevante.",
+          "natural": "Texto gramatical, fluente e bem conectado, com \"Since\" ligando causa e consequência de modo natural e adequado ao nível B1."
+        }
+      },
+      "ajustado": "It was raining when Tom left his office. Since he did not have an umbrella, he decided to wait under a tree. After twenty minutes, the rain stopped and he started walking home. He was late for dinner, but his family understood."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-03",
+      "alvo": "B2",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": false
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00008293499999999999,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos, nome e ordem. Muda \"was raining\" para \"starting to rain\", alterando o momento da chuva: já chovia, não estava começando. Desvio pequeno, essencial preservado.",
+          "natural": "Texto gramatical, fluente e bem encadeado, com conectores naturais. \"Very understanding of the situation\" é um pouco formal, mas soa escrito por uma pessoa."
+        }
+      },
+      "ajustado": "When Tom left the office, it was starting to rain. Because he did not have an umbrella with him, he decided to wait under a tree for a while. After twenty minutes, the rain finally stopped, allowing him to walk home. Although he was late for dinner, his family was very understanding of the situation."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-04",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00003087,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém duração, locais de compra, preço menor online, trens tranquilos cedo e assento provável à janela, na mesma ordem. \"Near the window\" altera minimamente \"by the window\".",
+          "natural": "Frases curtas, completas e gramaticais, com fluência adequada ao A2. \"Online is usually cheaper\" é construção comum e natural, sem soar telegráfica."
+        }
+      },
+      "ajustado": "The journey to the coast takes about three hours by train. You can buy a ticket at the station or online. Online is usually cheaper. If you travel early in the morning, the trains are quiet. You will probably find a seat near the window."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-04",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000369,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém duração, trem, compra na estação ou online (mais barata), viagem cedo, trens tranquilos e provável assento na janela, na mesma ordem.",
+          "natural": "Gramatical e fluente. “Lasts approximately three hours by train” soa um pouco menos idiomático que “takes”, mas o conjunto parece escrito por uma pessoa."
+        }
+      },
+      "ajustado": "The journey to the coast lasts approximately three hours by train. You can purchase a ticket at the station or online, and buying it online is usually more affordable. If you decide to travel early in the morning, the trains are typically quiet, so you will likely find a seat next to the window."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-05",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00004508,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem. \"Sales were low for two years\" substitui queda por vendas baixas, alterando levemente o sentido, mas o essencial permanece: problema de vendas justificando a decisão.",
+          "natural": "Texto gramatical e fluente, com frases simples e bem conectadas. \"Sales were low for two years\" seria idealmente \"had been low\", mas soa aceitável."
+        }
+      },
+      "ajustado": "The company announced a big change, and many workers were worried. The manager said the decision was necessary because sales were low for two years. He promised that nobody would lose their job. Slowly, the people in the office felt better."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-05",
+      "alvo": "C1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00004986,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem: mudança, preocupação dos trabalhadores, queda de vendas por dois anos, promessa de que ninguém perderia o emprego e melhora gradual do clima.",
+          "natural": "Inglês formal, gramatical e fluente, com colocações idiomáticas adequadas ao nível C1, como “wave of apprehension” e “face redundancy”."
+        }
+      },
+      "ajustado": "Upon the announcement of a significant change within the company, a wave of apprehension swept through the workforce. The manager clarified that the decision had become imperative due to a two-year decline in sales. He offered assurances that no employees would face redundancy, which gradually fostered a more positive atmosphere throughout the office."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-06",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000325,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos, ordem e ressalvas: desacordo sobre a velocidade, evidência forte e custo da demora. \"Very strong\" atenua um pouco \"overwhelming\", sem alterar o sentido.",
+          "natural": "Texto gramatical, fluente e bem conectado, com vocabulário simples e frases completas, como escrito por uma pessoa."
+        }
+      },
+      "ajustado": "Even though researchers disagree about the exact speed of warming, the evidence that the climate is changing is now very strong. Governments face a difficult problem: acting quickly is expensive, but waiting to act would almost certainly cost much more in the future."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-06",
+      "alvo": "C1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000306,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém o desacordo sobre o ritmo do aquecimento, a evidência esmagadora e o dilema entre agir já ou adiar com custo maior. A ressalva “quase certamente” permanece.",
+          "natural": "Inglês gramatical, fluente e coeso, em registro formal adequado ao nível C1. Colocações como “confronted with a profound dilemma” e “incur far greater costs” soam idiomáticas."
+        }
+      },
+      "ajustado": "While researchers remain divided regarding the precise rate of warming, the evidence that the climate is changing has become overwhelming. Governments are confronted with a profound dilemma: immediate intervention requires significant expenditure, yet postponing action would almost certainly incur far greater costs in the long term."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-07",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000394,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém o argumento, a ordem e a crítica. Simplifica bem escassez e alocação; omite apenas nuances como 'often', 'supposedly efficient' e 'little money' permanece.",
+          "natural": "Frases simples, gramaticais e fluentes, com conectores adequados. 'The price shows when things are rare' soa natural para nível A2."
+        }
+      },
+      "ajustado": "Economists say that a free market uses resources well because the price shows when things are rare. But some people disagree. They say this idea forgets about inequality. This is because people with little money cannot really join the market."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-07",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000289575,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém as duas posições, a causa dos preços, a desigualdade e a ordem das ideias. \"Rare\" e \"uses resources in a good way\" simplificam escassez e eficiência sem distorcer o essencial.",
+          "natural": "Texto gramatical, fluente e bem conectado. \"Uses resources in a good way\" é um pouco simples, mas soa aceitável. Não é telegráfico nem truncado."
+        }
+      },
+      "ajustado": "Economists often say that a free market uses resources in a good way because the price shows how rare something is. However, critics disagree. They say this idea ignores inequality because people with very little money cannot really participate in the market."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-08",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00005707,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém dependência do sono, repetição e integração de experiências, a ressalva de incerteza e a consequência para quem sacrifica descanso para estudar, na mesma ordem.",
+          "natural": "Texto gramatical e fluente, com frases claras e conectores adequados. \"Making long-term memory strong\" e \"do not sleep enough to study more\" soam um pouco rígidos, mas aceitáveis."
+        }
+      },
+      "ajustado": "Making long-term memory strong seems to depend on sleep. During sleep, the brain repeats recent experiences and connects them with what you already know. Therefore, students who do not sleep enough to study more might accidentally hurt the memory they are trying to improve."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-08",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000032085,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém sentido, ordem e ressalvas (\"parece\", \"podem\"): consolidação depende do sono, o cérebro repete experiências e as integra, e sacrificar descanso pode prejudicar a retenção.",
+          "natural": "Inglês gramatical e fluente, com frases completas e bem conectadas. \"Memory retention\" soa levemente redundante, mas é natural."
+        }
+      },
+      "ajustado": "The process of strengthening long-term memory seems to rely on sleep, a time when the brain repeats recent experiences and connects them with what is already known. As a result, students who give up sleep to study more hours might accidentally damage the very memory retention they are trying to improve."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-09",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000353,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Perde que as origens estavam obscurecidas por crônicas contraditórias e distorce a tese: o povoado é quase dois séculos anterior à fundação, não habitado durante dois séculos antes dela.",
+          "natural": "Frases simples, completas e gramaticais, com encadeamento fluente. Há leves imprecisões de expressão, como \"new ideas\", mas o texto soa escrito por uma pessoa."
+        }
+      },
+      "ajustado": "Historians are studying the history of the city again. Before, people had different stories, but now they have new ideas. They say people lived near the river for almost two hundred years before the official start of the city. This new information is very important for the local identity."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-09",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000454,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém origens obscurecidas por relatos conflitantes, reavaliação por historiadores, povoamento quase dois séculos anterior à fundação oficial e implicações para a identidade local. Nada essencial inventado ou omitido.",
+          "natural": "Texto gramatical e fluente, com frases bem conectadas. \"Re-evaluating this history\" repete um pouco a ideia anterior, mas soa como escrita humana."
+        }
+      },
+      "ajustado": "The origins of the city were hidden for a long time due to conflicting historical accounts. However, historians are now re-evaluating this history. They argue that the settlement along the river existed nearly two hundred years before the official founding date. This new discovery has significant implications for local identity."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-10",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00003204,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a ideia central: um silêncio que condensa a fala, pausa carregada do não dito, e qualquer palavra, mesmo cuidadosa, trairia a verdade que pretende servir.",
+          "natural": "Texto gramatical e fluente, em frases completas e bem ligadas. A divisão em duas frases facilita a leitura sem soar truncada."
+        }
+      },
+      "ajustado": "There is a type of silence that is not just the absence of speaking, but a concentrated version of it. It is a pause filled with so much that is not said that any word, even if chosen very carefully, would seem like a clumsy betrayal of the truth it tries to serve."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "en-10",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00004774,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a ideia, a ordem e os detalhes: o silêncio como destilação da fala, a pausa carregada do não dito e a palavra como traição desajeitada da verdade.",
+          "natural": "Inglês gramatical e fluente, em duas frases bem ligadas. \"Its most concentrated form\" soa um pouco ambíguo quanto ao referente, mas continua natural."
+        }
+      },
+      "ajustado": "There is a specific kind of silence that is not simply the absence of speech, but rather its most concentrated form. It is a pause so full of what remains unsaid that any word, no matter how carefully chosen, would feel like a clumsy betrayal of the truth it intends to express."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "es-01",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00002502,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "A adaptação é idêntica ao original: mantém sentido, fatos e ordem das ideias, sem acréscimos nem omissões.",
+          "natural": "Frases simples, gramaticais e fluentes em espanhol, adequadas ao nível A2, sem soar telegráficas ou truncadas."
+        }
+      },
+      "ajustado": "Tengo una casa grande. En mi casa hay un gato negro. El gato duerme en el sofá. Yo bebo café y miro la tele."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "es-01",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00002475,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem. “Vive” no lugar de “hay” e “televisión” no lugar de “tele” preservam o sentido, sem omissões nem invenções relevantes.",
+          "natural": "Texto gramatical e fluente em espanhol; frases simples e completas, como alguém escreveria naturalmente, sem soar telegráfico ou truncado."
+        }
+      },
+      "ajustado": "Tengo una casa grande. En mi casa vive un gato negro. El gato duerme en el sofá. Yo bebo café y miro la televisión."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "es-02",
+      "alvo": "A1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000026235,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem. \"Vemos a vecinos\" e \"ir a casa\" simplificam \"nos encontramos\" e \"volver\", sem alterar o essencial.",
+          "natural": "Texto gramatical e fluente, com frases completas e vocabulário simples. Soa como escrito por uma pessoa em espanhol."
+        }
+      },
+      "ajustado": "Los sábados voy al mercado con mi madre. Compramos fruta, verduras y pan. A veces vemos a vecinos y hablamos un poco antes de ir a casa."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "es-02",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000368,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": false,
+        "raciocinio": {
+          "fiel": "Mantém mercado aos sábados com a mãe, compra de fruta, verduras e pão, encontro com vizinhos, conversa e volta. \"Vemos\" preserva o essencial de \"nos encontramos\".",
+          "natural": "\"Nosotros comprar\" usa infinitivo sem conjugação, um erro gramatical claro que soa truncado e não natural em espanhol."
+        }
+      },
+      "ajustado": "Los sábados voy al mercado con mi madre. Nosotros comprar fruta, verduras y pan. A veces vemos a nuestros vecinos y hablamos un poco antes de regresar a casa."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "es-03",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000384,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém trajeto, duração, compra antecipada, janela e paisagem. Porém \"muito mais barato\" vira \"muito barato\", perdendo a comparação, e \"unas tres horas\" perde a aproximação.",
+          "natural": "Frases simples, gramaticais e fluentes, com conexão por \"También\". \"El viaje es de tres horas\" é uso corrente em espanhol."
+        }
+      },
+      "ajustado": "El viaje en tren desde la ciudad hasta la costa es de tres horas. Si compras el billete antes, es muy barato. También puedes elegir un asiento cerca de la ventana para ver el paisaje."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "es-03",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000301725,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém duração, rota, vantagem da compra antecipada no preço, escolha de assento na janela e apreciação da paisagem, na mesma ordem, sem acréscimos relevantes.",
+          "natural": "Espanhol gramatical e fluente, com conectores adequados e frases completas. Soa como texto escrito por uma pessoa."
+        }
+      },
+      "ajustado": "El viaje en tren desde la ciudad hasta la costa dura aproximadamente tres horas. Si compras el billete con antelación, el precio es mucho más bajo; además, tienes la oportunidad de elegir un asiento junto a la ventana para disfrutar del paisaje."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "es-04",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000336,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Atribui a perda a “su nuevo trabajo y sus mejores salarios”; o original fala apenas em aumentos salariais. Emprego novo é invenção que altera os fatos.",
+          "natural": "Texto gramatical e fluente, com frases completas. “El aumento del precio de las cosas” e “eliminó casi todo el beneficio” soam simples, mas aceitáveis."
+        }
+      },
+      "ajustado": "Aunque la economía del país creció el año pasado, muchos trabajadores no sintieron una mejora en su vida diaria. Esto pasó porque el aumento del precio de las cosas fue tan alto que eliminó casi todo el beneficio de su nuevo trabajo y sus mejores salarios."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "es-04",
+      "alvo": "C1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000488,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém crescimento, falta de melhoria e inflação como causa. Porém \"aumentos en el trabajo y los salarios\" altera o original, que cita só subidas salariais, inventando aumento no trabalho.",
+          "natural": "Espanhol formal, gramatical e fluente, em registro adequado a texto escrito. \"Aumentos en el trabajo\" soa um pouco estranho, mas não compromete a naturalidade geral."
+        }
+      },
+      "ajustado": "A pesar de que la economía nacional experimentó un crecimiento durante el ejercicio anterior, una gran parte de la población activa no percibió una mejora tangible en su cotidianeidad, debido a que el incremento en el precio de los bienes y servicios terminó por neutralizar, casi en su totalidad, los recientes aumentos en el trabajo y los salarios."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "es-05",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00002925,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém reconstrução da memória pelo presente e reescrita geracional inconsciente. Porém \"no es solo un archivo de datos\" suaviza a negação da neutralidade e omite essa ideia central.",
+          "natural": "Texto gramatical, fluente e bem conectado, com frases simples e conectores adequados, como \"En realidad\" e \"Por eso\"."
+        }
+      },
+      "ajustado": "La memoria de una comunidad no es solo un archivo de datos. En realidad, la gente reconstruye su pasado según sus problemas actuales. Por eso, cada generación escribe de nuevo su propia historia, muchas veces sin darse cuenta."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "es-05",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000416,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a ideia central: memória não neutra, reconstruída pelo presente, e cada geração reescreve sua história sem notar. Perde apenas a nuance de \"a menudo\", preservada como \"muchas veces\".",
+          "natural": "Texto fluente e gramatical, com conectores adequados (\"por el contrario\", \"de esta manera\"), em duas frases bem construídas e naturais em espanhol."
+        }
+      },
+      "ajustado": "La memoria colectiva de una comunidad no es un archivo neutro; por el contrario, se reconstruye constantemente según las preocupaciones del presente. De esta manera, cada generación reescribe su propia historia, muchas veces sin darse cuenta de ello."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "pt-01",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000359,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "A adaptação é idêntica ao original, preservando sentido, fatos e ordem das ideias, sem acréscimos nem omissões.",
+          "natural": "Frases simples, gramaticais e fluentes em português, adequadas ao nível A2, sem soar telegráficas nem truncadas."
+        }
+      },
+      "ajustado": "Eu moro em uma casa pequena. Tenho um cachorro. Ele é branco e muito feliz. Todo dia eu brinco com ele no quintal."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "pt-01",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000342,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém todos os fatos, a ordem e o sentido. A única mudança, \"Todo dia\" para \"Todos os dias\", é equivalente.",
+          "natural": "Texto gramatical e fluente, com frases simples e bem formadas, como alguém escreveria naturalmente em português."
+        }
+      },
+      "ajustado": "Eu moro em uma casa pequena. Tenho um cachorro. Ele é branco e muito feliz. Todos os dias eu brinco com ele no quintal."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "pt-02",
+      "alvo": "A1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000285075,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos, ordem e participantes. \"A gente\" virou \"nós\" e \"frutas frescas\" virou \"fruta fresca\", sem alterar o sentido.",
+          "natural": "Texto gramatical, fluente e completo. A repetição de \"nós\" soa um pouco enfática, mas é natural para o nível A1."
+        }
+      },
+      "ajustado": "No domingo de manhã, nós vamos à feira perto de casa. Meu pai gosta de comprar fruta fresca e eu escolho o pão. Depois, nós voltamos para casa e tomamos café juntos."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "pt-02",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000277425,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos, personagens e ordem. Trocar \"a gente\" por \"nós\" e \"frutas frescas\" por \"fruta fresca\" não altera o sentido.",
+          "natural": "Texto gramatical e fluente, com frases completas e pontuação correta. \"Fruta fresca\" no singular coletivo soa natural."
+        }
+      },
+      "ajustado": "No domingo de manhã, nós vamos à feira perto de casa. Meu pai gosta de comprar fruta fresca e eu escolho o pão. Depois, voltamos para casa e tomamos café juntos."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "pt-03",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000285,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Perde o \"cerca de\", tornando exata uma duração aproximada. Omite \"pega a estrada ainda\", mas o restante, a ordem e a ideia central permanecem.",
+          "natural": "Frases gramaticais, fluentes e simples. A condicional \"Se você sair cedo, a estrada está vazia\" é aceitável na fala corrente, sem soar telegráfica."
+        }
+      },
+      "ajustado": "A viagem de ônibus até a cidade vizinha demora duas horas. Se você sair cedo, a estrada está vazia. Você chega a tempo de passear antes do almoço."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "pt-03",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000279,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém duração, destino, conselho de sair cedo e passeio antes do almoço. \"Estrada ainda vazia\" virou \"pouco trânsito\", variação leve que preserva o sentido.",
+          "natural": "Texto gramatical, fluente e coeso, com concordância e tempos verbais corretos. Soa como escrita natural em português."
+        }
+      },
+      "ajustado": "A viagem de ônibus até a cidade vizinha dura aproximadamente duas horas. Se você partir cedo, conseguirá pegar a estrada com pouco trânsito e chegará a tempo de passear antes do almoço."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "pt-04",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000231375,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém lucros recordes, corte de equipe, debate e a razão dos funcionários. A relação causal explícita (\"pois\") fica implícita e \"considerável\" vira \"muita\", sem perda essencial.",
+          "natural": "Frases gramaticais, fluentes e bem conectadas, em linguagem simples e adequada ao nível B1, sem soar telegráficas ou truncadas."
+        }
+      },
+      "ajustado": "A empresa anunciou lucros recordes, mas a decisão de reduzir a equipe causou muita discussão. Muitos funcionários acreditam que o futuro do negócio depende justamente da experiência que será perdida."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "pt-04",
+      "alvo": "C1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000441,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém lucros recordes, redução da equipe, debate e a justificativa dos funcionários sobre a experiência perdida. A ordem das ideias é preservada, sem acréscimos relevantes.",
+          "natural": "Texto gramatical e fluente, em registro formal típico de jornalismo corporativo, com conectivos bem empregados e sem truncamentos."
+        }
+      },
+      "ajustado": "Apesar de a empresa ter reportado lucros sem precedentes, a decisão de promover cortes no quadro de funcionários desencadeou uma discussão intensa, visto que grande parte dos colaboradores acredita que o futuro da organização está intrinsecamente ligado à experiência que será perdida com essas demissões."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "pt-05",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000285075,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém ideias e ordem: língua além de ferramenta, preocupações guardadas no tempo, memória nas palavras nem sempre reconhecida. \"De sorte que\" virou \"Por isso\", sentido preservado.",
+          "natural": "Texto gramatical e fluente, com frases curtas bem conectadas e vocabulário acessível. Não soa telegráfico nem truncado."
+        }
+      },
+      "ajustado": "A língua não é apenas uma ferramenta para a comunicação. Ela guarda no tempo as preocupações de quem fala. Por isso, cada palavra carrega uma memória que a pessoa nem sempre consegue ou quer reconhecer."
+    },
+    {
+      "candidato": "google/gemma-4-26b-a4b-it",
+      "id": "pt-05",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00004492,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém ideias e ordem. \"Sedimenta\" vira \"fixa\" e \"inquietações\" vira \"preocupações\", perdendo um pouco da nuance, mas o sentido essencial se conserva.",
+          "natural": "Texto gramatical e fluente, com conectores adequados e frases bem construídas. Não soa telegráfico nem truncado."
+        }
+      },
+      "ajustado": "A língua não é apenas um instrumento para a comunicação; ela fixa no tempo as preocupações de quem a utiliza. Por isso, cada palavra carrega uma memória que o falante nem sempre consegue, ou deseja, reconhecer."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-01",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00021253,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem: cachorro grande e marrom, ida diária ao parque, corre e brinca, felicidade compartilhada. Acréscimo \"in the park\" já estava implícito.",
+          "natural": "Frases completas, gramaticais e fluentes. A repetição de \"my dog\" é um pouco redundante, mas soa aceitável em texto simples para nível A2."
+        }
+      },
+      "ajustado": "I have a dog. My dog is big and brown. We go to the park every day. My dog runs and plays in the park. I am happy when my dog is happy."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-01",
+      "alvo": "B1",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00047285,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém o cão grande e marrom, os passeios diários ao parque, as corridas e brincadeiras e a felicidade ligada à do cão, na mesma ordem.",
+          "natural": "Inglês gramatical e fluente, com frases bem conectadas e vocabulário simples. Soa como texto escrito por uma pessoa."
+        }
+      },
+      "ajustado": "I have a dog and it's big and brown. We go to the park every day, and my dog loves to run and play there. Seeing my dog have fun makes me happy too."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-02",
+      "alvo": "A1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00024353,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "A adaptação é idêntica ao original: mantém sentido, fatos, o nome Maria e a ordem das ideias, sem acréscimos nem omissões.",
+          "natural": "Texto gramatical e fluente, com frases simples e bem ligadas por conectores como \"but\" e \"and\". Não soa telegráfico nem truncado."
+        }
+      },
+      "ajustado": "On Saturday morning, Maria goes to the market near her house. She wants to buy bread, some fruit and a little cheese. The market is busy, but the people are friendly and the prices are good."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-02",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00022377,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém Maria, sábado, mercado, compras e preços. \"Many people\" substitui \"busy\" sem mudar o sentido; ordem preservada e nada essencial foi omitido.",
+          "natural": "Texto gramatical e fluente. \"Some things like\" é um pouco redundante, mas soa natural em inglês simples."
+        }
+      },
+      "ajustado": "On Saturday morning, Maria goes to the market near her house. She wants to buy some things like bread, fruit, and a little cheese. There are many people at the market, but they are friendly and the prices are good."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-03",
+      "alvo": "B1",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00058788,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Acrescenta fatos ausentes: chuva forte, falta de escolha, \"piorou as coisas\", \"felizmente\". Ordem e eventos principais mantidos, mas há invenções que alteram o original.",
+          "natural": "Texto gramatical e fluente, com conectores naturais. Há alguma redundância na espera e no guarda-chuva, mas soa como escrita humana."
+        }
+      },
+      "ajustado": "It was raining heavily when Tom left the office, so he didn't have a choice but to wait. He didn't have an umbrella with him, which made things worse. Tom decided to wait under a tree for the rain to stop. After waiting for twenty minutes, the rain finally stopped, and he was able to walk home. When he got home, he was late for dinner, but luckily, his family understood the situation."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-03",
+      "alvo": "B2",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00055916,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Acrescenta fatos ausentes: chuva forte, guarda-chuva esquecido em casa, só percebido por causa da chuva, e família que não se incomodou. A ordem geral se mantém.",
+          "natural": "Texto gramatical, fluente e bem encadeado. Há leve redundância (\"waiting... finally\", \"Unfortunately... fortunately\"), mas soa escrito por uma pessoa."
+        }
+      },
+      "ajustado": "It was raining heavily when Tom left the office, which made him realize he had forgotten his umbrella at home. As a result, he decided to wait under a nearby tree for the rain to stop. After waiting for about twenty minutes, the rain finally stopped, and Tom was able to walk home. Unfortunately, this delay made him late for dinner, but fortunately, his family was understanding and did not mind his tardiness."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-04",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000207875,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém ordem e fatos principais, mas omite “about” (três horas aproximadas viram exatas) e “in the morning”, perdendo que a calma depende de viajar de manhã cedo.",
+          "natural": "Frases simples, completas e gramaticais, com encadeamento claro. Soa como texto fluente escrito para iniciantes, sem estilo telegráfico."
+        }
+      },
+      "ajustado": "The journey to the coast takes three hours by train. You can buy a ticket at the station or on the internet. This is usually cheaper. If you travel early, the trains are quiet. You will probably find a seat by the window."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-04",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00023579,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem: três horas de trem, compra na estação ou pela internet (geralmente mais barata), trens matinais sem lotação e provável assento na janela.",
+          "natural": "Texto gramatical, fluente e com frases completas; \"on the internet\" e \"not crowded\" soam naturais."
+        }
+      },
+      "ajustado": "The journey to the coast takes about three hours by train. You can buy a ticket at the station or on the internet, which is usually cheaper. If you travel early in the morning, the trains are not crowded and you will probably find a seat by the window."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-05",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00023343,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém ordem e fatos: mudança, preocupação, justificativa, promessa, melhora. \"Not many people were buying\" simplifica a queda nas vendas, perdendo a ideia de declínio; \"slowly\" some.",
+          "natural": "Frases simples e fluentes. \"Not many people were buying their products for two years\" soa um pouco estranho (preferível \"had not been buying\"), mas o texto é natural no geral."
+        }
+      },
+      "ajustado": "The company said they would make a big change. Many workers were worried. The manager said they had to make this decision because not many people were buying their products for two years. He said nobody would lose their job. After that, people in the office felt better."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-05",
+      "alvo": "C1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00025489,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem: mudança, preocupação, queda nas vendas por dois anos, garantia de empregos e melhora gradual do clima. \"Began to improve\" é nuance mínima.",
+          "natural": "Texto gramatical, fluente e idiomático, com conectores e vocabulário naturais. Não há trechos truncados nem construções estranhas."
+        }
+      },
+      "ajustado": "When the company announced a significant change, many employees were concerned. The manager explained that the decision was necessary due to a decline in sales over the past two years. He assured them that no one would lose their job, and gradually the atmosphere in the office began to improve."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-06",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000210623,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém ideias e ordem, mas \"almost certainly\" virou \"probably\", enfraquecendo a certeza, e \"overwhelming\" virou \"very strong\". A perda de grau é leve e preserva o essencial.",
+          "natural": "Texto gramatical, fluente e coeso, com vocabulário simples adequado ao B1; não soa telegráfico nem truncado."
+        }
+      },
+      "ajustado": "Researchers do not agree on how fast the climate is warming, but the evidence that the climate is changing is very strong now. Governments have a big problem: taking action quickly is costly, but waiting to act will probably cost a lot more in the end."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-06",
+      "alvo": "C1",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00063504,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Acrescenta \"profound transformation\", custos \"exponentially greater\" e agravamento da crise climática; enfraquece \"almost certainly\". São afirmações ausentes ou intensificadas em relação ao original.",
+          "natural": "Texto gramatical, coeso e fluente. O registro é rebuscado e um tanto inflado, mas soa como prosa formal escrita por uma pessoa."
+        }
+      },
+      "ajustado": "Researchers hold divergent views on the precise rate of warming, yet the cumulative evidence unequivocally indicates that the climate is undergoing a profound transformation. Consequently, governments are confronted with a formidable quandary: expediting measures to mitigate the effects of climate change entails substantial expenditures, whereas deferring action would, in all likelihood, precipitate exponentially greater costs in the long term, thereby exacerbating the climate crisis."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-07",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00024992,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém ideias e ordem, mas omite “supposedly efficient”, atenua “often argue” e acrescenta “They cannot pay the price” como explicação. O essencial permanece, e o acréscimo apenas parafraseia a falta de dinheiro.",
+          "natural": "Frases curtas, gramaticais e encadeadas, com vocabulário simples. Soam como texto didático escrito por uma pessoa, sem truncamento."
+        }
+      },
+      "ajustado": "Economists say a free market uses resources well. This is because prices show when something is scarce. Some people do not agree. They think this view forgets about inequality. People with little money cannot take part in the market. They cannot pay the price."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-07",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00025347,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém ordem e ideia central, mas troca \"overlooks inequality\" por \"some people are not equal\", distorcendo desigualdade econômica. Também omite \"supposedly\", apresentando a eficiência como fato.",
+          "natural": "Texto gramatical, fluente e bem conectado, com frases simples e adequadas ao B1. Não soa telegráfico nem truncado."
+        }
+      },
+      "ajustado": "Economists often say that a free market uses resources efficiently. This is because prices show how scarce something is. However, critics disagree with this view. They think it ignores the fact that some people are not equal. People with little money cannot take part in this efficient exchange in a meaningful way."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-08",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00023284,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a dependência do sono (com a ressalva), a repetição e integração das experiências e a consequência para estudantes, na mesma ordem, sem acréscimos.",
+          "natural": "Texto gramatical, fluente e bem conectado, com vocabulário acessível e frases completas, como escrito por uma pessoa."
+        }
+      },
+      "ajustado": "The process of storing long-term memory seems to need sleep. When we sleep, our brain goes over recent experiences and connects them with what we already know. As a result, students who give up rest to study more may actually make it harder for themselves to remember things."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-08",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00025631,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém sono, consolidação, replay e integração de experiências, e o risco de prejudicar a retenção, na mesma ordem. \"Events\" por \"experiences\" é aproximação aceitável.",
+          "natural": "Frases gramaticais, fluentes e bem conectadas. Dividir a primeira frase facilita a leitura sem soar telegráfico."
+        }
+      },
+      "ajustado": "The process of storing information in long-term memory seems to rely on sleep. During sleep, the brain replays recent events and combines them with existing knowledge. As a result, learners who give up rest to study more may unintentionally weaken the memory retention they are trying to improve."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-09",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00024568,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Perde as crônicas contraditórias, o rio como local do assentamento vira apenas 'by the river', e 'quase dois séculos' vira 'a long time', omitindo um fato central. Acrescenta 'long history'.",
+          "natural": "Frases simples, gramaticais e encadeadas, com fluência adequada ao nível A2. Há alguma repetição, mas soa como texto escrito por uma pessoa."
+        }
+      },
+      "ajustado": "The city has a long history. For a long time, people did not know much about it. Now, historians are looking at it again. They think people lived by the river a long time before the city was officially started. This is important for the people who live in the city. It can change how they think about their city and its history."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-09",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0002281,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Omite as crônicas contraditórias que obscureceram as origens e troca origens por história. Mantém a tese dos quase dois séculos e o impacto identitário.",
+          "natural": "Texto gramatical e fluente, com frases bem encadeadas. Há leve repetição de \"city\" e a oração relativa final é um pouco ambígua, mas soa humano."
+        }
+      },
+      "ajustado": "The city's history is being reevaluated by historians who argue that people lived along the river almost two hundred years before the city was officially founded, which has significant effects on the local identity and the way people see their city's past."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-10",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00023639,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a ideia central: silêncio carregado do não dito, em que qualquer palavra parece trair a verdade. 'Distillation' vira 'saying a lot', simplificação aceitável.",
+          "natural": "Texto gramatical, fluente e coeso. A frase final é um pouco vaga ('the truth it is trying to say'), mas soa escrita por uma pessoa."
+        }
+      },
+      "ajustado": "There is a kind of silence that is not just about not speaking, but about saying a lot without words. It is a pause that is full of things that are not said, and any word you choose will seem wrong because it does not show the truth it is trying to say."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "en-10",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00026199,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a ideia do silêncio como destilação da fala e da palavra como traição. O acréscimo “thus breaking the silence” é uma pequena explicação não presente no original, sem alterar o sentido.",
+          "natural": "Texto gramatical, fluente e bem encadeado. As construções são idiomáticas e claras, sem truncamento nem tom telegráfico."
+        }
+      },
+      "ajustado": "There is a kind of silence that is not just the absence of talking, but rather a concentrated form of it. This pause is so full of unspoken thoughts that any word, no matter how carefully selected, would appear to be a clumsy betrayal of the truth it claims to represent, thus breaking the silence."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "es-01",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00025416,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem. Apenas divide a frase sobre o gato negro em duas, sem inventar nem omitir nada.",
+          "natural": "Espanhol gramatical e fluente. A repetição de \"el gato\" é simples, mas típica de textos para iniciantes e não soa truncada."
+        }
+      },
+      "ajustado": "Tengo una casa grande. En mi casa hay un gato. El gato es negro. El gato duerme en el sofá. Yo bebo café y miro la tele."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "es-01",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00021233,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém todas as frases, fatos e ordem. A única mudança, \"tele\" para \"televisión\", preserva o sentido.",
+          "natural": "Texto gramatical e fluente, com frases simples e completas. \"Miro la televisión\" é uma construção natural em espanhol."
+        }
+      },
+      "ajustado": "Tengo una casa grande. En mi casa hay un gato negro. El gato duerme en el sofá. Yo bebo café y miro la televisión."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "es-02",
+      "alvo": "A1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00024495,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Omite as verduras e o encontro vira “vemos”, mas mantém rotina, mãe, compras, vizinhos, conversa e ordem. A volta para casa é preservada. A perda é pequena.",
+          "natural": "Frases curtas, gramaticais e bem encadeadas, com conectores como “A veces” e “y luego”. Soa como texto simples escrito naturalmente em espanhol."
+        }
+      },
+      "ajustado": "Los sábados voy al mercado con mi madre. Compramos fruta y pan. A veces vemos a nuestros vecinos. Hablamos un rato y luego volvemos a casa."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "es-02",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00024353,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": false,
+        "raciocinio": {
+          "fiel": "Mantém fatos, personagens e ordem: mercado aos sábados com a mãe, compras, conversa com vizinhos antes de voltar. \"Allí\" e \"regresar\" não alteram o sentido.",
+          "natural": "Há erro de conjugação: \"charlemos\" (subjuntivo) em vez de \"charlamos\", coordenado com \"nos encontramos\". A frase fica agramatical."
+        }
+      },
+      "ajustado": "Los sábados voy al mercado con mi madre. Allí compramos fruta, verduras y pan. A veces nos encontramos con vecinos y charlemos un rato antes de regresar a casa."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "es-03",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00023282,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém ordem e fatos principais, mas omite \"unas\", tornando exata uma duração aproximada. \"Mucho más barato\" vira \"más barato\" e \"con antelación\" vira \"antes\", perdas menores.",
+          "natural": "Frases gramaticais, fluentes e bem ligadas, adequadas ao nível A2. \"Comprar el billete antes\" soa natural e o texto não parece truncado."
+        }
+      },
+      "ajustado": "El viaje en tren desde la ciudad hasta la costa dura tres horas. Si compras el billete antes, es más barato. Puedes elegir un asiento junto a la ventana y disfrutar del paisaje."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "es-03",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0002808,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém duração, vantagem da compra antecipada, assento na janela e paisagem, na mesma ordem. Perde só a intensidade de \"mucho\", detalhe não essencial.",
+          "natural": "Texto gramatical, fluente e bem conectado. A repetição de \"puedes\" e \"viaje\" é leve e não prejudica a naturalidade."
+        }
+      },
+      "ajustado": "El viaje en tren desde la ciudad hasta la costa dura unas tres horas. Si compras el billete con antelación, es más barato y puedes elegir un asiento junto a la ventana. De esta forma, puedes disfrutar del paisaje durante el viaje."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "es-04",
+      "alvo": "C1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00023994,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem. \"Significativa\" e \"prácticamente\" matizam pouco; \"obtenidas en el trabajo\" é acréscimo redundante, sem alterar o sentido essencial.",
+          "natural": "Texto gramatical e fluente em espanhol. \"Mejoras salariales obtenidas en el trabajo\" é redundante e repete \"mejora\", mas continua soando escrito por uma pessoa."
+        }
+      },
+      "ajustado": "Aunque la economía del país experimentó un crecimiento el año pasado, muchos trabajadores no percibieron ninguna mejora significativa en su vida diaria, ya que el incremento de los precios neutralizó prácticamente las mejoras salariales obtenidas en el trabajo."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "es-05",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00028159,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Perde a ideia de reescrita inconsciente por geração em parte, enfraquece \"lejos de ser neutro\" para \"no es solo un archivo\" e inventa conteúdo sobre a influência da língua.",
+          "natural": "Texto gramatical e fluente, com frases simples e bem ligadas. \"Se cambia constantemente\" é um pouco estranho, mas aceitável."
+        }
+      },
+      "ajustado": "La memoria colectiva de una comunidad no es solo un archivo. Se cambia constantemente según las preocupaciones actuales. Cada generación vuelve a contar su propia historia, aunque a menudo no se da cuenta de que lo está haciendo. Esto se debe a que la historia se ve influenciada por las cosas que nos importan ahora. La lengua que usamos también puede influir en cómo recordamos y contamos nuestra historia. La memoria y la historia están muy unidas en este proceso."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "es-05",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00028755,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém as ideias originais, mas acrescenta uma frase final inventada, atribuindo o fenômeno à relação entre memória, história, língua e expressão de ideias, causa ausente no original.",
+          "natural": "Texto gramatical, fluente e bem conectado, com frases completas e conectores idiomáticos. A última frase é vaga, mas soa como espanhol escrito por uma pessoa."
+        }
+      },
+      "ajustado": "La memoria colectiva de una comunidad no es un archivo neutro, sino que se reconstruye constantemente según las preocupaciones actuales. De este modo, cada generación reescribe el relato de su propia historia, a menudo sin darse cuenta. Esto sucede porque la memoria y la historia están muy relacionadas con la lengua y la forma en que se expresan las ideas en el presente."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "pt-01",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00023359,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém todos os fatos e a ordem das ideias: casa pequena, cachorro branco e feliz, brincadeira diária no quintal. Nada foi inventado nem omitido.",
+          "natural": "Texto gramatical e fluente. Repetir \"é\" e mover \"todos os dias\" para o final soa natural e simples, sem truncamento."
+        }
+      },
+      "ajustado": "Eu moro em uma casa pequena. Tenho um cachorro. Ele é branco e é muito feliz. Eu brinco com ele no quintal todos os dias."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "pt-01",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00021154,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém todos os fatos e a ordem das ideias. Apenas a última frase foi reordenada, com \"todo dia\" virando \"todos os dias\", sem mudar o sentido.",
+          "natural": "Texto gramatical e fluente. Frases curtas e simples, adequadas ao nível, sem soar telegráficas ou truncadas."
+        }
+      },
+      "ajustado": "Eu moro em uma casa pequena. Tenho um cachorro. Ele é branco e muito feliz. Eu brinco com ele no quintal todos os dias."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "pt-02",
+      "alvo": "A1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00023519,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos, personagens e ordem. Só troca “frutas frescas” pelo coletivo “fruta fresca” e acrescenta vírgula após “Depois”, sem alterar o sentido.",
+          "natural": "Texto gramatical e fluente. “Fruta fresca” no singular coletivo e “a gente vai” com “voltamos” são usos comuns e naturais em português."
+        }
+      },
+      "ajustado": "No domingo de manhã, a gente vai à feira perto de casa. Meu pai gosta de comprar fruta fresca e eu escolho o pão. Depois, voltamos para casa e tomamos café juntos."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "pt-02",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00023066,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos, personagens e ordem: feira no domingo, pai compra frutas, narrador escolhe pão, café juntos. Trocar “a gente vai” por “vamos” preserva o sentido.",
+          "natural": "Texto gramatical e fluente. “Fruta fresca” no singular coletivo é idiomático, e a vírgula após “Depois” é adequada."
+        }
+      },
+      "ajustado": "No domingo de manhã, vamos à feira perto de casa. Meu pai gosta de comprar fruta fresca e eu escolho o pão. Depois, voltamos para casa e tomamos café juntos."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "pt-03",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00022809,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem, mas \"cerca de duas horas\" virou \"dura duas horas\", perdendo a aproximação. A diferença é pequena; o essencial permanece, assim como \"ainda\" implícito.",
+          "natural": "Frases completas, gramaticais e fluentes. O presente em \"Se você sair cedo, a estrada está vazia\" é usual no português falado e escrito simples."
+        }
+      },
+      "ajustado": "A viagem de ônibus até a cidade vizinha dura duas horas. Se você sair cedo, a estrada está vazia e você chega a tempo de passear antes do almoço."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "pt-03",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00009154,
+      "juiz": {
+        "valido": true,
+        "fiel": false,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem. Perde apenas a aproximação “cerca de”, tornando exata a duração de duas horas, o que altera um detalhe factual.",
+          "natural": "Texto gramatical, fluente e bem encadeado, com tempos verbais coerentes. Soa como escrito por uma pessoa."
+        }
+      },
+      "ajustado": "A viagem de ônibus até a cidade vizinha dura duas horas. Se você sair cedo, a estrada estará vazia e você chegará a tempo de passear antes do almoço."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "pt-04",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00025915,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém lucros recordes, redução de equipe, debate e justificativa na mesma ordem. \"Grande debate\" suaviza levemente \"acalorado\", e \"justamente\" se perde, sem afetar o essencial.",
+          "natural": "Texto gramatical e fluente, com conectores claros. A repetição de \"funcionários\" é um pouco pesada, mas soa aceitável em linguagem simples."
+        }
+      },
+      "ajustado": "A empresa anunciou lucros recordes, mas a decisão de reduzir a equipe causou um grande debate. Isso aconteceu porque muitos funcionários acham que o futuro da empresa depende da experiência dos funcionários que serão dispensados."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "pt-04",
+      "alvo": "C1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00026341,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém lucros recordes, redução de equipe, debate e justificativa, na mesma ordem. “Funcionários que serão demitidos” explicita adequadamente a experiência dispensada; a concessão virou contraste.",
+          "natural": "Texto gramatical, fluente e bem conectado. A repetição de “funcionários” e “empresa” pesa um pouco no estilo, mas não o torna truncado nem artificial."
+        }
+      },
+      "ajustado": "A empresa anunciou lucros recordes, mas a decisão de reduzir a equipe causou um debate intenso. Isso ocorreu porque muitos funcionários acreditam que o futuro da empresa depende da experiência dos funcionários que serão demitidos."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "pt-05",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00026199,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém as ideias principais e a ordem. Simplifica “longe de ser um mero instrumento” e “sedimenta no tempo” sem alterar o essencial nem inventar fatos.",
+          "natural": "Frases gramaticais, fluentes e bem encadeadas, com vocabulário acessível. Não há truncamento nem tom telegráfico."
+        }
+      },
+      "ajustado": "A língua não é apenas um meio de comunicação. Com o tempo, ela guarda as inquietações das pessoas que a falam. Cada palavra tem uma memória que o falante nem sempre consegue ou quer reconhecer."
+    },
+    {
+      "candidato": "meta-llama/llama-3.3-70b-instruct",
+      "id": "pt-05",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00028224,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a ideia central e a ordem. \"Sedimenta no tempo\" vira \"com o tempo, guarda\", e \"memória\" é preservada. Nada essencial é omitido ou inventado.",
+          "natural": "Frases simples, gramaticais e fluentes, bem encadeadas. Soa como texto escrito por uma pessoa, sem truncamento nem tom telegráfico."
+        }
+      },
+      "ajustado": "A língua não é apenas um meio de comunicação. Com o tempo, ela guarda as inquietações das pessoas que a falam. Cada palavra tem uma memória que o falante nem sempre consegue ou quer reconhecer."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-01",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00003387,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "A adaptação é idêntica ao original, preservando sentido, fatos e ordem das ideias, sem acréscimos nem omissões.",
+          "natural": "Inglês gramatical e fluente, com frases simples e conectadas pelo tema, como um texto escrito naturalmente para iniciantes."
+        }
+      },
+      "ajustado": "I have a dog. The dog is big and brown. Every day we go to the park. My dog runs and plays. I am happy when he is happy."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-01",
+      "alvo": "B1",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00019471799999999997,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem: cachorro grande e marrom, parque diário, corre e brinca, felicidade compartilhada. Acréscimos como \"together\", \"loves\" e \"too\" são mínimos.",
+          "natural": "Texto gramatical, fluente e coeso, com frases simples e conexões naturais, adequado ao nível B1."
+        }
+      },
+      "ajustado": "I have a dog that is big and brown. Every day, we go to the park together. My dog loves to run and play there. I feel happy when he is happy too."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-02",
+      "alvo": "A1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00006236,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém Maria, sábado de manhã, mercado perto de casa, itens da compra, movimento, simpatia e preços bons, na mesma ordem, sem acréscimos.",
+          "natural": "Frases gramaticais e completas. Iniciar com \"But\" e \"And\" é um pouco fragmentado, mas aceitável e comum em textos simples para iniciantes."
+        }
+      },
+      "ajustado": "On Saturday morning, Maria goes to the market near her house. She wants to buy bread, some fruit and a little cheese. The market is busy. But the people are friendly. And the prices are good."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-02",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000818,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém todos os fatos, nomes e a ordem das ideias. A única mudança é a vírgula serial antes de “and a little cheese”.",
+          "natural": "Texto gramatical, fluente e idiomático, com frases completas e bem conectadas. A vírgula serial é correta em inglês."
+        }
+      },
+      "ajustado": "On Saturday morning, Maria goes to the market near her house. She wants to buy bread, some fruit, and a little cheese. The market is busy, but the people are friendly and the prices are good."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-03",
+      "alvo": "B1",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000132374,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém todos os fatos, o nome Tom e a ordem das ideias. Apenas reordena a primeira frase e explicita a causa com \"Since\", sem alterar o sentido.",
+          "natural": "Inglês gramatical e fluente, com conectores adequados e pontuação correta. Soa como narrativa simples escrita por uma pessoa."
+        }
+      },
+      "ajustado": "When Tom left the office, it was raining. Since he did not have an umbrella, he waited under a tree. After twenty minutes, the rain stopped, and he walked home. He was late for dinner, but his family understood."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-03",
+      "alvo": "B2",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A1",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": false,
+        "dentro1": false
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00017369599999999998,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos, nome e ordem. Acréscimos como \"heavily\", \"finally\" e \"until the rain passed\" são leves; apenas a intensidade da chuva é detalhe novo, sem alterar o essencial.",
+          "natural": "Texto gramatical, fluente e bem encadeado, com conectores naturais como \"Since\" e \"Although\". Soa como escrito por uma pessoa."
+        }
+      },
+      "ajustado": "When Tom left the office, it was raining heavily. Since he did not have an umbrella with him, he decided to wait under a tree until the rain passed. After about twenty minutes, the rain finally stopped, and he continued his walk home. Although he was late for dinner, his family understood the situation."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-04",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000061173,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém todos os fatos na mesma ordem: duração, compra na estação ou online, preço menor online, trens tranquilos cedo e provável assento na janela.",
+          "natural": "Frases curtas, mas completas, gramaticais e fluentes. \"Online is usually cheaper\" é uma construção natural, e o texto não soa telegráfico."
+        }
+      },
+      "ajustado": "The journey to the coast takes about three hours by train. You can buy a ticket at the station or online. Online is usually cheaper. If you travel early in the morning, the trains are quiet. You will probably find a seat by the window."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-04",
+      "alvo": "B2",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00029655,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém todos os fatos e a ordem: três horas de trem, bilhete na estação ou online (mais barato), trens calmos cedo e provável assento à janela.",
+          "natural": "Texto gramatical e fluente, com conectores e vocabulário naturais como \"tend to be quiet\" e \"generally cheaper\"."
+        }
+      },
+      "ajustado": "The journey to the coast takes approximately three hours by train. You can purchase a ticket at the station or online, which is generally cheaper. If you travel early in the morning, the trains tend to be quiet, and you will probably find a seat by the window."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-05",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000926,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem. “Said” enfraquece “explained” e “promised”, mas o essencial permanece: preocupação, queda nas vendas por dois anos, garantia de empregos e melhora do clima.",
+          "natural": "Inglês simples e fluente, com frases completas. “Sales were bad for two years” e “said there was a big change” são ligeiramente menos precisos, mas soam aceitáveis."
+        }
+      },
+      "ajustado": "When the company said there was a big change, many workers were worried. The manager said the decision was needed because sales were bad for two years. He said no one would lose their job, and slowly the feeling in the office got better."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-05",
+      "alvo": "C1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00009246,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem: grande mudança, preocupação dos funcionários, queda de vendas por dois anos, promessa de nenhuma demissão e melhora gradual do clima.",
+          "natural": "Inglês fluente, gramatical e idiomático, com registro coerente e frases bem conectadas, adequado a um texto de nível avançado."
+        }
+      },
+      "ajustado": "When the company announced a major change, a great many employees grew anxious. The manager explained that this decision had become unavoidable, since sales had been declining for two years. He gave his assurance that no one would be dismissed, and gradually the atmosphere in the office lifted."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-06",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0001416,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém sentido, fatos e ordem. \"Very strong\" atenua levemente \"overwhelming\" e \"choice\" simplifica \"dilemma\", mas o essencial permanece.",
+          "natural": "Texto gramatical, fluente e coeso, com conectores adequados e vocabulário acessível, soando como escrita humana natural."
+        }
+      },
+      "ajustado": "Although researchers disagree about the exact speed of warming, the evidence that the climate is changing is now very strong. Governments face a difficult choice: acting quickly is expensive, but waiting would almost certainly cost much more in the long run."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-06",
+      "alvo": "C1",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": false
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000123135,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a divergência sobre o ritmo do aquecimento, a evidência esmagadora, o dilema dos governos e a comparação de custos, com o mesmo grau de certeza e ordem.",
+          "natural": "Texto gramatical e fluente, em registro formal. Algumas escolhas são um pouco rebuscadas, como \"undergoing change\", mas soam como escrita humana."
+        }
+      },
+      "ajustado": "Although researchers remain divided over the precise rate at which warming is unfolding, the evidence that the climate is undergoing change is now overwhelming. Governments confront a formidable dilemma: swift action entails considerable expense, yet postponing it would in all likelihood prove far costlier over the long term."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-07",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000072,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém os dois argumentos, a ordem e as causas. \"Even if it is said to work well\" preserva o sentido de \"supposedly efficient\".",
+          "natural": "Texto gramatical e fluente, com frases completas e conectores naturais. É simples, sem soar telegráfico ou truncado."
+        }
+      },
+      "ajustado": "Economists often say that a free market uses resources well, because prices show what is scarce. Critics say this view ignores inequality, because people with little money cannot really take part in that exchange, even if it is said to work well."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-07",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000062456,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a tese dos economistas, a justificativa pelos preços e escassez, e a crítica sobre desigualdade, na mesma ordem. \"Supposedly efficient\" vira \"said to be efficient\", preservando a ressalva.",
+          "natural": "Texto gramatical, fluente e bem conectado, com vocabulário simples adequado. A oração final \"which is said to be efficient\" soa natural."
+        }
+      },
+      "ajustado": "Economists often say that a free market uses resources well, because prices show how scarce things are. Critics answer that this view ignores inequality, because people with little money cannot really take part in that exchange, which is said to be efficient."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-08",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000064056,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém ideias, ordem e ressalvas (\"seems\", \"may\"). \"Replays\" vira \"repeats\" e \"consolidation\" é omitida, mas o sentido essencial permanece, sem invenções.",
+          "natural": "Frases gramaticais, fluentes e bem conectadas, com vocabulário simples. Não soa telegráfico nem truncado."
+        }
+      },
+      "ajustado": "Long-term memory seems to depend on sleep. During sleep, the brain repeats recent experiences and connects them with knowledge it already has. As a result, learners who give up rest to study more hours may harm the memory they are trying to keep."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-08",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000045975,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a ligação entre sono e memória, a repetição de experiências, a integração ao conhecimento e a ressalva sobre sacrificar descanso. Preserva a cautela e a ordem das ideias.",
+          "natural": "Texto gramatical, fluente e coeso. \"The forming of\" é um pouco menos idiomático que \"the formation of\", mas continua aceitável e natural."
+        }
+      },
+      "ajustado": "The forming of long-term memory seems to depend on sleep, during which the brain replays recent experiences and connects them with what we already know. As a result, learners who give up rest to study for more hours may harm the very memory they are trying to keep."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-09",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "A2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00007656,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém origens incertas, crônicas contraditórias, reavaliação, quase dois séculos de antecedência e implicações para identidade local. \"City's history\" é pequeno acréscimo, sem distorcer o essencial.",
+          "natural": "Frases curtas, mas gramaticais, coesas e fluentes, adequadas ao nível A2. Não soa telegráfico nem truncado."
+        }
+      },
+      "ajustado": "The city's beginnings are not clear. Old stories about them are very different. Now historians are looking at them again. They say the town by the river is much older. It is almost two hundred years older than the official start. This change is important for the city's history and for how people feel about their home."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-09",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B1",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000071396,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém origens obscuras, reavaliação, tese dos dois séculos e ordem. \"Considerable implications\" vira \"strong effect\" presente, ligeiramente mais assertivo, mas o sentido essencial permanece.",
+          "natural": "Texto gramatical, fluente e coeso, com frases simples e bem encadeadas, como escrito por uma pessoa."
+        }
+      },
+      "ajustado": "The city's origins were long unclear because records disagreed with each other. Today, historians are taking a fresh look at this question. They argue that the settlement along the river existed almost two hundred years before the official founding. This new view has a strong effect on how local people see their own identity."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-10",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": false,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000041598,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém sentido e ordem das ideias: silêncio como destilação da fala, pausa carregada do não dito, palavra como traição desajeitada. \"Pure form\" simplifica \"distillation\" adequadamente.",
+          "natural": "Texto gramatical, fluente e coeso, com estrutura natural em inglês. Nada telegráfico ou truncado."
+        }
+      },
+      "ajustado": "There is a kind of silence that is not just the lack of speech, but its pure form: a pause so full of what is left unsaid that any word, no matter how carefully chosen, would seem like a clumsy betrayal of the truth it claims to serve."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "en-10",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      "nivel": {
+        "medido": true,
+        "nivel": "B2",
+        "exato": true,
+        "dentro1": true
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000041802,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém sentido e ordem das ideias: silêncio como destilação da fala, pausa carregada do não dito, palavra como traição da verdade. \"Not just\" suaviza levemente o original.",
+          "natural": "Texto gramatical, fluente e idiomático, com frase completa e bem encadeada; soa como escrito por uma pessoa."
+        }
+      },
+      "ajustado": "There is a kind of silence that is not just the lack of speech but its purest form: a pause so full of what is left unsaid that any word, no matter how carefully chosen, would feel like a clumsy betrayal of the truth it claims to serve."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "es-01",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000945,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "A adaptação é idêntica ao original: mantém sentido, fatos, ordem das ideias e não inventa nem omite nada.",
+          "natural": "Frases simples, gramaticais e fluentes em espanhol, adequadas ao nível A2; não soam telegráficas nem truncadas."
+        }
+      },
+      "ajustado": "Tengo una casa grande. En mi casa hay un gato negro. El gato duerme en el sofá. Yo bebo café y miro la tele."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "es-01",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00007527,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "A adaptação é idêntica ao original: preserva sentido, fatos e ordem das ideias, sem acréscimos nem omissões.",
+          "natural": "Frases simples, gramaticais e fluentes em espanhol. São curtas, mas completas, com artigos e verbos corretos, sem soar telegráficas."
+        }
+      },
+      "ajustado": "Tengo una casa grande. En mi casa hay un gato negro. El gato duerme en el sofá. Yo bebo café y miro la tele."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "es-02",
+      "alvo": "A1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00008202,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem. \"Vemos a vecinos\" simplifica \"nos encontramos con vecinos\" e \"un poco\" substitui \"un rato\", sem perder o essencial.",
+          "natural": "Texto gramatical e fluente em espanhol, com frases completas e simples. \"Vemos a vecinos\" e \"hablamos un poco\" são construções aceitáveis."
+        }
+      },
+      "ajustado": "Los sábados voy al mercado con mi madre. Compramos fruta, verduras y pan. A veces vemos a vecinos y hablamos un poco antes de volver a casa."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "es-02",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00006825,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos e ordem. A única mudança, \"nos encontramos con\" para \"vemos a\", preserva o essencial: encontrar vizinhos e conversar antes de voltar.",
+          "natural": "Texto gramatical e fluente. \"Vemos a vecinos\" é um pouco menos idiomático que \"vemos a algunos vecinos\", mas é aceitável e não soa truncado."
+        }
+      },
+      "ajustado": "Los sábados voy al mercado con mi madre. Compramos fruta, verduras y pan. A veces vemos a vecinos y hablamos un rato antes de volver a casa."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "es-03",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000043395,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém duração, compra antecipada com preço menor, assento na janela e paisagem, na mesma ordem. A perda de “mucho” só atenua a diferença de preço.",
+          "natural": "Espanhol gramatical e fluente, com frases curtas ligadas por “También” e “Así”. É adequado ao nível A2 e não soa truncado."
+        }
+      },
+      "ajustado": "El viaje en tren desde la ciudad hasta la costa dura unas tres horas. Si compras el billete antes, es más barato. También puedes elegir un asiento junto a la ventana. Así puedes ver el paisaje."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "es-03",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00007264,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém duração, desconto pela compra antecipada e escolha de assento na janela para ver a paisagem, na mesma ordem, sem acréscimos nem omissões.",
+          "natural": "Espanhol gramatical e fluido, com conectores bem usados e vocabulário natural, como o de um texto escrito por um falante."
+        }
+      },
+      "ajustado": "El viaje en tren desde la ciudad hasta la costa dura aproximadamente tres horas. Si compras el billete con antelación, resulta mucho más económico y, además, tienes la posibilidad de escoger un asiento junto a la ventana para disfrutar del paisaje."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "es-04",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000644,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém o contraste, os fatos e a ordem: crescimento econômico, ausência de melhora para muitos trabalhadores e preços que absorveram quase todo o aumento salarial.",
+          "natural": "Espanhol gramatical e fluente, com vocabulário simples. A repetição de “aumento” é leve e não compromete a naturalidade."
+        }
+      },
+      "ajustado": "Aunque la economía del país creció el año pasado, muchos trabajadores no vieron ninguna mejora en su vida diaria, porque el aumento de los precios se llevó casi todo el aumento de los salarios."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "es-04",
+      "alvo": "C1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000104,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém crescimento econômico, falta de melhora cotidiana e salários absorvidos pela inflação, na mesma ordem. \"Bienes y servicios\" apenas explicita \"precios\".",
+          "natural": "Texto gramatical e fluente, em registro formal. Expressões como \"no percibió mejora alguna\" e \"se tragó casi en su totalidad\" são idiomáticas."
+        }
+      },
+      "ajustado": "A pesar de que la economía del país experimentó un crecimiento durante el año pasado, una gran cantidad de trabajadores no percibió mejora alguna en su día a día, dado que el incremento del precio de los bienes y servicios se tragó casi en su totalidad los aumentos de sueldo."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "es-05",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00006752,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém memória coletiva não neutra, reconstrução contínua segundo o presente e reescrita geracional inconsciente. \"Intereses\" aproxima \"preocupaciones\"; \"lejos de ser\" vira negação, sem perder o essencial.",
+          "natural": "Espanhol gramatical e fluente, com frases curtas bem encadeadas por \"Así\" e expressões idiomáticas como \"sin darse cuenta\". Não soa telegráfico."
+        }
+      },
+      "ajustado": "La memoria colectiva de una comunidad no es un archivo neutral. Se reconstruye todo el tiempo según los intereses del presente. Así, cada generación reescribe la historia de su comunidad, muchas veces sin darse cuenta."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "es-05",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000044217,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém tese, causalidade e ordem: memória não neutra, reconstruída conforme o presente, cada geração reescreve sua história sem perceber. Trocar \"su propia historia\" altera pouco.",
+          "natural": "Texto gramatical e fluente, com conectores adequados e frases bem articuladas. Soa como redação de um falante, simplificada sem parecer truncada."
+        }
+      },
+      "ajustado": "La memoria colectiva de una comunidad no es un archivo neutral: se reconstruye sin parar según las preocupaciones del presente. Por eso, cada generación reescribe la historia de su comunidad, muchas veces sin darse cuenta."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "pt-01",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000035775,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém todos os fatos, a ordem e o sentido; a única mudança é explicitar o sujeito \"Eu\" antes de \"tenho\".",
+          "natural": "Texto gramatical e fluente. Repetir \"Eu\" é comum no português, especialmente no Brasil, e soa natural num texto simples."
+        }
+      },
+      "ajustado": "Eu moro em uma casa pequena. Eu tenho um cachorro. Ele é branco e muito feliz. Todo dia eu brinco com ele no quintal."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "pt-01",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000568,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "A adaptação é idêntica ao original: preserva sentido, fatos e ordem das ideias, sem acréscimos nem omissões.",
+          "natural": "Frases simples, gramaticais e fluentes, com encadeamento claro. Soa como texto escrito por uma pessoa em português, sem truncamento."
+        }
+      },
+      "ajustado": "Eu moro em uma casa pequena. Tenho um cachorro. Ele é branco e muito feliz. Todo dia eu brinco com ele no quintal."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "pt-02",
+      "alvo": "A1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00006968,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos, personagens e ordem. Apenas divide frases, passa “frutas frescas” para o singular genérico e remove “e” de ligação, sem alterar o sentido.",
+          "natural": "Frases curtas, gramaticais e fluentes. “Comprar fruta fresca” é natural em português, e a sequência não soa truncada para um texto de nível A1."
+        }
+      },
+      "ajustado": "No domingo de manhã, a gente vai à feira perto de casa. Meu pai gosta de comprar fruta fresca. Eu escolho o pão. Depois voltamos para casa. Tomamos café juntos."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "pt-02",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.0000964,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém fatos, personagens e ordem. A única mudança, \"frutas frescas\" para \"fruta fresca\", preserva o sentido. Nada foi inventado ou omitido.",
+          "natural": "Texto gramatical e fluente. \"Fruta fresca\" em sentido coletivo é idiomático, e a vírgula após \"Depois\" é adequada."
+        }
+      },
+      "ajustado": "No domingo de manhã, a gente vai à feira perto de casa. Meu pai gosta de comprar fruta fresca e eu escolho o pão. Depois, voltamos para casa e tomamos café juntos."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "pt-03",
+      "alvo": "A2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000061276,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a duração, a saída cedo, a estrada vazia e o passeio antes do almoço, na mesma ordem. A reformulação não altera o sentido nem inventa fatos.",
+          "natural": "Frases completas, gramaticais e fluentes. A divisão com \"Assim\" soa natural, e o presente em \"ainda está vazia\" é aceitável em português."
+        }
+      },
+      "ajustado": "A viagem de ônibus até a cidade vizinha leva cerca de duas horas. Se você sair cedo, a estrada ainda está vazia. Assim, você chega a tempo de passear antes do almoço."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "pt-03",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000060179,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém duração, destino, condição de sair cedo, estrada vazia e passeio antes do almoço, na mesma ordem, sem acréscimos nem omissões.",
+          "natural": "Texto gramatical e fluente, com registro um pouco mais formal (\"caso você parta\"), concordância e tempos verbais corretos."
+        }
+      },
+      "ajustado": "A viagem de ônibus até a cidade vizinha dura aproximadamente duas horas. Caso você parta cedo, encontrará a estrada ainda vazia e chegará a tempo de passear antes do almoço."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "pt-04",
+      "alvo": "B1",
+      "chamadas": 2,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000159443,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém lucros, redução da equipe, debate, motivo e ordem. A concessão vira contraste com “Mas”, e a causa, antes explícita com “pois”, fica implícita, sem perda essencial.",
+          "natural": "Frases gramaticais, fluentes e bem conectadas. A divisão em períodos curtos simplifica o texto sem torná-lo telegráfico ou truncado."
+        }
+      },
+      "ajustado": "A empresa anunciou lucros recordes. Mas a decisão de reduzir a equipe provocou um debate acalorado. Muitos funcionários acham que o futuro do negócio depende justamente da experiência que será dispensada."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "pt-04",
+      "alvo": "C1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.00006932,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém os lucros recordes, o corte de pessoal, o debate e a justificativa dos funcionários, na mesma ordem, sem acréscimos nem omissões.",
+          "natural": "Texto gramatical e fluente, com construções idiomáticas como \"apesar de a empresa ter anunciado\" e \"cortar pessoal\". Não soa truncado."
+        }
+      },
+      "ajustado": "Apesar de a empresa ter anunciado lucros recordes, a decisão de cortar pessoal gerou um debate intenso, pois muitos funcionários acham que o futuro do negócio depende exatamente da experiência que será dispensada."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "pt-05",
+      "alvo": "B1",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000073216,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a ideia central, a ordem e as nuances, incluindo \"consegue ou quer\". \"Guarda as preocupações\" simplifica \"sedimenta as inquietações\" sem alterar o sentido.",
+          "natural": "Frases gramaticais, fluentes e bem conectadas. A repetição de \"nem sempre\" é intencional e soa natural, sem tom telegráfico."
+        }
+      },
+      "ajustado": "A língua não é apenas um instrumento de comunicação. Com o tempo, ela guarda as preocupações de quem a fala. Assim, cada palavra carrega uma memória que o falante nem sempre consegue reconhecer, ou nem sempre quer reconhecer."
+    },
+    {
+      "candidato": "deepseek/deepseek-v4.1-flash",
+      "id": "pt-05",
+      "alvo": "B2",
+      "chamadas": 1,
+      "nivelApos1": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "nivel": {
+        "medido": false,
+        "nivel": null,
+        "exato": null,
+        "dentro1": null
+      },
+      "preservacao": {
+        "taxa": 1,
+        "perdidas": []
+      },
+      "usd": 0.000050658,
+      "juiz": {
+        "valido": true,
+        "fiel": true,
+        "natural": true,
+        "raciocinio": {
+          "fiel": "Mantém a ideia central, a ordem e a nuance de “consegue, ou quer”. “Sedimenta no tempo as inquietações” vira “guarda as preocupações com o passar do tempo”, equivalente aceitável.",
+          "natural": "Frases completas, gramaticais e bem encadeadas. A repetição “ou nem sempre quer reconhecer” soa natural e esclarece o sentido."
+        }
+      },
+      "ajustado": "A língua não é apenas um instrumento de comunicação. Com o passar do tempo, ela guarda as preocupações de quem a fala. Assim, cada palavra carrega uma memória que o falante nem sempre consegue reconhecer, ou nem sempre quer reconhecer."
+    }
+  ]
+}

@@ -15,7 +15,7 @@
       "modelos": [
         {
           "id": "deepseek/deepseek-v4.1-flash",
-          "funcoes": ["explicacao"],
+          "funcoes": ["explicacao", "ajustarNivel"],
           "niveis": ["rapida", "nuance"],
           "preco": { "entrada": 0.15, "entradaEmCache": 0.03, "saida": 0.65 }
         },

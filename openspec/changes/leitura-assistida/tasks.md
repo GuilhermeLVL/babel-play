@@ -28,16 +28,32 @@
 
 ## 3. Fatia C: destaque por vocabulário
 
-- [ ] C1 `statusDaPalavra(chave, idioma)` sobre o índice de etiquetas e `forcaDoCartao`. Verificar: testes por força 1 a 4, ignorada, conhecida, sem cartão.
-- [ ] C2 `intensidadeDoDestaque` pura (nova uma cor com alfa por frequência; aprendendo em gradiente; conhecida sem cor). Verificar: testes de tabela e de monotonicidade (força maior, alfa menor).
-- [ ] C3 `destaqueNoDocumento.ts` com `CSS.highlights`, uma passada por seção, orçamento 50 ms. Verificar: teste de desempenho com seção de 5 mil palavras; fallback sem a API não lança.
+- [x] C1 `statusDaPalavra(chave, idioma)` sobre o índice de etiquetas e `forcaDoCartao`. Verificar: testes por força 1 a 4, ignorada, conhecida, sem cartão.
+      Feito em `core/leitura/destaqueDeVocabulario.ts` (`infoDaPalavra`) e `lib/leitor/forcaDaPalavra.ts` (`statusDaPalavra`); testes em `tests/leitor-destaque-vocab.test.ts`.
+
+- [x] C2 `intensidadeDoDestaque` pura (nova uma cor com alfa por frequência; aprendendo em gradiente; conhecida sem cor). Verificar: testes de tabela e de monotonicidade (força maior, alfa menor).
+      Feito (`intensidadeDoDestaque`, `classeDoDestaque`); testes de tabela e monotonicidade.
+
+- [x] C3 `destaqueNoDocumento.ts` com `CSS.highlights`, uma passada por seção, orçamento 50 ms. Verificar: teste de desempenho com seção de 5 mil palavras; fallback sem a API não lança.
+      Feito em `lib/leitor/destaqueNoDocumento.ts`; classificar 5 mil palavras < 50 ms e refazer o grifo < 100 ms nos testes; fallback sem a API testado.
+
 - [ ] C4 Legenda/chave e régua de densidade (% de novas); % de palavras conhecidas antes do capítulo. Verificar: teste de componente e de cálculo.
-- [ ] C5 Cartão da palavra de 1 toque (Não sei, 1 a 4, Já sei, Ignorar, Revisar). Verificar: testes que conferem a escrita pelas APIs existentes e que o destaque atualiza em <= 100 ms.
-- [ ] C6 Opção `marcarConhecidasAoPaginar` (desligada, aviso, desfazer, indisponível para perfil protegido). Verificar: testes de que NÃO marca palavras clicadas e de que o padrão é desligado.
-- [ ] C7 5 cartões no fim do capítulo (`palavrasParaPraticar`). Verificar: teste de componente.
-- [ ] C8 Etiquetas `data-forca` no leitor (fecha a parte pendente 3.2 da change `status-da-palavra-na-legenda`, combinando com o dono dela). Verificar: teste de que o texto acessível não muda.
+      PARCIAL: legenda de 3 itens, interruptor e régua de densidade (% de novas e % de conhecidas do capítulo EM EXIBIÇÃO) feitos em `LegendaDoDestaque`. FALTA a % de conhecidas no sumário ANTES de abrir o capítulo (exige ler o texto de cada seção sem abri-la; `PainelDoSumario` não é da Fatia C).
+
+- [x] C5 Cartão da palavra de 1 toque (Não sei, 1 a 4, Já sei, Ignorar, Revisar). Verificar: testes que conferem a escrita pelas APIs existentes e que o destaque atualiza em <= 100 ms.
+      Feito: `ControleDeForcaDaPalavra` no cartão (Não sei, 2, 3, 4, Revisar agora) + `MarcarPalavra` (Já sei, Ignorar). Força 2 a 4 só em palavra sem revisões, pela rota `desfazer` existente; cartão com revisões mantém a força do histórico.
+
+- [x] C6 Opção `marcarConhecidasAoPaginar` (desligada, aviso, desfazer, indisponível para perfil protegido). Verificar: testes de que NÃO marca palavras clicadas e de que o padrão é desligado.
+      Feito: opção desligada por padrão, com aviso, desfazível e ausente para o perfil protegido; testes de que o padrão não marca e de que a clicada nunca é marcada.
+
+- [x] C7 5 cartões no fim do capítulo (`palavrasParaPraticar`). Verificar: teste de componente.
+      Feito em `PraticaDoCapitulo` (oferece ao passar para o capítulo seguinte; nunca começa sozinho).
+
+- [x] C8 Etiquetas `data-forca` no leitor (fecha a parte pendente 3.2 da change `status-da-palavra-na-legenda`, combinando com o dono dela). Verificar: teste de que o texto acessível não muda.
 
 ## 4. Fatia D: IA "Ajustar nível"
+
+      Feito no cartão: `data-forca` no `.cartao-palavra`, sem mudar o texto acessível. Os grifos do capítulo (CSS Highlight) não têm atributo; combinar com a dona da change `status-da-palavra-na-legenda` se o 3.2 pedia atributo no texto do livro.
 
 - [ ] D1 Simular antes de ligar: script `scripts/leitura/simular-nivel.ts` mede acerto de nível (classificador local) em 50 parágrafos por nível com 2 modelos baratos candidatos, 1 e 2 chamadas. Verificar: tabela em `docs/` e escolha do modelo registrada no `design.md`. Rodar em bancada com juízes sem créditos de API.
 - [ ] D2 `src/core/leitura/ajustarNivel.ts` puro: classificador de nível (`cefrWordlist`), checagem de palavras conhecidas preservadas, montagem do pedido. Verificar: testes de unidade.

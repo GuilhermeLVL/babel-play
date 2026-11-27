@@ -481,6 +481,13 @@ export const FLAG_LEITOR_SELECAO_FIRME = 'leitor_selecao_firme';
 export const FLAG_LEITOR_MODO_TRADUCAO = 'leitor_modo_traducao';
 
 /**
+ * O DESTAQUE POR VOCABULÁRIO NO LEITOR (openspec `leitura-assistida`, Fatia C; migrações PG 0046 e SQLite 0085): as palavras do
+ * capítulo ganham grifo com intensidade pela força no vocabulário da pessoa, legenda, cartão da palavra de 1 toque e 5 cartões no
+ * fim do capítulo. Tudo no aparelho, sem rota nova. Nasce DESLIGADA e sem regra de plano; nenhuma cota. Ligar é ato do dono.
+ */
+export const FLAG_LEITOR_DESTAQUE_VOCAB = 'leitor_destaque_vocab';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

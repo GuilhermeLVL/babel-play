@@ -44,7 +44,7 @@ import { CORES_DOS_TEMAS } from '../../../core/leitura/perfilDeLeitura';
 import type { Retangulo } from '../../../core/leitura/posicaoDoCartao';
 import { ancorar } from '../../../core/leitura/reancorar';
 import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
-import { FLAG_AUDIOLIVROS, FLAG_LEITOR_MODO_TRADUCAO, FLAG_LEITOR_SELECAO_FIRME } from '../../../core/planos';
+import { FLAG_AUDIOLIVROS, FLAG_LEITOR_DESTAQUE_VOCAB, FLAG_LEITOR_MODO_TRADUCAO, FLAG_LEITOR_SELECAO_FIRME } from '../../../core/planos';
 import { FLAG_VOZ_NATURAL } from '../../../core/vozNatural';
 import { fetchDeck } from '../../../data/api';
 import type { ModoDoParceiro } from '../../../data/rotas/parceiroDeLeitura';
@@ -93,6 +93,7 @@ import { posicoes } from '../../../lib/livros/posicoesDoAparelho';
 import { tetoDoLeitor } from '../../../lib/livros/quemLe';
 import { readAgeProfile } from '../../../lib/profile';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
+import { navegarPara } from '../../../lib/rotas';
 import { getVoicePref, speak } from '../../../lib/tts';
 import { buildVocabWord, mtNoteFor, resolveWord } from '../../../lib/vocabWord';
 import { haVozPara } from '../../../lib/voz/haVoz';
@@ -106,7 +107,7 @@ import {
   vozDoNarradorNoAparelho,
   vozNoAparelhoLe,
 } from '../../../lib/voz/vozNoAparelho';
-import type { VocabWord } from '../../../types';
+import type { VocabCard, VocabWord } from '../../../types';
 import { BotaoDoAvatar, DicaDoAvatar } from '../../avatar/modo/BotaoDoAvatar';
 import { useAvatarDoModo } from '../../avatar/modo/useAvatarDoModo';
 import CoberturaDoConteudo from '../../CoberturaDoConteudo';
@@ -114,6 +115,7 @@ import { toast } from '../../Toast';
 import AvatarDoNarrador from './AvatarDoNarrador';
 import BarraDaSelecao, { type TrechoSelecionado } from './BarraDaSelecao';
 import BarraDoNarrador, { aoTeclarNoNarrador, PainelDaNarracao } from './BarraDoNarrador';
+import type { EstadoDoDestaque } from './CamadaDeDestaque';
 import CartaoDaPalavra from './CartaoDaPalavra';
 import ConviteDaVozNoAparelho from './ConviteDaVozNoAparelho';
 import DicaDoElenco from './DicaDoElenco';
@@ -132,6 +134,9 @@ const BotaoBaixarCapitulo = lazy(() => import('./BotaoBaixarCapitulo'));
 const CamadaDeSelecao = lazy(() => import('./CamadaDeSelecao'));
 /* O balão da tradução (flag `leitor_modo_traducao`): só carrega com a flag ligada e uma seleção na tela. */
 const BalaoDaTraducao = lazy(() => import('./BalaoDaTraducao'));
+/* O destaque por vocabulário e a prática do fim do capítulo (flag `leitor_destaque_vocab`): só carregam com ela ligada. */
+const CamadaDeDestaque = lazy(() => import('./CamadaDeDestaque'));
+const PraticaDoCapitulo = lazy(() => import('./PraticaDoCapitulo'));
 import { useElencoDoLivro } from './useElencoDoLivro';
 import { useFatosDasFerramentas } from './useFatosDasFerramentas';
 import { usePerfilDeLeitura } from './usePerfilDeLeitura';
@@ -144,6 +149,9 @@ const LS_SEGUIR = 'leitor:narracao:seguir';
 /* "Mostrar tradução das palavras novas": desligado por padrão, guardado neste aparelho. */
 const LS_GLOSA = 'leitor:glosa';
 const LS_MODO_TRADUCAO = 'leitor:modo-traducao';
+/* O destaque por vocabulário e "virar a página marca como conhecidas": ambos desligados por padrão, neste aparelho. */
+const LS_DESTAQUE = 'leitor:destaque-vocab';
+const LS_PAGINAR_MARCA = 'leitor:paginar-marca-conhecidas';
 const lerLocal = (chave: string): string | null => {
   try {
     return localStorage.getItem(chave);
@@ -314,6 +322,16 @@ export default function LeitorDoLivro({
   const [seguirNarracao, setSeguirNarracao] = useState(() => lerLocal(LS_SEGUIR) !== '0');
   const [glosaLigada, setGlosaLigada] = useState(() => lerLocal(LS_GLOSA) === '1');
   const glosaAoCarregar = useRef<(() => void) | null>(null);
+  /* ── o destaque por vocabulário (flag `leitor_destaque_vocab`) ── */
+  const destaqueNaFlag = useFlag(FLAG_LEITOR_DESTAQUE_VOCAB);
+  const [destaqueLigado, setDestaqueLigado] = useState(() => lerLocal(LS_DESTAQUE) === '1');
+  const [paginarMarca, setPaginarMarca] = useState(() => lerLocal(LS_PAGINAR_MARCA) === '1');
+  const [estadoDoDestaque, setEstadoDoDestaque] = useState<EstadoDoDestaque | null>(null);
+  const destaqueAoCarregar = useRef<(() => void) | null>(null);
+  /* As palavras de cada capítulo para a prática do fim: as mais repetidas e as que a pessoa tocou, por seção. */
+  const candidatasPorSecao = useRef(new Map<number, string[]>());
+  const tocadasPorSecao = useRef(new Map<number, string[]>());
+  const [pratica, setPratica] = useState<{ candidatas: string[]; tocadas: string[] } | null>(null);
   /** A narração acabou de virar a página: o caret que a navegação põe não é toque na palavra. */
   const ignorarToquesAte = useRef(0);
   useVozesPreferidas(); // a voz escolhida em outra tela (ou na conta) vale aqui
@@ -324,6 +342,34 @@ export default function LeitorDoLivro({
   idiomaRef.current = idioma || baseLang(langConfig.studying);
   /* A COBERTURA do capítulo em exibição: os parágrafos da seção, lidos uma vez por capítulo (a conta é do hook). */
   const secaoAtual = local?.section?.current;
+  /* A página visível (para "virar a página marca como conhecidas"): só muda quando a posição muda. */
+  const paginaVisivel = useMemo(() => (local ? { range: local.range, fracao: local.fraction } : null), [local]);
+  const secaoRef = useRef<number | undefined>(undefined);
+  secaoRef.current = secaoAtual;
+  const aoEstadoDoDestaque = useCallback((e: EstadoDoDestaque) => {
+    setEstadoDoDestaque(e);
+    if (secaoRef.current !== undefined) candidatasPorSecao.current.set(secaoRef.current, e.candidatas);
+  }, []);
+  /* As palavras tocadas em cada capítulo. */
+  useEffect(() => {
+    const w = palavra?.vocab.word;
+    const sec = secaoRef.current;
+    if (!destaqueNaFlag || !w || sec === undefined) return;
+    const l = tocadasPorSecao.current.get(sec) ?? [];
+    if (!l.includes(w)) tocadasPorSecao.current.set(sec, [...l, w]);
+  }, [palavra?.vocab.word, destaqueNaFlag]);
+  /* Terminou um capítulo (a seção mudou para a frente): oferece a prática das palavras dele. Nunca começa sozinha. */
+  const secaoAnterior = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const antes = secaoAnterior.current;
+    secaoAnterior.current = secaoAtual;
+    if (!destaqueNaFlag || !destaqueLigado || antes === undefined || secaoAtual === undefined || secaoAtual <= antes) {
+      return;
+    }
+    const candidatas = candidatasPorSecao.current.get(antes) ?? [];
+    const tocadas = tocadasPorSecao.current.get(antes) ?? [];
+    setPratica(candidatas.length || tocadas.length ? { candidatas, tocadas } : null);
+  }, [secaoAtual, destaqueNaFlag, destaqueLigado]);
   const [trechosDaSecao, setTrechosDaSecao] = useState<string[] | null>(null);
   useEffect(() => {
     setTrechosDaSecao(
@@ -737,6 +783,7 @@ export default function LeitorDoLivro({
   function ligarDocumento(doc: Document, indice: number) {
     narradorRef.current?.secaoCarregada(doc, indice);
     glosaAoCarregar.current?.();
+    destaqueAoCarregar.current?.();
     const gestos = {
       aoSelecionar: (r: Range) => selecionarTrecho(r, indice),
       get firme() {
@@ -976,8 +1023,8 @@ export default function LeitorDoLivro({
     void sincronizar();
   };
 
-  const salvarNoDeck = async (w: VocabWord) => {
-    if (!palavra) return;
+  const salvarNoDeck = async (w: VocabWord): Promise<VocabCard | undefined> => {
+    if (!palavra) return undefined;
     const origem = {
       word: w.word,
       context: palavra.frase,
@@ -998,6 +1045,7 @@ export default function LeitorDoLivro({
       toast.ok(t('"{palavra}" foi para o deck, com a frase do livro.', { palavra: w.word }));
       await criar('palavra', { palavra: w.word, nota: w.translation || '' }, palavra);
     }
+    return criados[0];
   };
 
   /** O miolo visível do leitor na janela do app (onde o balão da tradução pode ficar). */
@@ -1030,7 +1078,7 @@ export default function LeitorDoLivro({
   const traduzirParagrafo = (texto: string): Promise<string | null> => traduzir(texto);
 
   /** Guarda o trecho selecionado como cartão (o parceiro oferece depois de responder). */
-  const guardarTrecho = async (texto: string, frase: string): Promise<boolean> => {
+  const guardarTrecho = async (texto: string, frase: string, avisar = true): Promise<boolean> => {
     try {
       const { vocab, resolved } = await buildVocabWord(
         { word: texto, context: frase, declaredLang: idiomaRef.current || undefined, config: langConfig },
@@ -1044,7 +1092,7 @@ export default function LeitorDoLivro({
         cloze: frase ? makeCloze(frase, texto) : null,
         sessionId: await origemNoDeck(livroId),
       });
-      if (criados.length) toast.ok(t('Guardado no deck, com a frase do livro.'));
+      if (criados.length && avisar) toast.ok(t('Guardado no deck, com a frase do livro.'));
       return criados.length > 0;
     } catch {
       return false;
@@ -1149,6 +1197,20 @@ export default function LeitorDoLivro({
       data-estado={estado}
       data-painel={painel ?? undefined}
     >
+      {destaqueNaFlag && destaqueLigado && estado === 'pronto' && !info?.ehPdf && (
+        <Suspense fallback={null}>
+          <CamadaDeDestaque
+            motorRef={motorRef}
+            aoSecaoCarregada={destaqueAoCarregar}
+            idioma={idioma}
+            perfil={perfil}
+            pagina={paginaVisivel}
+            palavraAberta={palavra?.vocab.word}
+            marcarAoPaginar={paginarMarca && !perfilProtegido()}
+            aoEstado={aoEstadoDoDestaque}
+          />
+        </Suspense>
+      )}
       {glosaLigada && estado === 'pronto' && !info?.ehPdf && (
         <GlosaDoLeitor
           motorRef={motorRef}
@@ -1347,6 +1409,24 @@ export default function LeitorDoLivro({
                     setGlosaLigada(v);
                     gravarLocal(LS_GLOSA, v ? '1' : '0');
                   }}
+                  destaque={
+                    destaqueNaFlag && !info?.ehPdf
+                      ? {
+                          ligado: destaqueLigado,
+                          mudar: (v) => {
+                            setDestaqueLigado(v);
+                            gravarLocal(LS_DESTAQUE, v ? '1' : '0');
+                          },
+                          marcarAoPaginar: paginarMarca,
+                          mudarMarcarAoPaginar: (v) => {
+                            setPaginarMarca(v);
+                            gravarLocal(LS_PAGINAR_MARCA, v ? '1' : '0');
+                          },
+                          protegido: perfilProtegido(),
+                          estado: estadoDoDestaque,
+                        }
+                      : undefined
+                  }
                 />
               )}
               {painel === 'narracao' && elencoNoTopo && painelDoElenco}
@@ -1622,6 +1702,22 @@ export default function LeitorDoLivro({
         {anuncio}
       </p>
 
+      {pratica && destaqueNaFlag && (
+        <Suspense fallback={null}>
+          <PraticaDoCapitulo
+            idioma={idioma}
+            tocadas={pratica.tocadas}
+            candidatas={pratica.candidatas}
+            guardar={(p) => guardarTrecho(p, '', false)}
+            aoPraticar={() => {
+              setPratica(null);
+              navegarPara({ view: 'cartoes', estudando: true });
+            }}
+            aoFechar={() => setPratica(null)}
+          />
+        </Suspense>
+      )}
+
       {palavra && (
         <CartaoDaPalavra
           vocab={palavra.vocab}
@@ -1643,6 +1739,14 @@ export default function LeitorDoLivro({
           imagens={palavra.imagens}
           link={palavra.link}
           etiqueta={etiquetaDaPalavra(palavra.vocab.word, palavra.idioma)}
+          vocabulario={
+            destaqueNaFlag
+              ? {
+                  fichar: () => salvarNoDeck(palavra.vocab),
+                  aoRevisar: () => navegarPara({ view: 'cartoes', estudando: true }),
+                }
+              : undefined
+          }
           extra={<HistoricoNaFolha palavra={palavra.vocab.word} idioma={palavra.idioma} />}
           aoConhecerPlanos={perfilProtegido() ? undefined : aoConhecerPlanos}
           aoFechar={fecharPalavra}

@@ -7,14 +7,14 @@
 
 ## 1. Fatia A: player e seleção (dono: ver design)
 
-- [ ] A1 Reproduzir o salto de coluna e a seleção a mais num teste Playwright (fixture EPUB de duas colunas, gestos do 17/18.png); registrar se a hipótese da ordem do texto se confirma. Verificar: teste vermelho antes do conserto.
-- [ ] A2 `ajusteDeSelecao.ts` puro: `ajustarAPalavras`, `limitarAoBloco`, descarte de pontos fora do texto. Verificar: testes de unidade (acentos, apóstrofo, hífen, CJK, árabe, ponto na margem, cruzando bloco).
-- [ ] A3 Gestos: toque = palavra, duplo/longo = frase, triplo = parágrafo, em `selecao.ts`. Verificar: testes do reconhecedor com relógio falso.
-- [ ] A4 Publicar `BarramentoDaSelecao` com `TrechoDoLeitor` (inclui `rect` fora do iframe e `coluna`). Verificar: teste de contrato.
-- [ ] A5 Alças que andam por palavra (fora do iframe). Verificar: e2e Chromium e WebKit.
-- [ ] A6 Player compacto (`escutaPlayer.css`, ResizeObserver no padding da transcrição). Verificar: e2e 1280x720 e 390x844, 0 px de sobreposição; captura de tela anexada.
-- [ ] A7 Se foliate precisar de ajuste: só com `FRASY:` e linha em `foliate/PATCHES.md`. Verificar: `git diff` do foliate mostra só linhas marcadas.
-- [ ] A8 Bateria de 100 gestos sintéticos medindo a taxa de refazer (meta <= 5%). Verificar: número no PR.
+- [x] A1 Reproduzir o salto de coluna e a seleção a mais num teste Playwright (fixture EPUB de duas colunas, gestos do 17/18.png); registrar se a hipótese da ordem do texto se confirma. Verificar: teste vermelho antes do conserto. Feito: `tests/e2e/leitor-selecao-firme.e2e.ts` fica VERMELHO com a flag desligada (5 de 6) e a bateria mede 99% de refazer sem a flag. O salto de coluna NÃO foi reproduzido (a fixture tem uma coluna e o motor do Chromium não pulou); o que se reproduz é a deriva para outro bloco e para a margem, e a seleção que termina no meio da palavra.
+- [x] A2 `ajusteDeSelecao.ts` puro: `ajustarAPalavras`, `limitarAoBloco`, descarte de pontos fora do texto. Verificar: testes de unidade (acentos, apóstrofo, hífen, CJK, árabe, ponto na margem, cruzando bloco). Feito: `src/core/leitura/ajusteDeSelecao.ts` (em deslocamentos de texto, sem DOM) + `tests/ajuste-de-selecao.test.ts`; a conversão de `Range` mora em `selecao.ts`.
+- [x] A3 Gestos: toque = palavra, duplo/longo = frase, triplo = parágrafo, em `selecao.ts`. Verificar: testes do reconhecedor com relógio falso. Feito em `selecao.ts` (contador de toques curtos: 2 = frase, 3 = parágrafo; longo = frase), coberto pelo e2e em Chromium e WebKit, não pelo reconhecedor com relógio falso.
+- [x] A4 Publicar `BarramentoDaSelecao` com `TrechoDoLeitor` (inclui `rect` fora do iframe e `coluna`). Verificar: teste de contrato. Feito: `src/lib/leitor/barramentoDaSelecao.ts` + `tests/barramento-da-selecao.test.ts`. O toque limpo continua abrindo o cartão da palavra e PUBLICA a palavra no barramento (não deixa uma seleção visível).
+- [x] A5 Alças que andam por palavra (fora do iframe). Verificar: e2e Chromium e WebKit. Feito: `CamadaDeSelecao.tsx` (alças fora do iframe, arrasto e setas), e2e em Chromium e WebKit.
+- [x] A6 Player compacto (`escutaPlayer.css`, ResizeObserver no padding da transcrição). Verificar: e2e 1280x720 e 390x844, 0 px de sobreposição; captura de tela anexada. Feito: `escutaPlayer.css` + classe `px-player-compacto`; `tests/e2e/escuta-player-compacto.e2e.ts` (1280x720 e 375x812).
+- [x] A7 Se foliate precisar de ajuste: só com `FRASY:` e linha em `foliate/PATCHES.md`. Verificar: `git diff` do foliate mostra só linhas marcadas. Não foi preciso: o foliate não foi tocado.
+- [x] A8 Bateria de 100 gestos sintéticos medindo a taxa de refazer (meta <= 5%). Verificar: número no PR. Feito: bateria no e2e; flag ligada 3,0% (3 de 100), desligada 99%.
 
 ## 2. Fatia B: tradução e ações de leitura
 

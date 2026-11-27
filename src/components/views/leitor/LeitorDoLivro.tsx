@@ -37,12 +37,13 @@ import {
   type JanelaDaCota,
   livroParaOParceiro,
 } from '../../../core/leitura/ferramentasDeIa';
+import type { OrigemDaSelecao } from '../../../core/leitura/leituraAssistida';
 import { type ModoDaNarracao, MODOS_DA_NARRACAO, mostraConviteDaVozNatural } from '../../../core/leitura/narracao';
 import { CORES_DOS_TEMAS } from '../../../core/leitura/perfilDeLeitura';
 import type { Retangulo } from '../../../core/leitura/posicaoDoCartao';
 import { ancorar } from '../../../core/leitura/reancorar';
 import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
-import { FLAG_AUDIOLIVROS } from '../../../core/planos';
+import { FLAG_AUDIOLIVROS, FLAG_LEITOR_SELECAO_FIRME } from '../../../core/planos';
 import { FLAG_VOZ_NATURAL } from '../../../core/vozNatural';
 import { fetchDeck } from '../../../data/api';
 import type { ModoDoParceiro } from '../../../data/rotas/parceiroDeLeitura';
@@ -63,6 +64,7 @@ import { useLangConfig } from '../../../lib/langConfig';
 import { detectLanguage } from '../../../lib/langDetect';
 import { baseLang, toBcp47 } from '../../../lib/languages';
 import { audiolivroDoLivro } from '../../../lib/leitor/audiolivroDoLivro';
+import { barramentoDaSelecao, montarTrecho } from '../../../lib/leitor/barramentoDaSelecao';
 import { dicaDoElencoJaVista, marcarDicaDoElencoVista } from '../../../lib/leitor/dicaDoElenco';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
@@ -123,6 +125,7 @@ import PainelDoSumario from './PainelDoSumario';
 
 /* "Baixar este capítulo" puxa o código do CDN de áudio: só com o áudio gravado em uso (flag `audiolivros`). */
 const BotaoBaixarCapitulo = lazy(() => import('./BotaoBaixarCapitulo'));
+const CamadaDeSelecao = lazy(() => import('./CamadaDeSelecao'));
 import { useElencoDoLivro } from './useElencoDoLivro';
 import { useFatosDasFerramentas } from './useFatosDasFerramentas';
 import { usePerfilDeLeitura } from './usePerfilDeLeitura';
@@ -255,6 +258,10 @@ export default function LeitorDoLivro({
   const [naoLocalizadas, setNaoLocalizadas] = useState<Set<string>>(new Set());
   const [sinc, setSinc] = useState<EstadoDaSincronizacao | 'carregando'>('carregando');
   const [selecao, setSelecao] = useState<Selecao | null>(null);
+  /* A barra do trecho saiu: o barramento da seleção também (as alças e quem assina param). */
+  useEffect(() => {
+    if (!selecao) barramentoDaSelecao.limpar();
+  }, [selecao]);
   const [palavra, setPalavra] = useState<PalavraAberta | null>(null);
   const palavraRef = useRef<PalavraAberta | null>(null);
   palavraRef.current = palavra;
@@ -339,6 +346,10 @@ export default function LeitorDoLivro({
   /* O AUDIOLIVRO PRÉ-GERADO (flag `audiolivros`): só para livro do catálogo com áudio publicado e visível para quem lê
      (`audiolivroDoLivro`). Desligada a flag, nada é lido nem baixado; o narrador lê com a voz do aparelho. */
   const audiolivrosLigados = useFlag(FLAG_AUDIOLIVROS);
+  /* SELEÇÃO FIRME (openspec `leitura-assistida`, Fatia A): lida na hora do gesto, por ref, porque o documento do capítulo guarda o fechamento. */
+  const selecaoFirme = useFlag(FLAG_LEITOR_SELECAO_FIRME);
+  const selecaoFirmeRef = useRef(false);
+  selecaoFirmeRef.current = selecaoFirme;
   const audioGravadoRef = useRef<AudioGravadoDoLivro | null>(null);
   useEffect(() => {
     let vivo = true;
@@ -674,25 +685,41 @@ export default function LeitorDoLivro({
     }
   }
 
+  /** O trecho selecionado no documento da seção `indice` vira a barra do trecho. */
+  function selecionarTrecho(r: Range, indice: number) {
+    const m = motorRef.current;
+    if (!m) return;
+    setPalavra(null);
+    const texto = r.toString().trim();
+    setSelecao({
+      trecho: { texto, frase: fraseDoRange(r, idiomaRef.current), idioma: idiomaRef.current },
+      ...(ehUmaPalavra(texto, idiomaRef.current) ? { palavra: { range: r.cloneRange(), indice } } : {}),
+      cfi: m.cfiDe(indice, r),
+      citacao: citacaoDoRange(r),
+      capitulo: capituloRef.current,
+    });
+  }
+
+  /** O trecho firmado vai ao barramento da seleção (`TrechoDoLeitor`), para a tradução, o vocabulário e o ajuste de nível. */
+  function publicarTrecho(doc: Document, r: Range, indice: number, origem: OrigemDaSelecao) {
+    const m = motorRef.current;
+    if (!m) return;
+    barramentoDaSelecao.publicar(
+      { trecho: montarTrecho(r, idiomaRef.current, m.cfiDe(indice, r)), doc, range: r.cloneRange(), indice },
+      origem,
+    );
+  }
+
   /* ── o documento de cada seção: teclado, seleção e toque na palavra ── */
   function ligarDocumento(doc: Document, indice: number) {
     narradorRef.current?.secaoCarregada(doc, indice);
     glosaAoCarregar.current?.();
-    const motor = () => motorRef.current;
     const gestos = {
-      aoSelecionar: (r: Range) => {
-        const m = motor();
-        if (!m) return;
-        setPalavra(null);
-        const texto = r.toString().trim();
-        setSelecao({
-          trecho: { texto, frase: fraseDoRange(r, idiomaRef.current), idioma: idiomaRef.current },
-          ...(ehUmaPalavra(texto, idiomaRef.current) ? { palavra: { range: r.cloneRange(), indice } } : {}),
-          cfi: m.cfiDe(indice, r),
-          citacao: citacaoDoRange(r),
-          capitulo: capituloRef.current,
-        });
+      aoSelecionar: (r: Range) => selecionarTrecho(r, indice),
+      get firme() {
+        return selecaoFirmeRef.current;
       },
+      aoPublicar: (r: Range, origem: OrigemDaSelecao) => publicarTrecho(doc, r, indice, origem),
       /* SÓ O TOQUE LIMPO chega aqui (`core/leitura/gestoDoLeitor.ts`): arrastar, segurar e o toque duplo são
          seleção e nunca abrem a folha da palavra. */
       aoTocar: (r: Range, alvo: Node) => {
@@ -1367,6 +1394,18 @@ export default function LeitorDoLivro({
           </aside>
         )}
       </div>
+
+      {selecaoFirme && (
+        <Suspense fallback={null}>
+          <CamadaDeSelecao
+            idioma={idiomaRef.current}
+            aoAjustar={(r, indice) => {
+              selecionarTrecho(r, indice);
+              publicarTrecho(r.startContainer.ownerDocument!, r, indice, 'alca');
+            }}
+          />
+        </Suspense>
+      )}
 
       {selecao && (
         <BarraDaSelecao

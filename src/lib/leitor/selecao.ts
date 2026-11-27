@@ -3,8 +3,18 @@
  * `caretRangeFromPoint` + `Intl.Segmenter` (sem cortar "d'água" nem "co-operate"), e a palavra ou o trecho
  * selecionado viram FRASE (o contexto do cartão) e CITAÇÃO (o `TextQuoteSelector` da anotação).
  */
+import {
+  ajustarAPalavras,
+  type Faixa,
+  faixaDoArrasto,
+  fraseEmOffsets,
+  limitarAoBloco,
+  paragrafoEmOffsets,
+  vizinhaDaAlca,
+} from '../../core/leitura/ajusteDeSelecao';
 import { type CitacaoDoTexto, MAX_CITACAO, MAX_CONTEXTO } from '../../core/leitura/anotacao';
 import { type ClasseDoGesto, criarReconhecedorDeToque, type RelogioDoGesto } from '../../core/leitura/gestoDoLeitor';
+import type { OrigemDaSelecao } from '../../core/leitura/leituraAssistida';
 
 const BLOCOS = 'p, li, blockquote, dd, dt, td, th, h1, h2, h3, h4, h5, h6, figcaption, div, section, body';
 
@@ -130,6 +140,121 @@ export function selecaoDoDocumento(doc: Document): Range | null {
   return r.toString().trim().length >= 2 ? r : null;
 }
 
+/* ── A SELEÇÃO FIRME (flag `leitor_selecao_firme`, openspec `leitura-assistida`): bordas de palavra e dentro de um bloco ── */
+
+/** O nó de texto e o deslocamento que correspondem ao deslocamento `off` do texto do bloco. */
+function pontoDoDeslocamento(bloco: Element, off: number, comoFim: boolean): { no: Node; offset: number } | null {
+  const andador = bloco.ownerDocument.createTreeWalker(bloco, NodeFilter.SHOW_TEXT);
+  let acumulado = 0;
+  let ultimo: Text | null = null;
+  for (let n = andador.nextNode() as Text | null; n; n = andador.nextNode() as Text | null) {
+    const len = n.data.length;
+    if (off < acumulado + len || (comoFim && off === acumulado + len)) return { no: n, offset: off - acumulado };
+    acumulado += len;
+    ultimo = n;
+  }
+  return ultimo ? { no: ultimo, offset: ultimo.data.length } : null;
+}
+
+/** O `Range` do documento para a faixa de deslocamentos do texto do bloco. */
+export function rangeDeFaixa(bloco: Element, f: Faixa): Range | null {
+  const a = pontoDoDeslocamento(bloco, f.ini, false);
+  const b = pontoDoDeslocamento(bloco, f.fim, true);
+  if (!a || !b) return null;
+  const r = bloco.ownerDocument.createRange();
+  r.setStart(a.no, a.offset);
+  r.setEnd(b.no, b.offset);
+  return r;
+}
+
+/** A faixa (deslocamentos no texto do bloco) do `Range`; o fim que cai fora do bloco vira o fim do bloco. */
+function faixaDoRangeNoBloco(bloco: Element, r: Range): Faixa {
+  const texto = bloco.textContent ?? '';
+  const ini = bloco.contains(r.startContainer) ? deslocamentoNoBloco(bloco, r.startContainer, r.startOffset) : 0;
+  const fim = bloco.contains(r.endContainer) ? deslocamentoNoBloco(bloco, r.endContainer, r.endOffset) : texto.length;
+  return { ini, fim };
+}
+
+/**
+ * Firma o trecho: início e fim em bordas de palavra, tudo dentro do bloco onde o trecho COMEÇA (o arrasto que deriva para
+ * outro parágrafo ou coluna é recortado; só as alças passam do bloco, de propósito). `null` = nenhuma palavra (descarta).
+ */
+export function firmarRange(r: Range, idioma?: string): Range | null {
+  const bloco = blocoDe(r.startContainer);
+  if (!bloco) return null;
+  const texto = bloco.textContent ?? '';
+  const noBloco = limitarAoBloco(faixaDoRangeNoBloco(bloco, r), { ini: 0, fim: texto.length });
+  const f = noBloco && ajustarAPalavras(texto, noBloco.ini, noBloco.fim, idioma);
+  return f ? rangeDeFaixa(bloco, f) : null;
+}
+
+/** A frase ou o parágrafo (no bloco) que contém o trecho, como `Range`. */
+export function ampliarRange(r: Range, para: 'frase' | 'paragrafo', idioma?: string): Range | null {
+  const bloco = blocoDe(r.startContainer);
+  if (!bloco) return null;
+  const texto = bloco.textContent ?? '';
+  const { ini, fim } = faixaDoRangeNoBloco(bloco, r);
+  const f = para === 'frase' ? fraseEmOffsets(texto, ini, fim, idioma) : paragrafoEmOffsets(texto);
+  return f.fim > f.ini ? rangeDeFaixa(bloco, f) : null;
+}
+
+/** Troca a seleção do documento por `r`. */
+function selecionar(doc: Document, r: Range) {
+  const sel = doc.defaultView?.getSelection?.();
+  if (!sel) return;
+  sel.removeAllRanges();
+  sel.addRange(r);
+}
+
+/**
+ * ALÇA, pelo TECLADO ou por passo: move o início (`ini`) ou o fim (`fim`) UMA palavra (`dir` = 1 adiante, -1 atrás) dentro do
+ * bloco da ponta. `null` = sem palavra vizinha no bloco, ou a seleção ficaria vazia ou invertida.
+ */
+export function moverAlca(r: Range, ponta: 'ini' | 'fim', dir: 1 | -1, idioma?: string): Range | null {
+  const no = ponta === 'ini' ? r.startContainer : r.endContainer;
+  const off = ponta === 'ini' ? r.startOffset : r.endOffset;
+  const bloco = blocoDe(no);
+  if (!bloco) return null;
+  const pos = deslocamentoNoBloco(bloco, no, off);
+  const novo = vizinhaDaAlca(bloco.textContent ?? '', pos, dir, ponta, idioma);
+  if (novo === pos) return null;
+  const p = pontoDoDeslocamento(bloco, novo, ponta === 'fim');
+  if (!p) return null;
+  const c = r.cloneRange();
+  if (ponta === 'ini') c.setStart(p.no, p.offset);
+  else c.setEnd(p.no, p.offset);
+  return c.collapsed || c.toString().trim().length === 0 ? null : c;
+}
+
+/**
+ * ALÇA, pelo DEDO: leva a ponta à palavra que está sob o ponto (x, y no documento do livro). Só as alças passam do bloco.
+ * `null` = o ponto não acertou palavra, ou cruzaria a outra ponta.
+ */
+export function alcaNoPonto(
+  doc: Document,
+  r: Range,
+  ponta: 'ini' | 'fim',
+  x: number,
+  y: number,
+  idioma?: string,
+): Range | null {
+  const h = palavraNoPonto(doc, x, y, idioma);
+  if (!h) return null;
+  const c = r.cloneRange();
+  if (ponta === 'fim') {
+    c.setEnd(h.range.endContainer, h.range.endOffset);
+  } else {
+    c.setStart(h.range.startContainer, h.range.startOffset);
+  }
+  return c.collapsed || c.toString().trim().length === 0 ? null : c;
+}
+
+/** A palavra (faixa no bloco) de um `Range` de palavra, com o bloco. */
+function palavraNoBloco(w: Range): { bloco: Element; faixa: Faixa } | null {
+  const bloco = blocoDe(w.startContainer);
+  return bloco ? { bloco, faixa: faixaDoRangeNoBloco(bloco, w) } : null;
+}
+
 /**
  * O WEBKIT NÃO ENTREGA EVENTOS de um iframe com `sandbox` sem `allow-scripts` (bug 218086) — nem aos
  * ouvintes que o PRÓPRIO app registrou no documento do capítulo. E o livro não pode ganhar `allow-scripts`
@@ -198,6 +323,10 @@ export interface GestosDoLivro {
   aoTocar: (palavra: Range, alvo: Node) => void;
   /** O toque desfez a seleção (a barra do trecho sai). */
   aoLimpar?: () => void;
+  /** SELEÇÃO FIRME ligada (flag `leitor_selecao_firme`): bordas de palavra, dentro do bloco, toque duplo = frase, triplo = parágrafo. */
+  firme?: boolean;
+  /** Só com `firme`: o trecho firmado (ou a palavra do toque), para o barramento da seleção (`TrechoDoLeitor`). */
+  aoPublicar?: (r: Range, origem: OrigemDaSelecao) => void;
 }
 
 const RELOGIO_DO_NAVEGADOR: RelogioDoGesto = {
@@ -208,14 +337,51 @@ const RELOGIO_DO_NAVEGADOR: RelogioDoGesto = {
   },
 };
 
+/** O último trecho firmado publicado em cada documento (para não publicar o mesmo duas vezes). */
+const publicados = new WeakMap<Document, string>();
+
 /** Depois de qualquer gesto que não seja o toque limpo: o trecho que ficou, se houver, vai para a barra. */
-function depoisDoGesto(doc: Document, classe: ClasseDoGesto | null, g: GestosDoLivro) {
+function depoisDoGesto(
+  doc: Document,
+  classe: ClasseDoGesto | null,
+  g: GestosDoLivro,
+  idioma?: string,
+  /** Só com `firme`: o gesto pede a frase ou o parágrafo, e/ou o arrasto já medido pelas palavras tocadas. */
+  extra: { para?: 'frase' | 'paragrafo'; arrasto?: Range | null } = {},
+) {
   if (classe === 'limpar') {
+    publicados.delete(doc);
     g.aoLimpar?.();
     return;
   }
   if (classe === 'toque') return;
-  const r = selecaoDoDocumento(doc);
+  let r = selecaoDoDocumento(doc);
+  if (g.firme) {
+    const base = extra.arrasto ?? (r ? firmarRange(r, idioma) : null);
+    const para = extra.para ?? (classe === 'duplo' || classe === 'longo' ? 'frase' : undefined);
+    const alvo = base && para ? (ampliarRange(base, para, idioma) ?? base) : base;
+    if (!alvo) {
+      /* Só margem ou espaço: descarta, em vez de deixar uma seleção sem palavra. */
+      if (r) {
+        doc.defaultView?.getSelection?.()?.removeAllRanges();
+        publicados.delete(doc);
+        g.aoLimpar?.();
+      }
+      return;
+    }
+    if (!r || alvo.toString() !== r.toString()) selecionar(doc, alvo);
+    r = alvo;
+    /* A seleção que NÓS pusemos dispara `selectionchange` e volta aqui: o mesmo trecho não é publicado duas vezes. */
+    const marca = assinaturaDe(r);
+    if (publicados.get(doc) === marca) return;
+    publicados.set(doc, marca);
+    g.aoSelecionar(r);
+    g.aoPublicar?.(
+      r,
+      extra.para === 'paragrafo' || para === 'frase' ? (classe === 'longo' ? 'longo' : 'duplo') : 'arrasto',
+    );
+    return;
+  }
   if (r) g.aoSelecionar(r);
 }
 
@@ -233,7 +399,10 @@ export function ouvirGestos(
     relogio,
     aoToque: (_p, carga) => {
       /* A seleção pode ter aparecido sem `selectionchange` a tempo (o toque duplo do Safari, a barra): confere. */
-      if (carga && !temTrecho(doc)) g.aoTocar(carga.palavra, carga.alvo);
+      if (carga && !temTrecho(doc)) {
+        if (g.firme) g.aoPublicar?.(carga.palavra, 'toque');
+        g.aoTocar(carga.palavra, carga.alvo);
+      }
     },
   });
   const ponto = (e: PointerEvent) => ({
@@ -241,25 +410,64 @@ export function ouvirGestos(
     x: e.clientX,
     y: e.clientY,
   });
+  /* SELEÇÃO FIRME: a palavra onde o dedo desceu, a última palavra do mesmo bloco que o dedo realmente tocou (a deriva para a
+     margem ou outra coluna não conta) e a contagem de toques curtos seguidos (2 = frase, 3 = parágrafo). */
+  let inicioPal: { bloco: Element; faixa: Faixa } | null = null;
+  let ultimaPal: Faixa | null = null;
+  let desceuEm = 0;
+  let desceuNoPonto = { x: 0, y: 0 };
+  let andou = 0;
+  let toques = { n: 0, t: -1e9, x: 0, y: 0 };
   const desce = (e: PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (g.firme) {
+      const h = palavraNoPonto(doc, e.clientX, e.clientY, idioma());
+      inicioPal = h ? palavraNoBloco(h.range) : null;
+      ultimaPal = null;
+      andou = 0;
+      desceuEm = relogio.agora();
+      desceuNoPonto = { x: e.clientX, y: e.clientY };
+    }
     rec.baixou(ponto(e), temTrecho(doc));
   };
   const move = (e: PointerEvent) => {
-    if (rec.emCurso()) rec.moveu(ponto(e));
+    if (!rec.emCurso()) return;
+    rec.moveu(ponto(e));
+    if (!g.firme) return;
+    andou = Math.max(andou, Math.hypot(e.clientX - desceuNoPonto.x, e.clientY - desceuNoPonto.y));
+    if (!inicioPal) return;
+    const h = palavraNoPonto(doc, e.clientX, e.clientY, idioma());
+    const pb = h ? palavraNoBloco(h.range) : null;
+    if (pb && pb.bloco === inicioPal.bloco) ultimaPal = pb.faixa;
   };
   const sobe = (e: PointerEvent) => {
     if (!rec.emCurso()) return;
     const p = ponto(e);
     const alvo = e.target as Node | null;
     const achada = alvo ? palavraNoPonto(doc, e.clientX, e.clientY, idioma()) : null;
-    const classe = rec.subiu(p, temTrecho(doc), achada && alvo ? { palavra: achada.range, alvo } : null);
+    let classe = rec.subiu(p, temTrecho(doc), achada && alvo ? { palavra: achada.range, alvo } : null);
+    let extra: Parameters<typeof depoisDoGesto>[4] = {};
+    if (g.firme) {
+      const curto = andou < 6 && p.t - desceuEm <= 400;
+      if (curto) {
+        const seguido = p.t - toques.t < 450 && Math.hypot(e.clientX - toques.x, e.clientY - toques.y) < 24;
+        toques = { n: seguido ? Math.min(3, toques.n + 1) : 1, t: p.t, x: e.clientX, y: e.clientY };
+      } else toques = { n: 0, t: -1e9, x: 0, y: 0 };
+      if (toques.n >= 2) {
+        classe = 'duplo';
+        extra = { para: toques.n >= 3 ? 'paragrafo' : 'frase' };
+      } else if (andou >= 6 && inicioPal) {
+        const r = rangeDeFaixa(inicioPal.bloco, faixaDoArrasto(inicioPal.faixa, ultimaPal));
+        if (r) extra = { arrasto: r };
+      }
+    }
     /* A seleção do arrasto termina de assentar depois do `pointerup`. */
-    window.setTimeout(() => depoisDoGesto(doc, classe, g), 0);
+    window.setTimeout(() => depoisDoGesto(doc, classe, g, idioma(), extra), 0);
   };
   const cancela = () => {
+    const longo = g.firme && andou < 6 && relogio.agora() - desceuEm >= 400;
     rec.cancelou();
-    window.setTimeout(() => depoisDoGesto(doc, null, g), 0);
+    window.setTimeout(() => depoisDoGesto(doc, longo ? 'longo' : null, g, idioma()), 0);
   };
   /* A seleção que não veio de um gesto do ponteiro (teclado, o toque longo do Android, que termina em
      `pointercancel`) chega pela `selectionchange`, assentada. */
@@ -270,8 +478,12 @@ export function ouvirGestos(
     window.clearTimeout(assentar);
     if (tem && !rec.emCurso())
       assentar = window.setTimeout(() => {
-        const r = !rec.emCurso() ? selecaoDoDocumento(doc) : null;
-        if (r) g.aoSelecionar(r);
+        if (rec.emCurso()) return;
+        if (g.firme) depoisDoGesto(doc, null, g, idioma());
+        else {
+          const r = selecaoDoDocumento(doc);
+          if (r) g.aoSelecionar(r);
+        }
       }, 200);
   };
   doc.addEventListener('pointerdown', desce);
@@ -327,6 +539,7 @@ export function vigiarSelecao(
   let trechoAntes = false;
   let assinatura = '';
   let caretVisto: { no: Node; offset: number } | null = null;
+  let gestoEm = 0;
   const ponto = () => ({ t: relogio.agora(), x: 0, y: 0 });
 
   const id = window.setInterval(() => {
@@ -356,7 +569,10 @@ export function vigiarSelecao(
     /* A ordem importa: o gesto começa ANTES de a seleção que ele desfaz sumir. */
     const comecou = ativo && !ativoAntes;
     const rapido = !ativo && !ativoAntes && caretNovo && focoNoLivro();
-    if (comecou || rapido) rec.baixou(ponto(), trechoAntes);
+    if (comecou || rapido) {
+      gestoEm = relogio.agora();
+      rec.baixou(ponto(), trechoAntes);
+    }
     if (trecho !== trechoAntes) rec.selecaoMudou(trecho);
     if (rapido || (!ativo && ativoAntes)) {
       const classe = rec.subiu(ponto(), trecho, palavraDoCaret());
@@ -366,15 +582,25 @@ export function vigiarSelecao(
         sel?.removeAllRanges();
         caretVisto = null;
       }
-      depoisDoGesto(doc, classe, g);
+      /* Sem eventos do ponteiro não há como contar os toques: o toque duplo nativo (uma palavra selecionada por um gesto
+         curto) vale como "frase", e o triplo nativo (o parágrafo) o `firmarRange` recorta ao bloco. */
+      const curto = g.firme && classe === 'selecao' && trecho && !!r && relogio.agora() - gestoEm <= 700;
+      const extra = curto && ehUmaPalavra(r!.toString(), idioma()) ? { para: 'frase' as const } : {};
+      depoisDoGesto(doc, curto && extra.para ? 'duplo' : classe, g, idioma(), extra);
       assinatura = trecho && r ? assinaturaDe(r) : '';
     } else if (trecho && r && !ativo) {
       /* Um trecho que mudou FORA de um gesto (programático, teclado): a barra do trecho. */
       const agora = assinaturaDe(r);
       if (agora !== assinatura) {
         assinatura = agora;
-        const s = selecaoDoDocumento(doc);
-        if (s) g.aoSelecionar(s);
+        if (g.firme) {
+          /* A palavra que o toque duplo nativo selecionou logo depois de um gesto curto: vale como "frase". */
+          const dupla = relogio.agora() - gestoEm <= 900 && ehUmaPalavra(r.toString(), idioma());
+          depoisDoGesto(doc, dupla ? 'duplo' : null, g, idioma(), dupla ? { para: 'frase' } : {});
+        } else {
+          const s = selecaoDoDocumento(doc);
+          if (s) g.aoSelecionar(s);
+        }
       }
     } else if (!trecho) {
       assinatura = '';

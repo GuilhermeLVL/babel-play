@@ -77,6 +77,7 @@ export type FuncaoDeIa =
   | 'leitura'
   | 'escrita'
   | 'diario'
+  | 'ajustarNivel'
 
 interface DefinicaoDeFuncao {
   /** Caracteres de conteúdo do cliente aceitos (o `system` é nosso e não conta). */
@@ -103,6 +104,10 @@ export const FUNCOES_DE_IA: Readonly<Record<FuncaoDeIa, DefinicaoDeFuncao>> = {
   /* O DIÁRIO (openspec `diario-com-correcao-que-vira-cartao`): até 200 palavras (~1.600 caracteres, 2.000 com folga para
      acento e pontuação), a mesma saída e temperatura da escrita (`PARAMETROS_DO_DIARIO`, conferidos no teste). */
   diario: { tetoEntrada: 2_000, maxTokens: 500, temperatura: 0.2 },
+  /* O "AJUSTAR NÍVEL" da leitura (openspec `leitura-assistida`, fatia D): o texto (até 2.000 caracteres: um parágrafo) mais a
+     versão anterior na reescrita (até outros 2.000, que o núcleo conta à parte); a saída do tamanho da entrada (~500 tokens
+     para 2.000 caracteres, com folga para o raciocínio). Temperatura baixa: reescrita fiel, não criativa. */
+  ajustarNivel: { tetoEntrada: 4_100, maxTokens: 900, temperatura: 0.3 },
 }
 
 /**

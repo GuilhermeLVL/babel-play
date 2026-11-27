@@ -1,0 +1,236 @@
+/* O "AJUSTAR NÍVEL" do leitor (openspec `leitura-assistida`, fatia D). Mesmos tokens do leitor (`--leitor-*`), mesmo raio e
+   mesma borda: é uma peça do design atual, não um redesenho. Original ao lado do ajustado no computador; abas no celular. */
+.ajn {
+  position: fixed;
+  z-index: 40;
+  right: 16px;
+  bottom: 16px;
+  width: min(720px, calc(100vw - 32px));
+  max-height: min(80dvh, 640px);
+  overflow: auto;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--leitor-borda, var(--border-subtle, rgba(0, 0, 0, 0.14)));
+  border-radius: 14px;
+  background: var(--leitor-fundo, var(--bg-elevated, #fff));
+  color: var(--leitor-texto, inherit);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ajn-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ajn-topo h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.ajn-escopo {
+  font-weight: 400;
+  color: var(--leitor-suave, inherit);
+}
+
+.ajn-niveis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ajn-nivel {
+  min-width: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--leitor-borda, var(--border-subtle, rgba(0, 0, 0, 0.14)));
+  border-radius: 999px;
+  background: var(--leitor-fundo, transparent);
+  color: var(--leitor-texto, inherit);
+  font-weight: 600;
+  cursor: pointer;
+}
+.ajn-nivel--ativo {
+  background: var(--leitor-acento, var(--leitor-link, #2563eb));
+  border-color: var(--leitor-acento, var(--leitor-link, #2563eb));
+  color: var(--leitor-fundo, #fff);
+}
+.ajn-nivel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Original e ajustado: lado a lado no computador; no celular uma aba por vez (`data-aba`). */
+.ajn-abas {
+  display: none;
+  gap: 6px;
+}
+.ajn-aba {
+  flex: 1;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--leitor-borda, var(--border-subtle, rgba(0, 0, 0, 0.14)));
+  border-radius: 10px;
+  background: var(--leitor-sutil, transparent);
+  color: var(--leitor-texto, inherit);
+  cursor: pointer;
+}
+.ajn-aba--ativa {
+  border-color: var(--leitor-acento, var(--leitor-link, #2563eb));
+  font-weight: 600;
+}
+.ajn-colunas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ajn-coluna {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--leitor-sutil, rgba(0, 0, 0, 0.04));
+  overflow-wrap: anywhere;
+}
+.ajn-coluna h3,
+.ajn-extra h3 {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--leitor-suave, inherit);
+}
+.ajn-coluna p,
+.ajn-extra p {
+  margin: 0;
+  line-height: 1.5;
+}
+.ajn-espera {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--leitor-suave, inherit);
+}
+.ajn-giro {
+  width: 16px;
+  height: 16px;
+  animation: ajn-gira 0.9s linear infinite;
+}
+@keyframes ajn-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ajn-giro {
+    animation: none;
+  }
+}
+
+.ajn-medida,
+.ajn-custo,
+.ajn-motivo {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--leitor-suave, inherit);
+}
+.ajn-aviso {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: color-mix(in srgb, #f5a623 18%, var(--leitor-fundo, transparent));
+}
+.ajn-erro {
+  margin: 0;
+  color: var(--leitor-texto, inherit);
+}
+
+.ajn-acoes,
+.ajn-acoes-curtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ajn-acoes button,
+.ajn-acoes-curtas button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ajn-acoes svg,
+.ajn-acoes-curtas svg {
+  width: 16px;
+  height: 16px;
+}
+.ajn-extra {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--leitor-borda, var(--border-subtle, rgba(0, 0, 0, 0.14)));
+}
+
+.ajn-confirma {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.ajn-confirma p {
+  margin: 0;
+}
+.ajn-progresso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ajn-progresso progress {
+  flex: 1;
+  min-width: 120px;
+}
+.ajn-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ajn-par {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--leitor-sutil, rgba(0, 0, 0, 0.04));
+}
+.ajn-par p {
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.ajn-par-original {
+  color: var(--leitor-suave, inherit);
+}
+
+@media (max-width: 640px) {
+  .ajn {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 78dvh;
+    border-radius: 14px 14px 0 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .ajn-abas {
+    display: flex;
+  }
+  .ajn-colunas {
+    grid-template-columns: 1fr;
+  }
+  .ajn-colunas[data-aba='original'] .ajn-coluna--ajustado,
+  .ajn-colunas[data-aba='ajustado'] .ajn-coluna--original {
+    display: none;
+  }
+  .ajn-par {
+    grid-template-columns: 1fr;
+  }
+}

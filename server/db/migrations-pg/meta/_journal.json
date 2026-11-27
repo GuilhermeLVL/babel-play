@@ -309,6 +309,34 @@
       "when": 1795616221198,
       "tag": "0043_flag_cartao_com_cena",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1795616222198,
+      "tag": "0044_flags_escuta_e_selecao",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1795616223198,
+      "tag": "0045_flag_leitor_modo_traducao",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1795616224198,
+      "tag": "0046_flag_leitor_destaque_vocab",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1795616226198,
+      "tag": "0047_flag_ia_ajustar_nivel",
+      "breakpoints": true
     }
   ]
 }

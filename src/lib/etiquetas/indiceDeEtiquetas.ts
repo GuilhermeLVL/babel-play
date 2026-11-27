@@ -100,7 +100,7 @@ export function cartoesParaOIndice(cartas: readonly VocabCard[], agora = Date.no
 let snapshot: SnapshotDasEtiquetas = { caderno: null, vistas: new Map(), marcadas: null, listaDeMarcadas: [] };
 const inscritos = new Set<() => void>();
 /* As palavras fichadas nesta página que o caderno lido ainda não tem. */
-const fichadas = new Map<string, { palavra: string; lang?: string }>();
+const fichadas = new Map<string, { palavra: string; lang?: string; forca: Forca }>();
 let cartoesLidos: ReturnType<typeof cartoesParaOIndice> = [];
 let geracaoDoCaderno = -1;
 let cadernoEmVoo: Promise<void> | null = null;
@@ -141,7 +141,10 @@ function remontarCaderno() {
   versaoDoIndice = versaoAtivaDaChave();
   const todos = [
     ...cartoesLidos,
-    ...[...fichadas.values()].map((f) => ({ ...f, estado: 'nova' as const, forca: 1 as Forca })),
+    ...[...fichadas.values()].map((f) => ({
+      ...f,
+      estado: f.forca === 1 ? ('nova' as const) : f.forca === 4 ? ('dominada' as const) : ('aprendendo' as const),
+    })),
   ];
   publicar({ caderno: montarIndiceDoCaderno(todos), forcas: montarIndiceDeForcas(todos) });
 }
@@ -377,13 +380,14 @@ export function renovarVistas(idiomas: ReadonlyArray<string | undefined>): void 
   for (const l of idiomas) pedirVistas(l, { renovar: true });
 }
 
-/** A palavra acabou de ser fichada: pinta como salva já (o caderno relido confirma ou corrige). */
-export function marcarSalva(palavra: string, lang?: string): void {
+/** A palavra acabou de ser fichada: pinta como salva já (o caderno relido confirma ou corrige). `forca` 2 a 4 vem do cartão do leitor. */
+export function marcarSalva(palavra: string, lang?: string, forca: Forca = 1): void {
   const chave = chaveAtiva(palavra, lang);
   if (!chave) return;
   const k = `${baseLang(lang)}|${chave}`;
-  if (fichadas.has(k)) return;
-  fichadas.set(k, { palavra, lang });
+  /* Fichada de novo com a MESMA força (ou menor) não muda nada; a força maior escolhida no cartão do leitor vale. */
+  if ((fichadas.get(k)?.forca ?? 0) >= forca) return;
+  fichadas.set(k, { palavra, lang, forca });
   remontarCaderno();
 }
 

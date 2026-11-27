@@ -709,7 +709,8 @@ export function pernasDaFuncao(
     | 'assistente'
     | 'leitura'
     | 'escrita'
-    | 'diario',
+    | 'diario'
+    | 'ajustarNivel',
   opcoes: { modelosGrandes?: boolean; nivel?: NivelDaTraducao } = {},
   env: NodeJS.ProcessEnv = process.env,
 ): Provedor[] {
@@ -724,7 +725,8 @@ export function pernasDaFuncao(
     funcao === 'assistente' ||
     funcao === 'leitura' ||
     funcao === 'escrita' ||
-    funcao === 'diario'
+    funcao === 'diario' ||
+    funcao === 'ajustarNivel'
   const f: FuncaoDoRegistro =
     funcao === 'corretor' || deEstudo
       ? 'tutor'

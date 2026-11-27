@@ -6,6 +6,8 @@
  * explícito. A máquina de reprodução (seek, motor de áudio/TTS, waveform) está em
  * `lib/analise/playerDaSessao.ts`.
  */
+import '../../../styles/escutaPlayer.css';
+
 import { Pause, Play, SkipBack, SkipForward } from 'lucide-react';
 import {
   type Dispatch,
@@ -17,8 +19,10 @@ import {
   useRef,
 } from 'react';
 
+import { FLAG_ESCUTA_PLAYER_COMPACTO } from '../../../core/planos';
 import type { FalaDaAnalise } from '../../../lib/analise/tiposDaAnalise';
 import { noHeadset } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { useFlag } from '../../../lib/flags';
 import { t } from '../../../lib/i18n';
 import { mediaErrorMessage } from '../../../lib/mediaErrors';
 import { Recording } from '../../../types';
@@ -91,6 +95,8 @@ function useAlturaDoPlayer() {
 
 export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
   const refDoPlayer = useAlturaDoPlayer();
+  /* PLAYER COMPACTO (flag `escuta_player_compacto`, openspec `leitura-assistida`): uma barra só; desligada, o player de hoje. */
+  const compacto = useFlag(FLAG_ESCUTA_PLAYER_COMPACTO);
   const {
     recording,
     parsedSentences,
@@ -198,7 +204,7 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
   return (
     <div
       ref={refDoPlayer}
-      className={escuta || frase ? 'q-faixa px-player px-player-guiada' : 'q-faixa px-player'}
+      className={`${escuta || frase ? 'q-faixa px-player px-player-guiada' : 'q-faixa px-player'}${compacto ? ' px-player-compacto' : ''}`}
       role="group"
       aria-label={t('Player')}
     >

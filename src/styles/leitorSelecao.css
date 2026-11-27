@@ -1,0 +1,44 @@
+/* AS ALÇAS DA SELEÇÃO (flag `leitor_selecao_firme`): fora do documento do livro, sobre ele. Só a alça recebe o ponteiro. */
+.leitor-alcas {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+.leitor-alca {
+  position: fixed;
+  width: 44px;
+  height: 44px;
+  margin: 0 0 0 -22px;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+  border-radius: 50%;
+  outline-offset: -6px;
+}
+/* A bolinha de 18 px (o alvo de toque é maior, de 44 px) e a haste que a liga ao texto. */
+.leitor-alca::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  border-radius: 50%;
+  background: var(--q-acento, var(--accent, currentColor));
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+}
+.leitor-alca::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 12px;
+  margin-left: -1px;
+  background: var(--q-acento, var(--accent, currentColor));
+}
+.leitor-alca:focus-visible {
+  outline: 2px solid var(--q-acento, currentColor);
+}

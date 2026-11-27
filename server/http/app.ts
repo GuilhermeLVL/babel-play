@@ -64,6 +64,7 @@ import { ehWorker } from '../lib/runtime'
 import { CABECALHO_DA_VERSAO, versaoDoApp } from '../lib/versao'
 import { adminRouter } from '../routes/admin'
 import { aiRouter } from '../routes/ai'
+import { ajustarNivelRouter } from '../routes/ajustarNivel'
 import { ankiRouter } from '../routes/anki'
 import { anunciosRouter } from '../routes/anuncios'
 import { asaasWebhookRouter, billingRouter } from '../routes/billing'
@@ -553,7 +554,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   app.use('/api', versaoDaChaveNaRequisicao)
 
   // Rate-limit por tenant — DEPOIS do auth, para a chave ser o usuário e não o IP.
-  app.use(['/api/ai', '/api/import', '/api/tutor'], expensiveLimiter)
+  app.use(['/api/ai', '/api/import', '/api/tutor', '/api/leitura/ajustar-nivel'], expensiveLimiter)
 
   /* MENOR DE 16 SEM RESPONSÁVEL FICA SEM NUVEM (Fase 4 — ECA Digital art. 24, LGPD art. 14): as
      rotas que guardam ou processam dados na nuvem respondem 403 `responsavel_pendente` até o
@@ -658,6 +659,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // Anúncios — a recompensa do premiado, creditada pelo servidor (spec `anuncios-no-gratis`).
   app.use('/api/anuncios', capturarAssincrono(anunciosRouter))
   // Leitor (L2 de Livros & Leitura) — grifos, notas e palavras do livro, grátis; o arquivo do livro nunca sobe.
+  /* O "Ajustar nível" (openspec `leitura-assistida`, fatia D): reescrita por IA, atrás da flag `ia_ajustar_nivel`, com o teto
+     de custo das rotas de IA (`expensiveLimiter`, acima). Vem ANTES do leitor para a rota própria ganhar do prefixo. */
+  app.use('/api/leitura/ajustar-nivel', capturarAssincrono(ajustarNivelRouter))
   app.use('/api/leitura', capturarAssincrono(leituraRouter))
   // Áudio do sistema via WASAPI loopback do PRÓPRIO servidor local (Windows) — a rota sem
   // fricção para capturar o que o computador toca; o navegador só consome o PCM.

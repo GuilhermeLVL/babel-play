@@ -63,7 +63,7 @@ export default function FrasePorFrase({
 
   return (
     <div className="px-escuta px-frase" data-ativo={ativo ? 'sim' : 'nao'}>
-      <label className="px-escuta-modo">
+      <label className="px-escuta-modo" title={t('Frase por frase')}>
         <input type="checkbox" checked={escolha.ligado} onChange={(e) => frase.ligar(e.target.checked)} />
         <span>{t('Frase por frase')}</span>
       </label>

@@ -309,6 +309,13 @@
       "when": 1795616221198,
       "tag": "0043_flag_cartao_com_cena",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1795616224198,
+      "tag": "0046_flag_leitor_destaque_vocab",
+      "breakpoints": true
     }
   ]
 }

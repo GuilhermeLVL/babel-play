@@ -1,15 +1,17 @@
 /** Rotas de vocabulário/SRS (montadas em `/api/vocab`). */
 import { Router } from 'express'
 
+import { DIAS_DO_CALENDARIO } from '../../src/core/learning/resumoDosCartoes'
 import type { Grade } from '../../src/core/learning/scheduler'
 import { chaveDaPalavraNaVersao } from '../../src/core/texto/palavra'
 import { MAX_ETIQUETAS, normalizarEtiqueta, normalizarEtiquetas } from '../../src/core/vocabulario/etiquetasDoUsuario'
 import { TETO_DE_MARCADAS } from '../../src/core/vocabulario/marcadas'
 import { contagensDeConteudo, versaoDosBaralhos } from '../db/repositories/contagensDeConteudo'
+import { sequenciaDosDias } from '../db/repositories/metrics'
 import { opcoesDaRevisaoRepo } from '../db/repositories/opcoesDaRevisao'
 import { palavrasMarcadasRepo } from '../db/repositories/palavrasMarcadas'
 import { palavrasVistasRepo } from '../db/repositories/palavrasVistas'
-import { resumoDosCartoes } from '../db/repositories/resumoDosCartoes'
+import { resumoDosCartoes, tempoPorCartao } from '../db/repositories/resumoDosCartoes'
 import { versoesRepo } from '../db/repositories/versoes'
 import { vocabRepo } from '../db/repositories/vocab'
 import { CachePorVersao } from '../lib/cachePorVersao'
@@ -183,13 +185,29 @@ vocabRouter.get('/resumo', async (req, res) => {
     const agora = Math.ceil(Date.now() / 60_000) * 60_000
     // A versão ANTES das tabelas — ver `CachePorVersao` para o porquê da ordem.
     const { vocab, atividade } = await versoesRepo.de(req.userId)
-    const etag = etagPorVersao('resumo-cartoes', req.userId, `${vocab}.${atividade}`, `${q.inicioDoDia}|${agora}`)
+    const etag = etagPorVersao(
+      'resumo-cartoes',
+      req.userId,
+      `${vocab}.${atividade}`,
+      `${q.inicioDoDia}|${agora}${q.v2 ? '|v2' : ''}`,
+    )
     res.setHeader('ETag', etag)
     if (casaComIfNoneMatch(req.headers['if-none-match'], etag)) {
       res.status(304).end()
       return
     }
-    res.json(await resumoDosCartoes(req.userId, { agora, inicioDoDia: q.inicioDoDia }))
+    const resumo = await resumoDosCartoes(req.userId, { agora, inicioDoDia: q.inicioDoDia })
+    /* REVISÃO V2 (flag `estudo_revisao_v2`): o cliente só pede com a flag ligada, então sem o pedido a resposta é a de
+       sempre. Tudo da própria conta (`req.userId`). */
+    if (q.v2) {
+      const [tempo, sequencia] = await Promise.all([
+        tempoPorCartao(req.userId, agora),
+        sequenciaDosDias(req.userId, DIAS_DO_CALENDARIO),
+      ])
+      res.json({ ...resumo, tempo, sequencia })
+      return
+    }
+    res.json(resumo)
   } catch (err) {
     /* 500, e não o 400 das vizinhas: a entrada já passou pelo schema, então o que estoura aqui é
        do servidor. Sem o ETag, para um erro não ser revalidado como se fosse o resumo. */

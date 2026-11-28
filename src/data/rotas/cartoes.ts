@@ -19,7 +19,7 @@ import { apiFetch } from '../funil';
  * minuto). O `If-None-Match` vai explícito, como no baralho (`lerLinhasDoBaralho`): não depende de o
  * cache HTTP do navegador ter guardado a resposta.
  */
-let ultimoResumo: { inicioDoDia: number; etag: string; resumo: ResumoDosCartoes } | null = null;
+let ultimoResumo: { inicioDoDia: number; etag: string; resumo: ResumoDosCartoes; v2: boolean } | null = null;
 
 /** O começo do dia local de quem está usando (ms): os dias do resumo contam a partir dele. */
 function inicioDeHoje(): number {
@@ -32,18 +32,22 @@ function inicioDeHoje(): number {
  * As contagens da tela Cartões, ou `null` se a leitura falhou (rede, servidor, sem conta). Quem
  * chama trata o objeto como somente leitura: é o mesmo que fica guardado para o próximo 304.
  */
-export async function lerResumoDosCartoes(inicioDoDia: number = inicioDeHoje()): Promise<ResumoDosCartoes | null> {
-  const memo = ultimoResumo && ultimoResumo.inicioDoDia === inicioDoDia ? ultimoResumo : null;
+export async function lerResumoDosCartoes(
+  inicioDoDia: number = inicioDeHoje(),
+  /** Flag `estudo_revisao_v2` ligada: pede também o tempo médio e a sequência com congelamento. */
+  v2 = false,
+): Promise<ResumoDosCartoes | null> {
+  const memo = ultimoResumo && ultimoResumo.inicioDoDia === inicioDoDia && ultimoResumo.v2 === v2 ? ultimoResumo : null;
   try {
     const res = await apiFetch(
-      `/api/vocab/resumo?inicioDoDia=${inicioDoDia}`,
+      `/api/vocab/resumo?inicioDoDia=${inicioDoDia}${v2 ? '&v2=1' : ''}`,
       memo ? { headers: { 'If-None-Match': memo.etag } } : undefined,
     );
     if (res.status === 304 && memo) return memo.resumo;
     if (!res.ok) return null;
     const resumo = (await res.json()) as ResumoDosCartoes;
     const etag = res.headers?.get?.('etag');
-    ultimoResumo = etag ? { inicioDoDia, etag, resumo } : null;
+    ultimoResumo = etag ? { inicioDoDia, etag, resumo, v2 } : null;
     return resumo;
   } catch {
     return null;

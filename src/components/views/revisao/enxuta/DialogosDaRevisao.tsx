@@ -84,10 +84,13 @@ export function InfoDoCartao({
 export function AtalhosDaRevisao({
   doisBotoes,
   temMinhaVoz,
+  daTela,
   aoFechar,
 }: {
   doisBotoes: boolean;
   temMinhaVoz: boolean;
+  /** Flag `estudo_revisao_v2`: o grupo "Nesta tela" (a lista aberta pela tela Cartões, fora da rodada). */
+  daTela?: Array<[string, string[]]>;
   aoFechar: () => void;
 }) {
   const linhas: Array<[string, string[]]> = [
@@ -113,6 +116,23 @@ export function AtalhosDaRevisao({
     >
       <div className="dlg-corpo">
         <div className="q-inst ct-atalhos-corpo">
+          {daTela && (
+            <section className="q-cartao q-inst-atalhos" data-testid="atalhos-da-tela">
+              <h3>{t('Nesta tela')}</h3>
+              <div>
+                {daTela.map(([rotulo, teclas]) => (
+                  <div key={rotulo} className="entre atalho">
+                    <span>{rotulo}</span>
+                    <span>
+                      {teclas.map((k) => (
+                        <kbd key={k}>{k}</kbd>
+                      ))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           <section className="q-cartao q-inst-atalhos">
             <h3>{t('Revisão')}</h3>
             <div>

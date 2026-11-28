@@ -827,6 +827,35 @@ export async function perfilPeloBruto(userId: UserId, agora: number = Date.now()
 }
 
 /**
+ * A SEQUÊNCIA COM OS DIAS (flag `estudo_revisao_v2`, openspec `cartoes` 8.1): o mesmo cálculo de `ofensivaDoResumo`, com os
+ * dias de prática e os dias que um congelamento cobriu, contados para trás a partir de hoje no fuso GRAVADO da pessoa
+ * (0 = hoje), dentro da janela de `janela` dias. Só leitura; nada é guardado nem comprado.
+ */
+export async function sequenciaDosDias(userId: UserId, janela: number, now: number = Date.now()) {
+  const fuso = await fusoDoPerfil(userId)
+  const [resumo, metasCreditadas] = await Promise.all([
+    resumoDaConta(userId, fuso),
+    economiaRepo.metasCreditadas(userId),
+  ])
+  const hoje = diaNumeroNoFuso(now, fuso)
+  const o = ofensivaDoResumo(resumo, metasCreditadas, now, fuso)
+  const atras = (d: number) => hoje - d
+  const dentro = (k: number) => k >= 0 && k < janela
+  return {
+    atual: o.atual,
+    congelamentos: o.congelamentos,
+    praticados: resumo.diasDePratica
+      .map(atras)
+      .filter(dentro)
+      .sort((a, b) => a - b),
+    congelados: o.congelados
+      .map(atras)
+      .filter(dentro)
+      .sort((a, b) => a - b),
+  }
+}
+
+/**
  * O QUE AS MISSÕES DO DIA LEEM (recompensas v2, onda 5) — `GET /api/metrics/missoes` e a
  * conferência do crédito `meta:<dia>`. Carimbos de revisão e de palavra salva dos últimos 3 dias
  * (a janela da meta é hoje ou ontem, em qualquer fuso), as metas já creditadas e a ofensiva com

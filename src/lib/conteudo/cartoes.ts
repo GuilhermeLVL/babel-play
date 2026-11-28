@@ -13,12 +13,8 @@
  * idioma (o cartão sem idioma continua contando).
  */
 import type { ContagemDaFonte, ContagensDeConteudo } from '../../core/learning/contagensDeConteudo';
-import {
-  type ContagemDeFila,
-  ERROS_DE_DIFICIL,
-  linhaNoIdioma,
-  type ResumoDosCartoes,
-} from '../../core/learning/resumoDosCartoes';
+import { type ContagemDeFila, linhaNoIdioma, type ResumoDosCartoes } from '../../core/learning/resumoDosCartoes';
+import { ehDificil } from '../../core/selecao/dificil';
 import type { VocabCard } from '../../types';
 import { contagemDaFonte, type Conteudo, type FonteDeConteudo } from './estado';
 
@@ -30,7 +26,7 @@ export type CartaoDaFonte = Pick<VocabCard, 'srcLang' | 'sourceSessionId' | 'daT
 const base = (idioma: string | null | undefined) => (idioma ?? '').toLowerCase().slice(0, 2);
 
 /** A palavra é "difícil"? A régua única da tela Cartões, do catálogo e da revisão. */
-export const cartaoDificil = (c: { lapses?: number | null }): boolean => (c.lapses ?? 0) >= ERROS_DE_DIFICIL;
+export const cartaoDificil = (c: { lapses?: number | null }): boolean => ehDificil(c);
 
 /**
  * O idioma que vale para o recorte: vazio com menos de dois idiomas no baralho; senão o pedido, ou o

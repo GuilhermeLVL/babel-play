@@ -11,6 +11,7 @@ import {
   PartyPopper,
   Plus,
   SlidersHorizontal,
+  Snowflake,
   Sparkles,
   Target,
   Timer,
@@ -21,6 +22,7 @@ import { type ReactNode, useEffect, useRef } from 'react';
 
 import type { ContagensDeConteudo, FonteContada } from '../../../core/learning/contagensDeConteudo';
 import { type ContagemDeFila, linhaNoIdioma, type ResumoDosCartoes } from '../../../core/learning/resumoDosCartoes';
+import { FLAG_ESTUDO_REVISAO_V2 } from '../../../core/planos';
 import type { HojeDaRevisao } from '../../../data/rotas/opcoesDaRevisao';
 import {
   type Hoje as EstadoDoDia,
@@ -31,8 +33,10 @@ import {
 import { type HojeDaFonte, somaDaFila } from '../../../lib/conteudo/cartoes';
 import type { Conteudo, FonteDeConteudo } from '../../../lib/conteudo/estado';
 import { voltarParaTudoNoConteudo } from '../../../lib/conteudo/loja';
+import { useFlag } from '../../../lib/flags';
 import { idiomaDaInterface, numero, t, tp } from '../../../lib/i18n';
 import { anima, contar, MOLA, MOLA_SUAVE, polido, reduz } from '../../../lib/polimento/base';
+import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import type { OpcoesDaRevisao } from '../../../lib/revisao/preferencias';
 import { iconeDaFonte, nomeDoIdioma as nomeDoIdiomaDoConteudo } from '../../conteudo/fontes';
 import { CabecaDoCartao, diaCurto, Dica, Tres } from './pecas';
@@ -45,8 +49,8 @@ import { CabecaDoCartao, diaCurto, Dica, Tres } from './pecas';
  *
  * Os cinco estados (normal, vazio, primeiras palavras, dia cumprido, pilha) saem do dado
  * (`lib/cartoes/estadoDeHoje`). O que o protótipo mostra e o app não faz de verdade NÃO está aqui: o
- * tempo estimado ("uns 5 min": a revisão não mede tempo por cartão), o congelamento da sequência, o
- * "Estudo livre" fora da agenda e a volta de cada baralho ("volta amanhã com 3").
+ * tempo estimado ("uns 5 min": a revisão não mede tempo por cartão na tela) e a volta de cada baralho ("volta amanhã com 3").
+ * Com a flag `estudo_revisao_v2` entram o "Estudo livre" fora da agenda, o "Só as difíceis" e a semana com o dia congelado.
  */
 
 export interface PedidoDeEstudo {
@@ -54,20 +58,37 @@ export interface PedidoDeEstudo {
   fonte?: FonteDeConteudo;
   limite?: number;
   soNovas?: boolean;
+  /** Estudo livre (flag `estudo_revisao_v2`): fora da agenda, sem nota e sem mexer em vencimento. */
+  livre?: boolean;
+  /** No estudo livre, só as difíceis. */
+  soDificeis?: boolean;
 }
 
 /** "amanhã" ou "em N dias": quando a próxima revisão abre. */
 const quando = (emDias: number): string => (emDias === 1 ? t('amanhã') : t('em {n} dias', { n: emDias }));
 
 /** Os últimos sete dias (`ctSemana`, `cartoes.js:214-220`), pelo calendário de revisões. */
-export function Semana({ resumo }: { resumo: Pick<ResumoDosCartoes, 'calendario' | 'inicioDoDia'> }) {
-  const dias = semanaDeEstudo(resumo.calendario, resumo.inicioDoDia);
-  const dica = { feito: t('Estudou'), fora: t('Sem estudo'), hoje: t('Hoje, ainda por estudar') };
+export function Semana({
+  resumo,
+}: {
+  resumo: Pick<ResumoDosCartoes, 'calendario' | 'inicioDoDia'> & Partial<Pick<ResumoDosCartoes, 'sequencia'>>;
+}) {
+  /* O congelamento é assunto de sequência: para o perfil protegido, nada que lembre ofensiva. */
+  const dias = semanaDeEstudo(resumo.calendario, resumo.inicioDoDia, perfilProtegido() ? null : resumo.sequencia);
+  const dica = {
+    feito: t('Estudou'),
+    fora: t('Sem estudo'),
+    hoje: t('Hoje, ainda por estudar'),
+    gelo: t('Dia congelado: não quebra a sequência'),
+  };
   return (
     <ol className="ct-semana" aria-label={t('Os últimos sete dias')}>
       {dias.map(({ dia, estado }, i) => (
         <li key={i} className={estado} title={dica[estado]}>
-          <i>{estado === 'feito' && <Check aria-hidden />}</i>
+          <i>
+            {estado === 'feito' && <Check aria-hidden />}
+            {estado === 'gelo' && <Snowflake aria-hidden />}
+          </i>
           <small>{diaCurto(dia)}</small>
           <span className="sr">{dica[estado]}</span>
         </li>
@@ -308,6 +329,8 @@ export default function Hoje({
   aoMudarIdioma: (idioma: string) => void;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
+  /** A revisão v2 (flag `estudo_revisao_v2`): estudo livre, "só as difíceis" e a sequência com congelamento. */
+  const v2 = useFlag(FLAG_ESTUDO_REVISAO_V2);
 
   /* O MOVIMENTO DE ENTRADA do que é desta aba (`ctEntrada` e `ctDepoisDePintar`, `cartoes.js:602-636`):
      o anel enche, a barra de novas se abre, os dias da semana e os atalhos entram, o número grande conta.
@@ -483,9 +506,19 @@ export default function Hoje({
           (contagens?.dificeis.palavras ?? 0) > 0 && {
             chave: 'dificeis',
             icone: <TriangleAlert aria-hidden />,
-            rotulo: t('Difíceis · {n}', { n: numero(dificeisHoje) }),
+            rotulo: v2
+              ? t('Só as difíceis · {n}', { n: numero(dificeisHoje) })
+              : t('Difíceis · {n}', { n: numero(dificeisHoje) }),
             dica: t('Só as que você mais erra'),
             acao: () => aoEstudar({ fonte: { tipo: 'dificeis' } }),
+          },
+        v2 &&
+          total === 0 && {
+            chave: 'livre',
+            icone: <Brain aria-hidden />,
+            rotulo: t('Estudo livre'),
+            dica: t('Rever do seu jeito, fora da agenda: não muda quando as palavras voltam'),
+            acao: () => aoEstudar({ livre: true }),
           },
         {
           chave: 'praticar',
@@ -496,6 +529,27 @@ export default function Hoje({
         },
       ]}
     />
+  );
+
+  /* A SEQUÊNCIA COM CONGELAMENTO (flag `estudo_revisao_v2`, cartões 8.1): só chega no resumo com a flag; os dias
+     congelados aparecem na semana e a frase diz quantos congelamentos estão guardados. Nunca para o perfil protegido. */
+  const congelamentos = resumo.sequencia?.congelamentos ?? 0;
+  const semanaComGelo = v2 && resumo.sequencia && !perfilProtegido() && (
+    <section className="q-cartao ct-seq" data-testid="semana-com-gelo">
+      <CabecaDoCartao
+        titulo={t('Os últimos sete dias')}
+        sub={
+          congelamentos > 0
+            ? tp(
+                congelamentos,
+                '{n} congelamento guardado: um dia sem estudo não quebra a sequência.',
+                '{n} congelamentos guardados: um dia sem estudo não quebra a sequência.',
+              )
+            : t('Cada dia estudado conta para a sequência.')
+        }
+      />
+      <Semana resumo={resumo} />
+    </section>
   );
 
   const faixa = (
@@ -668,6 +722,21 @@ export default function Hoje({
           rotulo={t('O que mais dá para fazer hoje')}
           quebra
           itens={[
+            v2 && {
+              chave: 'livre',
+              icone: <Brain aria-hidden />,
+              rotulo: t('Estudo livre'),
+              dica: t('Rever do seu jeito, fora da agenda: não muda quando as palavras voltam'),
+              acao: () => aoEstudar({ livre: true }),
+            },
+            v2 &&
+              (contagens?.dificeis.palavras ?? 0) > 0 && {
+                chave: 'so-dificeis',
+                icone: <TriangleAlert aria-hidden />,
+                rotulo: t('Só as difíceis'),
+                dica: t('Só as que você mais erra, fora da agenda'),
+                acao: () => aoEstudar({ livre: true, soDificeis: true }),
+              },
             maisNovas > 0 && {
               chave: 'mais-novas',
               icone: <Plus aria-hidden />,
@@ -744,6 +813,7 @@ export default function Hoje({
         {atalhosDoDia}
         {outroIdioma}
         {faixa}
+        {semanaComGelo}
         {secaoContinuar}
       </div>
     );
@@ -773,6 +843,7 @@ export default function Hoje({
       {atalhosDoDia}
       {outroIdioma}
       {faixa}
+      {semanaComGelo}
       {secaoContinuar}
     </div>
   );

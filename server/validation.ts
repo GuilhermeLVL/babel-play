@@ -609,6 +609,8 @@ export const vocabResumoQuerySchema = z
       .refine((v) => Math.abs(v - Date.now()) <= FOLGA_DO_INICIO_DO_DIA_MS, {
         message: 'inicioDoDia longe demais do relógio do servidor',
       }),
+    /** Revisão v2 (flag `estudo_revisao_v2`): pede também o tempo médio e a sequência com congelamento. */
+    v2: z.enum(['1']).optional(),
   })
   .strip()
 

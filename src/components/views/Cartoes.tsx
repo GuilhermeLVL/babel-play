@@ -3,7 +3,7 @@ import '../../styles/questRevisao.css';
 import '../../styles/questBiblioteca.css';
 import '../../styles/cartoesDoApp.css';
 
-import { FILTRO_PADRAO } from '@core';
+import { FILTRO_PADRAO, isDueNow } from '@core';
 import {
   ArrowLeft,
   BookOpen,
@@ -14,10 +14,12 @@ import {
   SlidersHorizontal,
   TriangleAlert,
 } from 'lucide-react';
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ResumoDosCartoes } from '../../core/learning/resumoDosCartoes';
-import { type AppMetrics, fetchDeck, lerResumoDosCartoes } from '../../data/api';
+import { FLAG_ESTUDO_REVISAO_V2 } from '../../core/planos';
+import { planejarSaidaDaPilha } from '../../core/selecao';
+import { type AppMetrics, fetchDeck, lerResumoDosCartoes, updateCard } from '../../data/api';
 import { ativarNotasDoBaralho, type BaralhoAnkiResumo, listarBaralhosAnki } from '../../data/apiAnki';
 import type { HojeDaRevisao } from '../../data/rotas/opcoesDaRevisao';
 import { hojeDosCartoes } from '../../lib/cartoes/estadoDeHoje';
@@ -27,6 +29,7 @@ import { conteudoAtual, escolherConteudo, mudarIdiomaDoConteudo, useConteudo } f
 import { useContagensDeConteudo } from '../../lib/conteudo/useContagens';
 import type { EstudoAberto } from '../../lib/estado/useNavegacao';
 import { gravarFiltro } from '../../lib/filtroDaPratica';
+import { useFlag } from '../../lib/flags';
 import { numero, t, tp } from '../../lib/i18n';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang } from '../../lib/languages';
@@ -59,6 +62,9 @@ import TrazerELevar, { ARQUIVOS_DO_ANKI, ColarUmaLista, FluxoDoAnki } from './ca
 /* O que só desce quando a pessoa pede: a rodada de revisão, a lista de palavras, a tela de gerenciar
    baralhos do Anki e o diálogo de exportar. Abrir "Hoje" não baixa nenhum. */
 const Study = lazyComRecarga(() => import('./Study'));
+const AtalhosDaRevisao = lazy(() =>
+  import('./revisao/enxuta/DialogosDaRevisao').then((m) => ({ default: m.AtalhosDaRevisao })),
+);
 const Metrics = lazyComRecarga(() => import('./Metrics'));
 const BaralhoAnki = lazyComRecarga(() => import('./BaralhoAnki'));
 const ExportarVocabulario = lazyComRecarga(() => import('./vocab/ExportarVocabulario'));
@@ -126,6 +132,8 @@ export default function Cartoes({
   const idioma = baseLang(langCfg.studying);
   const idiomaNativo = baseLang(langCfg.mine);
   const cinco = useBarraDeCinco();
+  /** A revisão v2 (flag `estudo_revisao_v2`): o resumo traz também o tempo por cartão e a sequência com congelamento. */
+  const v2 = useFlag(FLAG_ESTUDO_REVISAO_V2);
 
   /* O CONTEÚDO ESCOLHIDO (um só, para o app inteiro) e as contagens por fonte. */
   const conteudo = useConteudo();
@@ -139,13 +147,13 @@ export default function Cartoes({
   useEffect(() => {
     if (semConta || estudando) return;
     let vivo = true;
-    void lerResumoDosCartoes().then((resumo) => {
+    void lerResumoDosCartoes(undefined, v2).then((resumo) => {
       if (vivo) setLeitura(resumo ? { fase: 'pronta', resumo } : { fase: 'erro' });
     });
     return () => {
       vivo = false;
     };
-  }, [semConta, estudando, versao]);
+  }, [semConta, estudando, versao, v2]);
   const recarregar = useCallback(() => {
     setVersao((v) => v + 1);
     void recarregarContagens();
@@ -243,6 +251,23 @@ export default function Cartoes({
     aoTrocarAba('palavras');
   };
 
+  /* A TECLA "?" (flag `estudo_revisao_v2`, cartões 9.1): a lista de atalhos, da tela e da revisão. Nunca dentro de um campo
+     de texto nem com Ctrl, Alt ou Cmd; a rodada de revisão tem a dela. */
+  const [atalhosAbertos, setAtalhosAbertos] = useState(false);
+  useEffect(() => {
+    if (!v2 || estudando) return;
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+      const alvo = e.target as HTMLElement | null;
+      if (alvo && (alvo.isContentEditable || /^(input|textarea|select)$/i.test(alvo.tagName))) return;
+      if (document.querySelector('dialog[open]')) return;
+      e.preventDefault();
+      setAtalhosAbertos(true);
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [v2, estudando]);
+
   /* A Memória é tela de dentro: o voltar devolve à aba de onde a pessoa veio (`CT.voltaDaMemoria`). */
   const voltaDaMemoria = useRef<AbaDeCartoes>('hoje');
   useEffect(() => {
@@ -250,16 +275,68 @@ export default function Cartoes({
   }, [aba]);
   const abrirMemoria = () => aoTrocarAba('memoria');
 
+  /**
+   * AS SAÍDAS DA PILHA que mudam a data (flag `estudo_revisao_v2`, cartões 5.2): só o `adiarAte` dos cartões
+   * (`PATCH /api/vocab/:id`, o mesmo de "Deixar para amanhã"), nunca nota nem memória. Vale para os cartões vencidos do
+   * conteúdo escolhido; o plano é a função pura de `core/selecao/pilha`. No máximo 200 por toque.
+   */
+  const espalharAPilha = async (modo: 'espalhar' | 'aguentam') => {
+    const d = await pedirDeck();
+    if (!d || !resumo) return;
+    const agora = Date.now();
+    const vencidos = cartoesDoConteudo(d, conteudoAtual()).filter((c) => isDueNow(c, 'fsrs', agora));
+    const plano = planejarSaidaDaPilha(
+      vencidos.map((c) => ({
+        id: c.id,
+        dueAtMs: c.dueAtMs,
+        stability: c.stability ?? c.fsrsStability,
+        lastReview: c.lastReview,
+      })),
+      {
+        agora,
+        inicioDoDia: resumo.inicioDoDia,
+        restamHoje: restam ? restam.revisoes : opcoes.revisoes,
+        porDia: opcoes.revisoes,
+        ...(modo === 'aguentam' ? { soAsQueAguentam: 0.85 } : {}),
+      },
+    );
+    const lote = plano.adiar.slice(0, 200);
+    if (!lote.length) {
+      toast.info(t('Nada para adiar: tudo o que espera cabe no limite de hoje.'));
+      return;
+    }
+    let feitas = 0;
+    for (let i = 0; i < lote.length; i += 5) {
+      const parte = lote.slice(i, i + 5);
+      const r = await Promise.allSettled(parte.map((a) => updateCard(a.id, { adiarAte: a.adiarAte })));
+      feitas += r.filter((x) => x.status === 'fulfilled').length;
+    }
+    if (feitas < lote.length)
+      toast.warn(t('Adiei {n} de {total}. As outras continuam para hoje.', { n: feitas, total: lote.length }));
+    else
+      toast.ok(
+        tp(
+          feitas,
+          '{n} palavra volta nos próximos dias, sem contar como erro.',
+          '{n} palavras voltam nos próximos dias, sem contar como erro.',
+        ),
+      );
+    setFolha(null);
+    recarregar();
+  };
+
   /** O conteúdo que recorta a rodada: o da ficha, com a fonte pedida no lugar quando há. */
   const conteudoDe = (fonte?: FonteDeConteudo): Conteudo => {
     const atual = conteudoAtual();
     return { idioma: atual.idioma, fonte: fonte ?? atual.fonte };
   };
-  const estudar = ({ fonte, limite, soNovas }: PedidoDeEstudo = {}) => {
+  const estudar = ({ fonte, limite, soNovas, livre, soDificeis }: PedidoDeEstudo = {}) => {
     const c = conteudoDe(fonte);
     onChangeView('study', {
       ...(limite ? { limite } : {}),
       ...(soNovas ? { soNovas } : {}),
+      ...(livre ? { livre } : {}),
+      ...(soDificeis ? { soDificeis } : {}),
       conteudo: c,
       /* A sessão vai também no endereço (`/cartoes/estudar/<sessão>`): recarregar mantém o recorte. */
       ...(c.fonte.tipo === 'sessao' ? { id: c.fonte.id } : {}),
@@ -338,7 +415,7 @@ export default function Cartoes({
         }
       >
         <Study
-          key={`${chaveDoEstudo}:${estudo.limite ?? ''}:${estudo.soNovas ? 'novas' : ''}:${estudo.praticar ? `p:${estudo.praticar.rotulo}:${estudo.praticar.ids?.length ?? ''}` : ''}`}
+          key={`${chaveDoEstudo}:${estudo.limite ?? ''}:${estudo.soNovas ? 'novas' : ''}${estudo.livre ? 'livre' : ''}${estudo.soDificeis ? 'dif' : ''}:${estudo.praticar ? `p:${estudo.praticar.rotulo}:${estudo.praticar.ids?.length ?? ''}` : ''}`}
           gravacoes={recordings}
           praticar={estudo.praticar}
           recording={sessao}
@@ -347,7 +424,12 @@ export default function Cartoes({
           practiceSeed={practiceSeed}
           onSeedConsumed={onSeedConsumed}
           ageProfile={ageProfile}
-          rodada={{ limite: estudo.limite, soNovas: estudo.soNovas }}
+          rodada={{
+            limite: estudo.limite,
+            soNovas: estudo.soNovas,
+            livre: estudo.livre,
+            soDificeis: estudo.soDificeis,
+          }}
         />
       </Suspense>
     );
@@ -673,6 +755,8 @@ export default function Cartoes({
           aoTrazerELevar={semConta ? convidar : () => setFolha('trazer')}
           aoAjustes={() => setFolha('ajustes')}
           aoMemoria={abrirMemoria}
+          unicos={v2}
+          aoAtalhos={v2 ? () => setAtalhosAbertos(true) : undefined}
           aoExportar={semConta ? convidar : !resumo?.total ? undefined : () => void levar()}
           aoFechar={() => setFolha((f) => (f === 'menu' ? null : f))}
         />
@@ -705,6 +789,19 @@ export default function Cartoes({
           aoFechar={() => setFolha((f) => (f === 'ajustes' ? null : f))}
         />
       )}
+      {v2 && atalhosAbertos && (
+        <Suspense fallback={null}>
+          <AtalhosDaRevisao
+            doisBotoes={opcoes.botoes === 2}
+            temMinhaVoz={false}
+            daTela={[
+              [t('Esta lista'), ['?']],
+              [t('Buscar palavras e telas'), ['Ctrl K']],
+            ]}
+            aoFechar={() => setAtalhosAbertos(false)}
+          />
+        </Suspense>
+      )}
       {folha === 'resto' && resumo && (
         <FolhaDoResto
           opcoes={opcoes}
@@ -713,6 +810,7 @@ export default function Cartoes({
           previsao={conteudo.fonte.tipo === 'tudo' && !contagens?.idioma ? resumo.previsao : null}
           inicioDoDia={resumo.inicioDoDia}
           aoTrocar={trocarOpcoes}
+          aoEspalhar={v2 ? espalharAPilha : undefined}
           aoFechar={() => setFolha((f) => (f === 'resto' ? null : f))}
         />
       )}

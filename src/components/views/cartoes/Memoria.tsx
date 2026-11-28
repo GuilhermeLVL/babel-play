@@ -4,11 +4,16 @@ import '../../../styles/questInstitucional.css';
 import { Brain, CalendarCheck, Flame, Target, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useEffect, useRef } from 'react';
 
-import { ERROS_DE_DIFICIL, type ResumoDosCartoes } from '../../../core/learning/resumoDosCartoes';
+import {
+  ERROS_DE_DIFICIL,
+  MINIMO_DE_RESPOSTAS_DO_TEMPO,
+  type ResumoDosCartoes,
+} from '../../../core/learning/resumoDosCartoes';
 import { diasAPartirDeAmanha, porcentoDeLembradas } from '../../../lib/cartoes/estadoDeHoje';
 import { numero, t, tp } from '../../../lib/i18n';
 import { anima, MOLA, MOLA_SUAVE, polido, reduz } from '../../../lib/polimento/base';
 import { celular } from '../../../lib/polimento/celular';
+import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import { Semana } from './Hoje';
 import { CabecaDoCartao, diaCurto, diaEMes, Dica } from './pecas';
 
@@ -20,7 +25,8 @@ import { CabecaDoCartao, diaCurto, diaEMes, Dica } from './pecas';
  * nenhuma tela mostrava (retenção medida, botões usados). Tudo de `GET /api/vocab/resumo`.
  *
  * A SEMANA DA SEQUÊNCIA são os últimos sete dias do calendário de revisões; o número de dias seguidos é
- * a ofensiva do perfil. FORA (o app não mede nem faz): o tempo por dia e por cartão e os congelamentos.
+ * a ofensiva do perfil. Com a flag `estudo_revisao_v2` o resumo traz também o tempo médio por cartão (só com 10 respostas
+ * ou mais, do que o servidor já guarda) e os dias que um congelamento cobriu. FORA: o tempo por dia.
  */
 
 const DIA = 86_400_000;
@@ -269,6 +275,8 @@ export default function Memoria({
   const pico = Math.max(1, ...celulas);
   const nivel = (n: number) => (n === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((n / pico) * 4))));
   const diasComRevisao = resumo.calendario.filter((n) => n > 0).length;
+  /* Dias que um congelamento cobriu (flag `estudo_revisao_v2`; nunca para o perfil protegido), contados para trás de hoje. */
+  const gelados = new Set(perfilProtegido() ? [] : (resumo.sequencia?.congelados ?? []));
   const porDiaDaSemana = Array.from({ length: 7 }, () => 0);
   resumo.calendario.forEach((n, i) => {
     const atras = resumo.calendario.length - 1 - i;
@@ -290,6 +298,19 @@ export default function Memoria({
       ? []
       : ([[t('Maior sequência'), tp(maiorSequencia, '{n} dia', '{n} dias')]] as Array<[string, string]>)),
     [t('Dia mais forte'), NOME_DO_DIA[maisForte]],
+    /* O tempo por cartão (flag `estudo_revisao_v2`): o que o servidor já guarda; só com respostas bastantes, e nunca para o perfil protegido (dado de comportamento). */
+    ...(resumo.tempo && resumo.tempo.n >= MINIMO_DE_RESPOSTAS_DO_TEMPO && !perfilProtegido()
+      ? ([
+          [
+            t('Tempo por cartão'),
+            t('{n} s em média ({total} respostas)', {
+              n: numero(Math.max(1, Math.round(resumo.tempo.mediaMs / 1000))),
+              total: numero(resumo.tempo.n),
+            }),
+          ],
+        ] as Array<[string, string]>)
+      : []),
+    ...(gelados.size > 0 ? ([[t('Dias congelados'), numero(gelados.size)]] as Array<[string, string]>) : []),
   ];
 
   const botoes: Array<[string, number, string]> = [
@@ -436,11 +457,12 @@ export default function Memoria({
             {celulas.map((n, i) => {
               const hoje = i === celulas.length - 1;
               const quando = diaEMes(resumo.inicioDoDia - (celulas.length - 1 - i) * DIA);
+              const gelo = n === 0 && gelados.has(celulas.length - 1 - i);
               return (
                 <i
                   key={i}
-                  className={hoje && n === 0 ? 'hoje' : `n${nivel(n)}`}
-                  title={`${quando}: ${n ? tp(n, '{n} revisão', '{n} revisões') : t('sem revisão')}`}
+                  className={gelo ? 'gelo' : hoje && n === 0 ? 'hoje' : `n${nivel(n)}`}
+                  title={`${quando}: ${n ? tp(n, '{n} revisão', '{n} revisões') : gelo ? t('dia congelado') : t('sem revisão')}`}
                 />
               );
             })}

@@ -344,6 +344,13 @@
       "when": 1795616227198,
       "tag": "0048_flag_navegacao_simples",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1795616228198,
+      "tag": "0049_flag_estudo_revisao_v2",
+      "breakpoints": true
     }
   ]
 }

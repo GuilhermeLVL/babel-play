@@ -23,6 +23,14 @@ entram como **% de degradação**, acompanhada à parte.
 
 **Ponto de quebra** de um nível de carga: p95 de qualquer classe acima do SLO **ou** erro > 1 %.
 
+## Banco (tamanho por usuário)
+
+| Métrica                                             | Orçamento                                      | Cobrado por                                                      |
+| --------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------- |
+| Usuário pesado em Postgres (heap + TOAST + índices) | **≤ `banco.porUsuarioPesadoMaxKB`** (7.100 KB) | `scripts/perf/escala/tamanho-por-usuario.mjs`, job `carga` do CI |
+
+Medido em 28/11/2026 com as migrações PG reais e o usuário pesado do semeador (3.000 cartões, 1.000 revisões, 1.000 exercícios, 20 sessões x 100 falas): **6.437 KB**; teto = o medido + 10%. Maiores: `vocab_cards` 2,3 MB, `vocab_occurrences` 1,7 MB, `versoes_de_dados` 0,8 MB, `utterances` 0,7 MB, `exercise_results` 0,5 MB. O 3,9 MB do SQLite (`docs/escala.md`) não vale mais em PG. A conta atribui a cada usuário a parte das linhas dele no tamanho total de cada tabela com `user_id`; `agregados_diarios` e `estado_por_item` entram quando o semeador passar a derivá-los. Se o teto subir de propósito, mude `slo.json` e este arquivo juntos.
+
 ## Frontend
 
 | Métrica                                                        | Orçamento                                             | Cobrado por                                                                                 |

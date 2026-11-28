@@ -25,6 +25,7 @@ export function carregarSlo(arquivo = ARQUIVO_SLO) {
   num(slo.classes?.ia?.p95SobreProvedorMs, 'classes.ia.p95SobreProvedorMs')
   num(slo.ci?.conexoes, 'ci.conexoes')
   num(slo.ci?.duracaoS, 'ci.duracaoS')
+  num(slo.banco?.porUsuarioPesadoMaxKB, 'banco.porUsuarioPesadoMaxKB')
   num(slo.frontend?.jsInicialGzipMaxKB, 'frontend.jsInicialGzipMaxKB')
   num(slo.frontend?.cssInicialGzipMaxKB, 'frontend.cssInicialGzipMaxKB')
   if (!Array.isArray(slo.frontend.proibidosNoDist))

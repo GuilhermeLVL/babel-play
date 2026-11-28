@@ -34,6 +34,10 @@
     "classe": "leitura",
     "comentario": "o job `carga` usa o p95 da classe `leitura` como teto e erro zero; o runner do GitHub é compartilhado, então só pega regressão de ordem de grandeza"
   },
+  "banco": {
+    "porUsuarioPesadoMaxKB": 7100,
+    "comentario": "orçamento de tamanho por usuário pesado em Postgres (openspec modelo-do-aluno-e-dados 2.4b). Medido em 28/11/2026 por scripts/perf/escala/tamanho-por-usuario.mjs (migrações PG reais no PGlite, usuário 'u-p' do semeador: 3.000 cartões, 1.000 revisões, 1.000 exercícios, 20 sessões x 100 falas, com índices e TOAST): 6.437 KB; teto = o medido + 10%. Maiores: vocab_cards 2,3 MB, vocab_occurrences 1,7 MB, versoes_de_dados 0,8 MB. O medido anterior (3,9 MB, SQLite) não vale mais em PG. Agregados e estado por item ainda não entram: o semeador não os deriva."
+  },
   "frontend": {
     "jsInicialGzipMaxKB": 184,
     "cssInicialGzipMaxKB": 55,

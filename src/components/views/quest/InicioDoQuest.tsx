@@ -27,9 +27,9 @@ import {
   Upload,
   Youtube,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 
-import { FLAG_AVATAR_3D, FLAG_DIARIO } from '../../../core/planos';
+import { FLAG_AVATAR_3D, FLAG_DIARIO, FLAG_NAVEGACAO_SIMPLES } from '../../../core/planos';
 import { tetoAnonimoDa } from '../../../core/tetoAnonimo';
 import type { AppMetrics } from '../../../data/api';
 import { abrirMeuAvatar } from '../../../lib/avatar/descoberta';
@@ -140,6 +140,9 @@ function TextoDoLadrilho({ titulo, frase }: { titulo: string; frase: string }) {
   );
 }
 
+/* O INÍCIO-MENU (flag `navegacao_simples`): pedaço à parte, que só desce com a flag ligada. */
+const InicioMenu = lazy(() => import('./InicioMenu'));
+
 /** Quantas sessões recentes cabem sem virar a Biblioteca (as mesmas seis do Início de sempre). */
 const RECENTES = 6;
 type TipoDeSessao = 'all' | Recording['type'];
@@ -213,6 +216,9 @@ export default function InicioDoQuest({
 }: InicioDoQuestProps) {
   const avatarLigado = useFlag(FLAG_AVATAR_3D);
   const diarioLigado = useFlag(FLAG_DIARIO);
+  /* "O Início é o menu": a grade de destinos toma o lugar dos caminhos, da linha do progresso, da de Livros, do selo e do
+     convite dos planos (agora blocos da grade). O resto do Início (missões, sessões, avisos) continua embaixo. */
+  const menu = useFlag(FLAG_NAVEGACAO_SIMPLES);
   /* O Início de verdade pintou: o esqueleto do HTML (carga-rapida-no-celular) sai. */
   useEffect(() => tirarEsqueletoQuandoOInicioEstiverPronto(), []);
   const cartoes = ladrilhoDosCartoes(semConta ? 'sem-conta' : metrics);
@@ -260,7 +266,7 @@ export default function InicioDoQuest({
         </div>
         {/* O SELO DO PLANO (`telas2.js:136-139`): quem quer ver os planos não depende de uma oferta
             aparecer. No site sem servidor não há plano a assinar, e o selo não aparece. */}
-        {!edicaoEstatica() && (
+        {!edicaoEstatica() && !menu && (
           <button
             type="button"
             className="q-chip px-plano-chip"
@@ -272,69 +278,89 @@ export default function InicioDoQuest({
         )}
       </div>
 
-      <div className="q-grade g3 q-cresce ct-g4">
-        <button type="button" className="q-tile pri" onClick={() => onChangeView('capture')} {...intencaoDe('capture')}>
-          <span className="q-ic">
-            <Mic aria-hidden />
-          </span>
-          <b>{t('Legendar agora')}</b>
-          <span className="q-d">{t('Vídeo, jogo, aula ou conversa, com tradução ao vivo.')}</span>
-        </button>
-        {/* O LADRILHO DOS CARTÕES É FIXO (`ctLadrilhoDoInicio`, `cartoes3.js:134-156`): antes a revisão só
+      {menu && (
+        <Suspense fallback={<div className="q-esqueleto" style={{ minHeight: 320 }} aria-hidden />}>
+          <InicioMenu
+            onChangeView={onChangeView}
+            metrics={metrics}
+            progress={progress}
+            semConta={semConta}
+            ageProfile={ageProfile}
+            fraseDosCartoes={cartoes.frase}
+          />
+        </Suspense>
+      )}
+
+      {!menu && (
+        <div className="q-grade g3 q-cresce ct-g4">
+          <button
+            type="button"
+            className="q-tile pri"
+            onClick={() => onChangeView('capture')}
+            {...intencaoDe('capture')}
+          >
+            <span className="q-ic">
+              <Mic aria-hidden />
+            </span>
+            <b>{t('Legendar agora')}</b>
+            <span className="q-d">{t('Vídeo, jogo, aula ou conversa, com tradução ao vivo.')}</span>
+          </button>
+          {/* O LADRILHO DOS CARTÕES É FIXO (`ctLadrilhoDoInicio`, `cartoes3.js:134-156`): antes a revisão só
             aparecia aqui com palavra vencendo, e tomava o lugar do "Conversar". Agora está sempre, logo
             depois de "Legendar agora", com o número do dia; sem conta ou sem cartões, leva ao estado
             vazio da tela. */}
-        <button
-          type="button"
-          className="q-tile ct-ladrilho"
-          onClick={() => onChangeView('cartoes')}
-          data-testid="cartoes-no-inicio"
-        >
-          <span className="q-ic">
-            <Layers aria-hidden />
-          </span>
-          {comFonte ? (
-            <TextoDoLadrilhoDaFonte conteudo={conteudo} total={metrics.dueToday} geral={cartoes} />
-          ) : (
-            <TextoDoLadrilho {...cartoes} />
-          )}
-        </button>
-        <button
-          type="button"
-          className="q-tile"
-          onClick={() => onChangeView('interprete')}
-          {...intencaoDe('interprete')}
-        >
-          <span className="q-ic">
-            <Languages aria-hidden />
-          </span>
-          <b>{t('Conversar')}</b>
-          <span className="q-d">{t('Intérprete frente a frente: cada pessoa fala no seu idioma.')}</span>
-        </button>
-        <button type="button" className="q-tile" onClick={() => onChangeView('play')} {...intencaoDe('play')}>
-          <span className="q-ic">
-            <Gamepad2 aria-hidden />
-          </span>
-          <b>{t('Jogar')}</b>
-          <span className="q-d">{t('Jogos com as palavras das suas sessões.')}</span>
-        </button>
-        {/* NO CELULAR a barra tem cinco botões (R40): a Biblioteca não tem porta nela, e o Início a traz.
-            (O Intérprete é o "Conversar", acima.) */}
-        {noCelular() && (
+          <button
+            type="button"
+            className="q-tile ct-ladrilho"
+            onClick={() => onChangeView('cartoes')}
+            data-testid="cartoes-no-inicio"
+          >
+            <span className="q-ic">
+              <Layers aria-hidden />
+            </span>
+            {comFonte ? (
+              <TextoDoLadrilhoDaFonte conteudo={conteudo} total={metrics.dueToday} geral={cartoes} />
+            ) : (
+              <TextoDoLadrilho {...cartoes} />
+            )}
+          </button>
           <button
             type="button"
             className="q-tile"
-            onClick={() => onChangeView('library')}
-            data-testid="biblioteca-no-inicio"
+            onClick={() => onChangeView('interprete')}
+            {...intencaoDe('interprete')}
           >
             <span className="q-ic">
-              <Library aria-hidden />
+              <Languages aria-hidden />
             </span>
-            <b>{t('Biblioteca')}</b>
-            <span className="q-d">{t('Suas gravações, vídeos e documentos.')}</span>
+            <b>{t('Conversar')}</b>
+            <span className="q-d">{t('Intérprete frente a frente: cada pessoa fala no seu idioma.')}</span>
           </button>
-        )}
-      </div>
+          <button type="button" className="q-tile" onClick={() => onChangeView('play')} {...intencaoDe('play')}>
+            <span className="q-ic">
+              <Gamepad2 aria-hidden />
+            </span>
+            <b>{t('Jogar')}</b>
+            <span className="q-d">{t('Jogos com as palavras das suas sessões.')}</span>
+          </button>
+          {/* NO CELULAR a barra tem cinco botões (R40): a Biblioteca não tem porta nela, e o Início a traz.
+            (O Intérprete é o "Conversar", acima.) */}
+          {noCelular() && (
+            <button
+              type="button"
+              className="q-tile"
+              onClick={() => onChangeView('library')}
+              data-testid="biblioteca-no-inicio"
+            >
+              <span className="q-ic">
+                <Library aria-hidden />
+              </span>
+              <b>{t('Biblioteca')}</b>
+              <span className="q-d">{t('Suas gravações, vídeos e documentos.')}</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* O AVATAR (flag `avatar_3d`): um cartão discreto, dispensável, para quem não passa pelo Perfil nem pelo Intérprete. */}
       <AtalhoDoAvatarNoInicio
@@ -345,8 +371,8 @@ export default function InicioDoQuest({
 
       {/* O PROGRESSO numa linha só: nível, XP até o próximo e Seeds. Toca, abre as Estatísticas.
           Enquanto as métricas não chegam, a forma da linha (nunca um "Nível 1 · 0 XP" falso). */}
-      {!progress.available && <div className="q-esqueleto" style={{ minHeight: 92 }} aria-hidden />}
-      {progress.available && (
+      {!menu && !progress.available && <div className="q-esqueleto" style={{ minHeight: 92 }} aria-hidden />}
+      {!menu && progress.available && (
         <button
           type="button"
           className="q-linha"
@@ -397,18 +423,20 @@ export default function InicioDoQuest({
 
       {/* LIVROS (26/10/2026): clássicos em domínio público no nível da pessoa. Uma linha, sem disputar com os
           caminhos da grade; o trilho não ganhou item. */}
-      <button type="button" className="q-linha" onClick={() => onChangeView('livros')} data-testid="livros-no-inicio">
-        <span className="q-ic">
-          <BookOpen aria-hidden />
-        </span>
-        <span>
-          <b>{t('Livros')}</b>
-          <small>{t('Clássicos em domínio público para ler no seu nível, ou um livro seu.')}</small>
-        </span>
-        <span className="q-fim">
-          <ChevronRight aria-hidden style={{ width: 16, height: 16, verticalAlign: -3 }} />
-        </span>
-      </button>
+      {!menu && (
+        <button type="button" className="q-linha" onClick={() => onChangeView('livros')} data-testid="livros-no-inicio">
+          <span className="q-ic">
+            <BookOpen aria-hidden />
+          </span>
+          <span>
+            <b>{t('Livros')}</b>
+            <small>{t('Clássicos em domínio público para ler no seu nível, ou um livro seu.')}</small>
+          </span>
+          <span className="q-fim">
+            <ChevronRight aria-hidden style={{ width: 16, height: 16, verticalAlign: -3 }} />
+          </span>
+        </button>
+      )}
 
       {/* O DIÁRIO (openspec `diario-com-correcao-que-vira-cartao`, tarefa 5.1): uma linha, só com a flag `diario`; o trilho não
           ganhou item. */}
@@ -492,7 +520,7 @@ export default function InicioDoQuest({
       {/* O AVISO POR MARCO DE USO (sem conta, com motivo concreto) e o convite aos planos: os mesmos
           componentes do Início de sempre, com as regras deles (quando aparecem, quando somem). */}
       <AvisoDeConta metrics={metrics} onEntrar={() => onChangeView('login')} />
-      {!edicaoEstatica() && <CardDePlanos onVerPlanos={() => onChangeView('planos')} />}
+      {!edicaoEstatica() && !menu && <CardDePlanos onVerPlanos={() => onChangeView('planos')} />}
 
       {/* AS SESSÕES RECENTES: as seis últimas, com o filtro por tipo; o resto, na Biblioteca. */}
       {!semConta && !carregandoSessoes && sessoes.length === 0 && (

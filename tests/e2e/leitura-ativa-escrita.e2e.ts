@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 
 import { postsDeIa, semIaDeVerdade } from '../e2e-publico/_nuance'
+import { assentar, clicarRobusto } from './_helpers'
 
 /**
  * A ESCRITA DA LEITURA ATIVA (spec `leitura-ativa-escrita`, ux T5/T5b). A flag é ligada pelo teste e a IA é SEMPRE
@@ -20,8 +21,10 @@ async function ligarFlag(page: Page) {
 /** Lê "At the Market" em silêncio, pula as 3 perguntas e chega à escrita. */
 async function chegarNaEscrita(page: Page) {
   await page.goto('/leitura/a1-no-mercado')
-  await page.getByRole('radio', { name: /Ler em silêncio/ }).click()
-  await page.getByRole('button', { name: 'Começar' }).click()
+  /* A recompensa de conquista (de sessões que outros testes do mesmo servidor gravaram) pode subir por cima: fecha antes. */
+  await assentar(page)
+  await clicarRobusto(page, page.getByRole('radio', { name: /Ler em silêncio/ }))
+  await clicarRobusto(page, page.getByRole('button', { name: 'Começar' }))
   await page.getByTestId('terminei').click()
   for (let i = 0; i < 3; i++)
     await page.getByTestId('leitura-ativa-pergunta').getByRole('button', { name: 'Pular' }).click()

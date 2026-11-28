@@ -610,6 +610,13 @@
       "when": 1794800007017,
       "tag": "0086_flag_ia_ajustar_nivel",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "6",
+      "when": 1794800008017,
+      "tag": "0087_flag_navegacao_simples",
+      "breakpoints": true
     }
   ]
 }

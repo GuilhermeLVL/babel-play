@@ -36,7 +36,7 @@ import {
 import React, { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { DIAS_DO_TESTE_PREMIUM, FLAG_LEITURA_ATIVA, PLAN_MATRIX } from '../../core/planos';
+import { DIAS_DO_TESTE_PREMIUM, FLAG_LEITURA_ATIVA, FLAG_NAVEGACAO_SIMPLES, PLAN_MATRIX } from '../../core/planos';
 import { tetoAnonimoDa } from '../../core/tetoAnonimo';
 import { ehAdmin } from '../../lib/admin';
 import * as auth from '../../lib/auth';
@@ -58,7 +58,7 @@ import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { instalarMarcaDeMovimento } from '../../lib/movimento/animar';
 import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
-import { comNomeDoPlano, planoDeEntradaAgora, planoParaNome } from '../../lib/planoDeEntrada';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../lib/planoDeEntrada';
 import { instalarAgua } from '../../lib/polimento/agua';
 import { instalarPolimento } from '../../lib/polimento/base';
 import { instalarCelular, NO_MAIS_NO_CELULAR, useBarraDeCinco, useJanelaEstreita } from '../../lib/polimento/celular';
@@ -79,6 +79,7 @@ import type { ViewType } from '../../types';
 import { exigeConta } from '../conta/exigeConta';
 import { useListaDeNotificacoes } from './CentralDeNotificacoes';
 import { type DestinoAoVivo, EscolhaAoVivo } from './EscolhaAoVivo';
+import { fraseDoPlano } from './fraseDoPlano';
 import { type AgeProfileType, ITEM_ADMIN, ITEM_AO_VIVO, ITEM_LEITURA_ATIVA, NAV_ITEMS, navLabel } from './navItems';
 import { MarcaBabel } from './ShellBits';
 
@@ -272,21 +273,6 @@ function useDicaDoTrilho(ativo: boolean) {
   return { eventos, peca };
 }
 
-/** A frase da entrada "Planos e Premium": as duas do protótipo, com os dias que de fato restam do teste. */
-const fraseDoPlano = (): string => {
-  const { plan, teste } = getEntitlements();
-  /* Planos v4: o nome é o do plano de quem assina (Plus) ou o de entrada (o teste, a oferta). */
-  const doPlano = planoParaNome(plan);
-  if (plan === 'free' || plan === 'anonimo')
-    return comNomeDoPlano(
-      t('Você está no Grátis · teste o Premium por {dias} dias, sem cartão', { dias: DIAS_DO_TESTE_PREMIUM }),
-      planoDeEntradaAgora(),
-    );
-  if (!teste) return comNomeDoPlano(t('Você está no Premium'), doPlano);
-  const dias = Math.max(1, Math.ceil((teste.terminaEm - Date.now()) / 86_400_000));
-  return comNomeDoPlano(tp(dias, 'Premium em teste · {n} dia', 'Premium em teste · {n} dias'), doPlano);
-};
-
 const ROTULO_DA_VIBRACAO: Record<VibracaoDoQuest, () => string> = {
   desligada: () => t('Vibração ao apontar: desligada'),
   suave: () => t('Vibração ao apontar: suave'),
@@ -294,6 +280,8 @@ const ROTULO_DA_VIBRACAO: Record<VibracaoDoQuest, () => string> = {
 };
 
 const DialogoDaVoz = lazy(() => import('../voz/DialogoDaVoz'));
+/* A NAVEGAÇÃO "O INÍCIO É O MENU" (flag `navegacao_simples`): pedaço à parte, que só desce com a flag ligada. */
+const CabecalhoSimples = lazy(() => import('./CabecalhoSimples'));
 
 export default function TrilhoDoQuest({
   activeView,
@@ -310,6 +298,9 @@ export default function TrilhoDoQuest({
   togglePerformanceMode,
   cartoesHoje = null,
 }: TrilhoDoQuestProps) {
+  /* Com a flag `navegacao_simples` ligada, no lugar do trilho e do "Mais" entra o cabeçalho fino (o mesmo componente monta
+     as instalações da casca, abaixo, nos dois desenhos). Desligada, nada muda. */
+  const navegacaoSimples = useFlag(FLAG_NAVEGACAO_SIMPLES);
   const [maisAberto, setMaisAberto] = useState(false);
   const [vivoAberto, setVivoAberto] = useState(false);
   const [vozAberta, setVozAberta] = useState(false);
@@ -648,6 +639,26 @@ export default function TrilhoDoQuest({
       {novos > 0 && <i className="q-contagem" ref={medirOPulso} data-n={novos} aria-hidden />}
     </button>
   );
+
+  if (navegacaoSimples)
+    return (
+      <Suspense fallback={<div className="ns-cab-reserva" aria-hidden="true" />}>
+        <CabecalhoSimples
+          activeView={activeView}
+          onChangeView={onChangeView}
+          aoBuscar={aoBuscar}
+          aoEntrar={aoEntrar}
+          ageProfile={ageProfile}
+          semConta={semConta}
+          darkMode={darkMode}
+          toggleDarkMode={toggleDarkMode}
+          soundEnabled={soundEnabled}
+          toggleSound={toggleSound}
+          performanceMode={performanceMode}
+          togglePerformanceMode={togglePerformanceMode}
+        />
+      </Suspense>
+    );
 
   return (
     <>

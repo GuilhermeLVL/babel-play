@@ -157,8 +157,9 @@ test('com avatar_3d: botão, dica, presença com estados em texto, legenda sempr
   await expect(botao(page)).toContainText('Avatar')
   await expect(botao(page)).toHaveAttribute('aria-pressed', 'false')
   const caixa = (await botao(page).boundingBox())!
-  expect(caixa.height).toBeGreaterThanOrEqual(44)
-  expect(caixa.width).toBeGreaterThanOrEqual(44)
+  /* Arredondado ao centésimo: o layout em float devolve 43,999996 para um alvo de 44 px em alguns runners. */
+  expect(Math.round(caixa.height * 100) / 100).toBeGreaterThanOrEqual(44)
+  expect(Math.round(caixa.width * 100) / 100).toBeGreaterThanOrEqual(44)
   await expect(presenca(page)).toHaveCount(0)
 
   // A dica da primeira vez: faixa discreta, sem pop-up; dispensar a esconde e fica lembrada.

@@ -1,0 +1,445 @@
+/*
+ * A NAVEGAÇÃO "O INÍCIO É O MENU" (flag `navegacao_simples`; openspec `navegacao-mais-simples`, opção 3).
+ *
+ * Só ARRANJO: as peças são as de sempre (`.q-chip`, `.q-ctl`, `.q-tile`, `.q-ic`, `.q-contagem`, `.q-vivo`,
+ * `.q-vivo-opcao`, `.q-abas.q-seg`, `.q-interruptor`, `.q-barra`, de `quest.css`), com os tokens do tema. Este arquivo
+ * desce no pedaço do cabeçalho e no do Início-menu: com a flag desligada ninguém o baixa. A virada da casca
+ * (cabeçalho em cima, sem trilho) e a reserva do cabeçalho moram em `index.css`, porque valem antes deste pedaço chegar.
+ */
+
+/* ── O CABEÇALHO: fino em toda tela; no Início, com a marca e a busca larga ─────────────────── */
+.ns-cab {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 8px clamp(12px, 2vw, 24px);
+  background: var(--surface);
+  border-bottom: 1.5px solid var(--border-subtle);
+  color: var(--ink);
+  min-width: 0;
+}
+.ns-cab .q-chip,
+.ns-cab .q-ctl {
+  min-height: 48px;
+}
+.ns-cab .q-ctl {
+  min-width: 48px;
+  padding: 0 12px;
+  background: var(--canvas);
+}
+.ns-espaco {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ns-marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 900 20px/1 var(--font-display, inherit);
+  flex: none;
+}
+.ns-marca svg {
+  width: 36px;
+  height: 36px;
+}
+.ns-voltar {
+  flex: none;
+}
+.ns-onde {
+  min-width: 0;
+  font: 800 18px/1.2 var(--font-display, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ns-busca {
+  min-width: 0;
+  cursor: pointer;
+  color: var(--ink-muted);
+}
+.ns-busca.larga {
+  flex: 0 1 420px;
+  justify-content: flex-start;
+}
+.ns-busca .ns-busca-texto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ns-busca kbd {
+  margin-left: auto;
+  padding: 3px 7px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-subtle);
+  font: 700 13px/1 var(--font-mono, monospace);
+  color: var(--ink-muted);
+}
+.ns-cab .q-ctl[aria-expanded='true'] {
+  border-color: var(--q-acento, var(--accent));
+  background: var(--q-suave, var(--accent-soft));
+}
+.ns-sino {
+  position: relative;
+}
+.ns-sino .q-contagem {
+  top: -4px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-size: 12px;
+}
+.ns-avatar {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, var(--q-acento-2, var(--accent)), var(--q-acento, var(--accent)));
+  color: var(--q-sobre-acento, #fff);
+  font: 900 18px/1 var(--font-display, inherit);
+  cursor: pointer;
+}
+.ns-avatar svg {
+  width: 22px;
+  height: 22px;
+}
+.ns-avatar:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 3px;
+}
+.ns-avatar[aria-expanded='true'] {
+  border-color: var(--ink);
+}
+.ns-modo.q-abas {
+  flex: none;
+  align-self: center;
+}
+.ns-modo .q-aba {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 15px;
+}
+
+/* ── OS PAINÉIS DO SINO E DO AVATAR: o cartão da escolha do Ao vivo (`.q-vivo`), ancorado; no celular, folha ── */
+.ns-painel.q-vivo {
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100dvh - 88px);
+  overflow-y: auto;
+  gap: 2px;
+  padding: 6px;
+}
+/* COMPACTO (pedido do dono, 28/11/2026): o painel inteiro, até o "Sair", cabe sem rolar em 1280×720. Linhas de 48 px
+   (o alvo mínimo do app), ícone de 34 px e interruptores mais baixos. */
+.ns-painel .q-vivo-opcao {
+  min-height: 48px;
+  padding: 4px 10px;
+  gap: 10px;
+}
+.ns-painel .q-vivo-opcao .q-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.ns-painel .q-vivo-opcao .q-ic svg {
+  width: 20px;
+  height: 20px;
+}
+.ns-painel .ns-interruptor {
+  min-height: 48px;
+  padding-left: 16px;
+}
+.ns-painel .q-interruptor {
+  width: 68px;
+  height: 44px;
+}
+.ns-painel .q-interruptor::before {
+  inset: 8px 6px;
+}
+.ns-painel .q-interruptor::after {
+  top: 10px;
+  left: 9px;
+  width: 24px;
+  height: 24px;
+}
+.ns-painel .q-interruptor[aria-checked='true']::after {
+  transform: translateX(26px);
+}
+.ns-painel .ns-sep {
+  margin: 2px 6px;
+}
+/* Fora do headset, o painel fica de fora do mínimo de 56 px dos diálogos (`quest.css`, "os diálogos e folhas que ainda têm
+   o desenho do computador"), como o "Mais" ficava: ele já nasce nas medidas certas (48 px). No headset, vale o de 56.
+   A classe repetida ganha da especificidade daquela regra (o `:is(...)` dela conta como `a[href]`). */
+html:not([data-dispositivo='quest']) .ns-painel.ns-painel.q-vivo[role='dialog'] :is(.q-vivo-opcao, .q-interruptor) {
+  min-height: 0;
+}
+html:not([data-dispositivo='quest']) .ns-painel.ns-painel.q-vivo[role='dialog'] .q-vivo-opcao {
+  min-height: 48px;
+}
+html:not([data-dispositivo='quest']) .ns-painel.ns-painel.q-vivo[role='dialog'] .ns-painel-cab .q-ctl {
+  min-height: 44px;
+  min-width: 44px;
+}
+.ns-painel.q-vivo-folha {
+  width: 100%;
+  max-height: 88dvh;
+}
+.ns-painel-cab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 8px 10px;
+}
+.ns-painel-cab > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.ns-painel-cab h2 {
+  margin: 0;
+  font: 900 20px/1.1 var(--font-display, inherit);
+}
+.ns-painel-cab small {
+  display: block;
+  margin-top: 3px;
+  font: 600 14px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+.ns-painel-cab .q-ctl {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+}
+.ns-sep {
+  height: 1.5px;
+  margin: 4px 6px;
+  background: var(--border-subtle);
+}
+.ns-painel .q-vivo-opcao .q-fim {
+  margin-left: auto;
+}
+.ns-painel .q-vivo-opcao.lida {
+  opacity: 0.75;
+}
+.ns-interruptor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 0 0 12px;
+}
+.ns-interruptor > svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--ink-muted);
+}
+.ns-interruptor > span {
+  flex: 1;
+  min-width: 0;
+  font: 700 16px/1.2 var(--font-body, inherit);
+}
+.ns-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px;
+}
+.ns-acoes .q-ctl {
+  min-height: 48px;
+  font-size: 15px;
+  background: var(--surface);
+}
+.ns-vazio {
+  padding: 18px 12px;
+  text-align: center;
+  color: var(--ink-muted);
+  font: 600 15px/1.4 var(--font-body, inherit);
+}
+.ns-vazio b {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink);
+  font: 800 17px/1.2 var(--font-display, inherit);
+}
+
+/* ── O INÍCIO-MENU: a grade de blocos grandes ─────────────────────────────────────────────────── */
+.ns-blocos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: minmax(150px, auto);
+  gap: 16px;
+}
+/* O bloco é uma coluna: o ícone no alto, o nome e a frase embaixo (alinhados entre os blocos da mesma fileira). */
+.ns-blocos > .q-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.ns-blocos > .q-tile > .q-ic {
+  margin-bottom: auto;
+}
+.ns-blocos > .q-tile > .q-ic + * {
+  margin-top: 14px;
+}
+.ns-blocos > .ns-grande {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+.ns-blocos > .ns-grande b {
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.02;
+}
+.ns-blocos .ns-num {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  font: 900 36px/1 var(--font-display, inherit);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-ink, var(--q-acento));
+}
+.ns-blocos > .q-tile > .q-chip {
+  justify-self: start;
+  margin-top: 8px;
+  pointer-events: none;
+}
+.ns-blocos .q-barra {
+  width: 100%;
+  height: 8px;
+}
+.ns-blocos .q-pede-conta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+.ns-blocos .q-pede-conta svg {
+  width: 16px;
+  height: 16px;
+}
+.ns-premium.q-tile {
+  border-color: var(--q-acento, var(--accent));
+  background: var(--q-suave, var(--accent-soft));
+}
+/* Planos fecha a última fileira (ao lado de Progresso e Personalizar): ocupa duas colunas nas duas grades. */
+.ns-blocos > .ns-planos {
+  grid-column: span 2;
+}
+
+/* O ÍCONE DO AO VIVO sem o anel do polimento (`polimento/efeitos.css`): no bloco grande ele virava um contorno quadrado
+   deslocado em volta do ícone. */
+html[data-px] .ns-blocos .q-tile.pri .q-ic::before,
+html[data-px] .ns-blocos .q-tile.pri .q-ic::after {
+  content: none;
+  display: none;
+}
+
+/* CELULAR SEM A BARRA DE BAIXO (flag ligada): o conteúdo não reserva mais os 156 px da barra, só o botão do iChat; o
+   botão, o selo "Salvando…" e a tela do avatar descem para o pé. */
+@media (max-width: 720px) {
+  html:has(.q-casca[data-nav='simples']) :is(.q-palco, .rolagem) {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+  html:has(.q-casca[data-nav='simples']) .fab,
+  html:has(.q-casca[data-nav='simples']) .indicador-de-salvamento {
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  html:has(.q-casca[data-nav='simples']) .av-tela {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 1023px) {
+  .ns-blocos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ns-blocos > .ns-grande {
+    grid-row: span 1;
+    min-height: 200px;
+  }
+}
+
+/* ── CELULAR: o cabeçalho fica nos ícones; a grade, em duas colunas ─────────────────────────── */
+@media (max-width: 720px) {
+  .ns-cab {
+    min-height: 56px;
+    gap: 6px;
+    padding: 6px 10px;
+  }
+  .ns-cab .ns-marca span,
+  .ns-cab .ns-busca:not(.larga) .ns-busca-texto,
+  .ns-cab .ns-busca kbd {
+    display: none;
+  }
+  .ns-cab .ns-busca:not(.larga) {
+    padding: 0 12px;
+  }
+  .ns-cab .ns-busca.larga {
+    flex: 1 1 auto;
+    padding: 0 14px;
+  }
+  .ns-onde {
+    font-size: 16px;
+  }
+  .ns-cab .ns-voltar {
+    padding: 0 10px;
+  }
+  /* No celular o seletor do Ao vivo desce para uma segunda linha do cabeçalho, em toda a largura. */
+  .ns-cab:has(.ns-modo) {
+    flex-wrap: wrap;
+  }
+  .ns-modo.q-abas {
+    order: 10;
+    flex: 1 0 100%;
+    justify-content: center;
+  }
+  .ns-modo .q-aba {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 0 10px;
+  }
+  .ns-blocos {
+    gap: 12px;
+    grid-auto-rows: minmax(132px, auto);
+  }
+  .ns-blocos > .q-tile {
+    padding: 16px;
+  }
+  .ns-blocos > .q-tile b {
+    font-size: 18px;
+  }
+  .ns-blocos > .ns-grande b {
+    font-size: 34px;
+  }
+  .ns-blocos .ns-num {
+    font-size: 28px;
+  }
+}
+
+/* ── QUANDO A TELA É TODA DA TAREFA: o cabeçalho some como o trilho sumia ───────────────────── */
+/* Ao vivo, GRAVANDO, a legenda fica com a tela inteira (`quest.css`, `:has(.quest-vivo)`); pronta ou parada, a navegação
+   continua à vista (`polimentoCaptura.css`, `.px-pronto` e `.px-parada`). */
+html[data-quest-novo='true']:has(.quest-vivo:not(.px-pronto):not(.px-parada)) .ns-cab {
+  display: none;
+}
+/* Com a conversa do Intérprete em curso, no celular (`modoInterprete.css`, CONV-08): o "Sair" da conversa é a volta. */
+@media (max-width: 720px) {
+  :root:has(.int[data-pagina][data-em-curso]) .ns-cab {
+    display: none;
+  }
+}
+/* Navegação não vai para o papel (a impressão das Estatísticas, `questEstatisticas.css`). */
+@media print {
+  .ns-cab {
+    display: none;
+  }
+}

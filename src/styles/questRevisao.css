@@ -600,3 +600,13 @@ html[data-quest-novo='true'] .qr-opcoes-dlg .q-abas {
     transform: none;
   }
 }
+
+/* ── LACUNA (flag `estudo_revisao_v2`): a frase sem a palavra e a tradução como pista ─────────── */
+html[data-quest-novo='true'] .q-revisao .ct-lacuna-pergunta {
+  margin: 0 0 8px;
+  font: 600 14px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+html[data-quest-novo='true'] .q-revisao .ct-lacuna-pista {
+  color: var(--ink-muted);
+}

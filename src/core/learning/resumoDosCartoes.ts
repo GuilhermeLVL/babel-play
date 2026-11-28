@@ -41,7 +41,39 @@ export interface Lembradas {
   lembradas: number;
 }
 
+/**
+ * O TEMPO QUE A PESSOA LEVA POR CARTÃO na revisão (flag `estudo_revisao_v2`, openspec `cartoes` 3.7): a média das
+ * respostas que o servidor JÁ guarda (`review_logs.resposta_ms`), nos últimos 30 dias. É dado de comportamento: vai só
+ * para a própria pessoa, fora de anúncio e de perfil (D.4). `n` é quantas respostas entraram.
+ */
+export interface TempoPorCartao {
+  n: number;
+  mediaMs: number;
+}
+
+/** O mínimo de respostas para a tela mostrar a média: com menos, a média é ruído. */
+export const MINIMO_DE_RESPOSTAS_DO_TEMPO = 10;
+
+/**
+ * A SEQUÊNCIA COM CONGELAMENTO por dia (flag `estudo_revisao_v2`, openspec `cartoes` 8.1): o que o servidor já calcula
+ * (`ofensivaComCongelamento`) e não expunha. Os dias são contados para trás a partir de hoje (0 = hoje), no fuso gravado
+ * da pessoa, dentro da janela do calendário (84 dias).
+ */
+export interface SequenciaComCongelamento {
+  atual: number;
+  /** Quantos congelamentos estão guardados (0 a 2). */
+  congelamentos: number;
+  /** Dias (atrás de hoje) com prática. */
+  praticados: number[];
+  /** Dias (atrás de hoje) que um congelamento cobriu: não somam, não quebram. */
+  congelados: number[];
+}
+
 export interface ResumoDosCartoes {
+  /** Só com `?v2=1` (flag `estudo_revisao_v2`): o tempo médio por cartão. Ausente = não pedido ou sem dado. */
+  tempo?: TempoPorCartao | null;
+  /** Só com `?v2=1`: a sequência com os dias congelados. */
+  sequencia?: SequenciaComCongelamento;
   /** O instante (ms) em que "vence agora" foi contado: o fim do minuto do pedido. */
   agora: number;
   /** O começo do dia de quem pediu (ms), como chegou: os dias abaixo contam a partir dele. */

@@ -25,12 +25,13 @@ import {
   type ContagemDeFila,
   DIAS_DA_PREVISAO,
   DIAS_DO_CALENDARIO,
-  ERROS_DE_DIFICIL,
   ESTABILIDADE_MADURA,
   type Lembradas,
   MAXIMO_DE_SESSOES,
   type ResumoDosCartoes,
+  type TempoPorCartao,
 } from '../../../src/core/learning/resumoDosCartoes'
+import { ehDificil } from '../../../src/core/selecao/dificil'
 import type { UserId } from '../../lib/authContext'
 import { db, linhas } from '../db'
 import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
@@ -123,6 +124,26 @@ const porRecente = (a: Acumulado, b: Acumulado) => b.recente - a.recente || (a.i
 
 const lembradasVazias = (): Lembradas => ({ total: 0, lembradas: 0 })
 
+/**
+ * O TEMPO MÉDIO POR CARTÃO na Revisão, dos últimos 30 dias: só o que `review_logs.resposta_ms` já guarda (nada novo é
+ * coletado). Só notas da Revisão (`origem = 'revisao'`) com tempo positivo e abaixo de 10 minutos (cartão deixado aberto não
+ * é "tempo de resposta"). Dado de comportamento: só volta para a própria pessoa (`user_id`).
+ */
+export async function tempoPorCartao(userId: UserId, agora: number): Promise<TempoPorCartao | null> {
+  const desde = agora - 30 * DIA
+  const [l] = await db
+    .execute(
+      sql`
+      SELECT count(*) AS n, avg(resposta_ms) AS media
+      FROM review_logs
+      WHERE user_id = ${userId} AND deleted_at IS NULL AND origem = 'revisao'
+        AND resposta_ms > 0 AND resposta_ms < 600000 AND reviewed_at >= ${desde}`,
+    )
+    .then((r) => linhas<{ n: number | string; media: number | string | null }>(r))
+  const n = Number(l?.n ?? 0)
+  return n > 0 && l?.media != null ? { n, mediaMs: Math.round(Number(l.media)) } : null
+}
+
 export async function resumoDosCartoes(
   userId: UserId,
   { agora, inicioDoDia }: { agora: number; inicioDoDia: number },
@@ -197,7 +218,7 @@ export async function resumoDosCartoes(
     else fases[fase] += 1
     if (vence) hoje[fase] += 1
     if (c.stability == null && c.dueAt == null) guardadas += 1
-    if ((c.lapses ?? 0) >= ERROS_DE_DIFICIL) dificeis += 1
+    if (ehDificil(c)) dificeis += 1
     if (c.dueAt != null) {
       const dia = Math.max(0, Math.floor((c.dueAt - inicioDoDia) / DIA))
       if (dia <= DIAS_DA_PREVISAO) previsao[dia] += 1

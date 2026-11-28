@@ -17,7 +17,7 @@
  * pessoa, `lib/revisao/opcoesNaConta`), a rodada respeita o limite do DIA: duas rodadas no mesmo dia somam. Sem
  * `restam` (sem conta, sem rede) vale só o limite por rodada, e a tela não finge um contador.
  */
-import type { ContagemDeFila, ResumoDosCartoes } from '../../core/learning/resumoDosCartoes';
+import type { ContagemDeFila, ResumoDosCartoes, SequenciaComCongelamento } from '../../core/learning/resumoDosCartoes';
 import { type OpcoesDaRevisao, tamanhoDaRodada } from '../revisao/preferencias';
 
 export type EstadoDeHoje = 'vazio' | 'primeiro' | 'pilha' | 'normal' | 'feito';
@@ -88,18 +88,23 @@ export function porcentoDeLembradas(l: { total: number; lembradas: number }): nu
 
 /**
  * Os últimos sete dias, o último é hoje (`ctSemana`, `cartoes.js:214-220`): o dia da semana e se houve
- * revisão nele. Vem do calendário do resumo (revisões por dia). O app não tem congelamento de sequência:
- * dia sem revisão é dia sem revisão.
+ * revisão nele. Vem do calendário do resumo (revisões por dia). Sem `sequencia` (a flag `estudo_revisao_v2` desligada),
+ * dia sem revisão é dia sem revisão. Com ela, o dia que teve prática (jogo, por exemplo) conta como feito e o dia que um
+ * congelamento cobriu aparece como `gelo` (não soma, não quebra).
  */
 export function semanaDeEstudo(
   calendario: readonly number[],
   inicioDoDia: number,
-): Array<{ dia: number; estado: 'feito' | 'fora' | 'hoje' }> {
+  sequencia?: Pick<SequenciaComCongelamento, 'praticados' | 'congelados'> | null,
+): Array<{ dia: number; estado: 'feito' | 'fora' | 'hoje' | 'gelo' }> {
   const hoje = new Date(inicioDoDia).getDay();
   const ultimos = calendario.slice(-7);
   return ultimos.map((n, i) => {
     const atras = ultimos.length - 1 - i;
-    return { dia: (((hoje - atras) % 7) + 7) % 7, estado: n > 0 ? 'feito' : atras === 0 ? 'hoje' : 'fora' };
+    const dia = (((hoje - atras) % 7) + 7) % 7;
+    if (n > 0 || sequencia?.praticados.includes(atras)) return { dia, estado: 'feito' as const };
+    if (sequencia?.congelados.includes(atras)) return { dia, estado: 'gelo' as const };
+    return { dia, estado: atras === 0 ? ('hoje' as const) : ('fora' as const) };
   });
 }
 

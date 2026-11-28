@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Brain,
+  CalendarRange,
   Check,
   ChevronDown,
   ChevronRight,
@@ -11,6 +12,7 @@ import {
   Layers,
   type LucideIcon,
   Minus,
+  Moon,
   Pause,
   PenLine,
   Plus,
@@ -491,6 +493,7 @@ export function FolhaDoResto({
   previsao,
   inicioDoDia,
   aoTrocar,
+  aoEspalhar,
   aoFechar,
 }: {
   opcoes: Pick<OpcoesDaRevisao, 'novas' | 'revisoes'>;
@@ -500,8 +503,14 @@ export function FolhaDoResto({
   previsao: readonly number[] | null;
   inicioDoDia: number;
   aoTrocar: (v: Partial<OpcoesDaRevisao>) => void;
+  /**
+   * As saídas que mudam a data de vencimento (flag `estudo_revisao_v2`, cartões 5.2): espalhar a pilha pelos próximos dias
+   * ou adiar só as que aguentam esperar. Ausente = a folha de sempre.
+   */
+  aoEspalhar?: (modo: 'espalhar' | 'aguentam') => Promise<void>;
   aoFechar: () => void;
 }) {
+  const [espalhando, setEspalhando] = useState(false);
   /* O limite de novas de antes de "Sem palavras novas": desligar a saída devolve o que estava. */
   const [novasDeAntes] = useState(() => opcoes.novas || 20);
   const semNovas = opcoes.novas === 0;
@@ -593,6 +602,52 @@ export function FolhaDoResto({
           </button>
         ))}
       </div>
+      {aoEspalhar && (
+        <div
+          className="q-lista ct-saidas"
+          data-testid="saidas-da-pilha"
+          aria-label={t('Mudar quando as palavras voltam')}
+        >
+          {(
+            [
+              [
+                'espalhar',
+                CalendarRange,
+                t('Espalhar pelos próximos dias'),
+                t('Cada dia fica com até {n} revisões. Nenhuma palavra se perde e a memória delas não muda.', {
+                  n: opcoes.revisoes,
+                }),
+              ],
+              [
+                'aguentam',
+                Moon,
+                t('Adiar as que aguentam esperar'),
+                t('Só as que você ainda lembra bem vão para os próximos dias; as outras ficam para hoje.'),
+              ],
+            ] as const
+          ).map(([modo, Icone, titulo, detalhe]) => (
+            <button
+              key={modo}
+              type="button"
+              className="q-linha"
+              data-ct-pilha={modo}
+              disabled={espalhando}
+              onClick={() => {
+                setEspalhando(true);
+                void aoEspalhar(modo).finally(() => setEspalhando(false));
+              }}
+            >
+              <span className="q-ic" aria-hidden>
+                <Icone />
+              </span>
+              <span>
+                <b>{titulo}</b>
+                <small>{detalhe}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
       {previsao && (
         <div className="q-cartao fundo ct-semana-do-resto" ref={grafico}>
           <p className="q-rotulo">{t('Como fica a semana')}</p>

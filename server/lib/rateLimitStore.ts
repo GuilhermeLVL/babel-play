@@ -69,6 +69,11 @@ export const METRIC_RATELIMIT_FALHAS = 'ratelimit:falhas'
  * escrita da pessoa), mas não ficam sem teto.
  */
 export const METRIC_RATELIMIT_LOTE_ANKI = 'ratelimit:lote-anki'
+/**
+ * O balde do REMAPEAR do Anki (`POST /api/anki/decks/:id/remapear`): cada chamada relê e reescreve o baralho inteiro
+ * (até 50.000 notas), então o teto é bem menor que o da escrita comum. Próprio pelo mesmo A27.
+ */
+export const METRIC_RATELIMIT_REMAPEAR_ANKI = 'ratelimit:remapear-anki'
 /* Auditoria de segurança 2026-09-26 (`server/lib/limitesDeLeitura.ts`): a exportação da conta lê
    as 17 tabelas do titular em memória, e a busca de imagens faz uma chamada de SAÍDA por pedido.
    Baldes próprios, no banco, pelo mesmo motivo do A27. */

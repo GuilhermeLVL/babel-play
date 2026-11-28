@@ -1,0 +1,13 @@
+{
+  "status": 200,
+  "forma": {
+    "deixaramDeServir": "number",
+    "ignoradas": "number",
+    "mudaram": "number",
+    "notas": "number",
+    "passaramAServir": "number",
+    "preencheram": "number",
+    "protegidas": "number",
+    "simulado": "boolean"
+  }
+}

@@ -124,3 +124,31 @@ export function montarNota(entrada: {
     campos: nomes,
   };
 }
+
+/**
+ * REMAPEAR SEM REIMPORTAR: recalcula frente, verso e exemplo de uma nota já guardada a partir dos campos ORIGINAIS
+ * (`anki_notes.campos_brutos`, JSON `{campos, midia, lacunas}`) e dos papéis escolhidos para o tipo de nota. É a mesma
+ * regra de `montarNota` (limpeza e cloze campo a campo, `textosDaNota`), só que partindo do que o servidor guardou.
+ *
+ * Devolve `null` quando o JSON não é legível ou quando o número de papéis não bate com o de campos (o mapeamento é de
+ * outro tipo de nota): nesse caso a nota fica como está. Frente ou verso vazios voltam como vazios, e quem chama decide.
+ */
+export function remapearNota(
+  camposBrutos: string | null | undefined,
+  papeis: PapelNaImportacao[],
+): { frente: string; verso: string; exemplo: string } | null {
+  if (!camposBrutos) return null;
+  let campos: unknown;
+  try {
+    campos = (JSON.parse(camposBrutos) as { campos?: unknown } | null)?.campos;
+  } catch {
+    return null;
+  }
+  if (!campos || typeof campos !== 'object' || Array.isArray(campos)) return null;
+  const valores = Object.values(campos as Record<string, unknown>);
+  if (valores.length !== papeis.length) return null;
+  return textosDaNota(
+    valores.map((v) => limparELacunas(typeof v === 'string' ? v : '').texto),
+    papeis,
+  );
+}

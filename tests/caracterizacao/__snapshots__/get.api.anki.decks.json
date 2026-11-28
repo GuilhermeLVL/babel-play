@@ -15,6 +15,7 @@
       "idiomaOrigem": "string",
       "nome": "string",
       "nomeNoArquivo": "null",
+      "praticadas": "number",
       "total": "number",
       "updatedAt": "number",
       "userId": "string"

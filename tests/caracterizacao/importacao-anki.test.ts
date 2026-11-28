@@ -254,3 +254,63 @@ describe('POST /api/anki/decks/:id/desativar', () => {
     expect((await s.post('/api/anki/decks/00000000-0000-0000-0000-000000000000/desativar', {})).status).toBe(404)
   })
 })
+
+describe('GET /decks/:id/estruturas e POST /decks/:id/remapear (remapear sem reimportar)', () => {
+  /** Um baralho com campos NOMEADOS, mandado pelo protocolo em lotes (o `.txt` não tem nomes de campo). */
+  async function importarComCampos() {
+    const campos = ['Num', 'Word', 'Meaning']
+    const notas = [
+      ['1', 'ledger', 'livro-razão'],
+      ['2', 'orbit', 'órbita'],
+    ].map(([num, word, meaning]) => ({
+      guid: `g-${word}`,
+      notetype: 'Vocab',
+      campos,
+      camposBrutos: { Num: num, Word: word, Meaning: meaning },
+      frente: num,
+      verso: word,
+      tags: [],
+    }))
+    const aberto = await s.post('/api/anki/imports', {
+      arquivo: 'remapear.apkg',
+      bytes: 100,
+      formato: 'collection.anki21b',
+      nomeNoArquivo: null,
+      campos,
+      totalNoArquivo: notas.length,
+      truncado: false,
+      idiomaOrigem: 'en',
+      idiomaAlvo: 'pt',
+      amostra: notas.map((n) => ({ frente: n.frente, verso: n.verso })),
+    })
+    const { importId, deckId } = (await aberto.json()) as { importId: string; deckId: string }
+    expect((await s.post(`/api/anki/imports/${importId}/notas`, { notas })).status).toBe(200)
+    expect((await s.post(`/api/anki/imports/${importId}/fechar`, {})).status).toBe(200)
+    return deckId
+  }
+
+  it('estruturas: 200 com os tipos de nota; baralho inexistente → 404', async () => {
+    const deckId = await importarComCampos()
+    const r = await s.get(`/api/anki/decks/${deckId}/estruturas`)
+    expect(r.status).toBe(200)
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/get.api.anki.decks.id.estruturas.json',
+    )
+    expect((await s.get('/api/anki/decks/00000000-0000-0000-0000-000000000000/estruturas')).status).toBe(404)
+  })
+
+  it('remapear: 200 com o relatório; baralho inexistente → 404; corpo vazio → 400', async () => {
+    const deckId = await importarComCampos()
+    const { estruturas } = (await (await s.get(`/api/anki/decks/${deckId}/estruturas`)).json()) as {
+      estruturas: Array<{ hash: string }>
+    }
+    const corpo = { mapeamentos: [{ estruturaHash: estruturas[0].hash, papeis: ['nenhum', 'palavra', 'significado'] }] }
+    const r = await s.post(`/api/anki/decks/${deckId}/remapear`, corpo)
+    expect(r.status).toBe(200)
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/post.api.anki.decks.id.remapear.json',
+    )
+    expect((await s.post('/api/anki/decks/00000000-0000-0000-0000-000000000000/remapear', corpo)).status).toBe(404)
+    expect((await s.post(`/api/anki/decks/${deckId}/remapear`, {})).status).toBe(400)
+  })
+})

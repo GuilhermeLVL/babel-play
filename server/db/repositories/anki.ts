@@ -23,7 +23,7 @@ import {
   tamanhoDoLote,
   tamanhoDoLoteDeInsert,
 } from '../lotes'
-import { ankiDecks, ankiImports, ankiNotes } from '../schema'
+import { ankiDecks, ankiImports, ankiNotes, vocabCards } from '../schema'
 
 export type AnkiDeck = typeof ankiDecks.$inferSelect
 export type AnkiNote = typeof ankiNotes.$inferSelect
@@ -86,6 +86,11 @@ export interface ContagensBaralho {
   descartadas: number
   /** Sumiu do arquivo mais recente. História do baralho, não defeito — nunca some do acervo. */
   ausentes: number
+  /**
+   * Notas cujo cartão já foi PRATICADO ao menos uma vez (`vocab_cards.reps > 0`): ativar não é praticar. É o
+   * "praticado" de "praticado/total" na tela do baralho (`motor-anki-jogos`, 4.4).
+   */
+  praticadas: number
 }
 
 /** `por_motivo` é JSON em texto; ausente ou ilegível vale como nenhum descarte. */
@@ -97,6 +102,36 @@ export function lerPorMotivo(texto: string | null | undefined): Record<string, n
   } catch {
     return {}
   }
+}
+
+/** Uma nota como o "remapear" a lê: o que decide o novo texto e o que o protege. */
+export interface NotaParaRemapear {
+  id: string
+  estado: string
+  projectedCardId: string | null
+  estruturaHash: string | null
+  camposBrutos: string | null
+  frente: string | null
+  verso: string | null
+  exemplo: string | null
+  motivoDescarte: string | null
+}
+
+/** O que muda numa nota remapeada. SÓ texto e motivo de descarte: estado, `projected_card_id` e SRS nunca entram aqui. */
+export interface TextoRemapeado {
+  id: string
+  frente: string | null
+  verso: string | null
+  exemplo: string | null
+  motivoDescarte: string | null
+}
+
+export interface EstruturaDoBaralho {
+  estruturaHash: string
+  notetype: string | null
+  notas: number
+  /** `campos_brutos` de até 5 notas deste tipo, para a tela mostrar os campos reais. */
+  amostra: string[]
 }
 
 function serializarCampos(c: NotaParaGravar['camposBrutos']): string | null {
@@ -254,7 +289,8 @@ export const ankiRepo = {
       .groupBy(ankiNotes.deckId, ankiNotes.estado, sql`case when ${ankiNotes.motivoDescarte} is null then 0 else 1 end`)
 
     const porDeck = new Map<string, ContagensBaralho>()
-    for (const d of decks) porDeck.set(d.id, { total: 0, ativas: 0, arquivadas: 0, descartadas: 0, ausentes: 0 })
+    for (const d of decks)
+      porDeck.set(d.id, { total: 0, ativas: 0, arquivadas: 0, descartadas: 0, ausentes: 0, praticadas: 0 })
     for (const l of linhas) {
       const c = porDeck.get(l.deckId)
       if (!c) continue
@@ -264,6 +300,30 @@ export const ankiRepo = {
       else if (l.estado === 'arquivada') c.arquivadas += n
       else if (l.estado === 'ausente_no_arquivo') c.ausentes += n
       if (Number(l.temMotivo) === 1) c.descartadas += n
+    }
+
+    /* PRATICADAS: nota projetada cujo cartão tem revisão (`reps > 0`). Uma consulta agregada para todos os baralhos,
+       pelo vínculo `projected_card_id` — o mesmo que a ativação grava. */
+    const praticadas = await db
+      .select({ deckId: ankiNotes.deckId, n: sql<number>`count(*)` })
+      .from(ankiNotes)
+      .innerJoin(vocabCards, eq(vocabCards.id, ankiNotes.projectedCardId))
+      .where(
+        and(
+          eq(ankiNotes.userId, userId),
+          isNull(ankiNotes.deletedAt),
+          isNull(vocabCards.deletedAt),
+          sql`coalesce(${vocabCards.reps}, 0) > 0`,
+          inArray(
+            ankiNotes.deckId,
+            decks.map((d) => d.id),
+          ),
+        ),
+      )
+      .groupBy(ankiNotes.deckId)
+    for (const l of praticadas) {
+      const c = porDeck.get(l.deckId)
+      if (c) c.praticadas = Number(l.n)
     }
     return decks.map((d) => ({ ...d, ...porDeck.get(d.id)! }))
   },
@@ -655,5 +715,95 @@ export const ankiRepo = {
       total: Number(n),
       proximoCursor: temMais && ultimo ? cursorDeNotas(ultimo.createdAt, ultimo.id) : null,
     }
+  },
+  /**
+   * REMAPEAR — leitura. Os tipos de nota do baralho (por `estrutura_hash`) com a contagem e uma amostra de
+   * `campos_brutos`. Nota sem hash (baralho antigo, sem nomes de campo) não entra: não há como dizer a que tipo pertence.
+   */
+  async estruturasDoBaralho(userId: UserId, deckId: string): Promise<EstruturaDoBaralho[]> {
+    const base = and(
+      eq(ankiNotes.deckId, deckId),
+      eq(ankiNotes.userId, userId),
+      isNull(ankiNotes.deletedAt),
+      sql`${ankiNotes.estruturaHash} IS NOT NULL`,
+    )
+    const grupos = await db
+      .select({
+        estruturaHash: ankiNotes.estruturaHash,
+        notetype: sql<string | null>`max(${ankiNotes.notetype})`,
+        notas: sql<number>`count(*)`,
+      })
+      .from(ankiNotes)
+      .where(base)
+      .groupBy(ankiNotes.estruturaHash)
+      .orderBy(desc(sql`count(*)`))
+      .limit(50)
+    const saida: EstruturaDoBaralho[] = []
+    for (const g of grupos) {
+      const linhas = await db
+        .select({ camposBrutos: ankiNotes.camposBrutos })
+        .from(ankiNotes)
+        .where(and(base, eq(ankiNotes.estruturaHash, g.estruturaHash as string)))
+        .orderBy(ankiNotes.id)
+        .limit(5)
+      saida.push({
+        estruturaHash: g.estruturaHash as string,
+        notetype: g.notetype ?? null,
+        notas: Number(g.notas),
+        amostra: linhas.map((l) => l.camposBrutos).filter((c): c is string => !!c),
+      })
+    }
+    return saida
+  },
+
+  /** REMAPEAR — leitura em páginas por `id` (a ordem estável que o laço precisa): `depoisDe` é o último id visto. */
+  async notasParaRemapear(
+    userId: UserId,
+    deckId: string,
+    depoisDe: string | null,
+    limite: number,
+  ): Promise<NotaParaRemapear[]> {
+    const cond = [eq(ankiNotes.deckId, deckId), eq(ankiNotes.userId, userId), isNull(ankiNotes.deletedAt)]
+    if (depoisDe) cond.push(sql`${ankiNotes.id} > ${depoisDe}`)
+    return db
+      .select({
+        id: ankiNotes.id,
+        estado: ankiNotes.estado,
+        projectedCardId: ankiNotes.projectedCardId,
+        estruturaHash: ankiNotes.estruturaHash,
+        camposBrutos: ankiNotes.camposBrutos,
+        frente: ankiNotes.frente,
+        verso: ankiNotes.verso,
+        exemplo: ankiNotes.exemplo,
+        motivoDescarte: ankiNotes.motivoDescarte,
+      })
+      .from(ankiNotes)
+      .where(and(...cond))
+      .orderBy(ankiNotes.id)
+      .limit(limite)
+  },
+
+  /**
+   * REMAPEAR — escrita. Só `frente`, `verso`, `exemplo` e `motivo_descarte`: NUNCA `estado`, `projected_card_id`
+   * nem nada de `vocab_cards`/SRS. O `user_id` entra no WHERE, de modo que um id alheio não muda nada.
+   */
+  async gravarTextosRemapeados(userId: UserId, deckId: string, mudancas: TextoRemapeado[]): Promise<void> {
+    if (!mudancas.length) return
+    const now = Date.now()
+    const instrucoes = mudancas.map(
+      (m): InstrucaoDeBatch =>
+        (tx) =>
+          tx
+            .update(ankiNotes)
+            .set({
+              updatedAt: now,
+              frente: m.frente,
+              verso: m.verso,
+              exemplo: m.exemplo,
+              motivoDescarte: m.motivoDescarte,
+            })
+            .where(and(eq(ankiNotes.id, m.id), eq(ankiNotes.deckId, deckId), eq(ankiNotes.userId, userId))),
+    )
+    for (const bloco of emLotes(instrucoes, INSTRUCOES_POR_BATCH)) await rodarLote(bloco)
   },
 }

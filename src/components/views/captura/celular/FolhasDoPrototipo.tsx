@@ -274,6 +274,7 @@ function CorpoDaFrase({
                   data-nova={!ja && ehNova?.(p) ? '' : undefined}
                   data-aprendida={ja ? '' : undefined}
                   data-etiqueta={etiqueta}
+                  data-forca={etiquetador?.forca(p, fala.lang)}
                   aria-description={etiqueta && !etiquetaSilenciosa(etiqueta) ? rotuloDaEtiqueta(etiqueta) : undefined}
                   onClick={() => aoTocarPalavra(p)}
                 >

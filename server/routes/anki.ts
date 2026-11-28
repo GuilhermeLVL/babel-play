@@ -6,6 +6,8 @@
  *  - POST   /decks/:id/ativar         → projeta o próximo lote (arquivada → cartão jogável)
  *  - POST   /decks/:id/desativar      → arquiva as notas do baralho, sem apagar nada
  *  - DELETE /decks/:id                → purga física (exige `confirmar: true`)
+ *  - GET    /decks/:id/estruturas     → os tipos de nota do baralho, com os campos reais e o palpite de papéis
+ *  - POST   /decks/:id/remapear       → refaz frente/verso/exemplo de `campos_brutos` com os papéis escolhidos
  *  - GET    /imports/:id              → progresso de um import (ledger)
  *  - POST   /imports, /imports/:id/notas, /imports/:id/fechar → importação em lotes
  *                                       (`server/routes/ankiImports.ts`)
@@ -17,10 +19,26 @@
  */
 import { Router } from 'express'
 
-import { ankiRepo } from '../db/repositories/anki'
+import {
+  type EstruturaLida,
+  inferirMapeamento,
+  limparCampo,
+  mapeamentoServe,
+  type PapelNaImportacao,
+} from '../../src/core/anki'
+import { ankiRepo, type NotaParaRemapear } from '../db/repositories/anki'
 import { vocabRepo } from '../db/repositories/vocab'
+import { decidirRemapeamento } from '../import/remapearNotas'
 import { erroDeRota } from '../lib/erroDeRota'
-import { ankiAtivarSchema, ankiNotasQuerySchema, ankiPurgarSchema, idParamSchema, parseOr400 } from '../validation'
+import { responderErro } from '../lib/respostaDeErro'
+import {
+  ankiAtivarSchema,
+  ankiNotasQuerySchema,
+  ankiPurgarSchema,
+  ankiRemapearSchema,
+  idParamSchema,
+  parseOr400,
+} from '../validation'
 import { ankiImportsRouter } from './ankiImports'
 
 export const ankiRouter = Router()
@@ -129,6 +147,139 @@ ankiRouter.delete('/decks/:id', async (req, res) => {
     const notasApagadas = antes.total
     await ankiRepo.purgarBaralho(req.userId, p.id)
     res.json({ ok: true, notasApagadas })
+  } catch (err) {
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/** Corta o texto de amostra: a tela só precisa reconhecer o campo, não ler o conteúdo inteiro. */
+const AMOSTRA_MAX = 80
+
+/**
+ * Os tipos de nota do baralho com os campos REAIS (nomes e três notas de amostra) e o palpite de papéis: o que o
+ * Mapeador mostra em "Corrigir campos". Só leitura; o que é lido vem de `campos_brutos`, gravado no import.
+ */
+ankiRouter.get('/decks/:id/estruturas', async (req, res) => {
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+  try {
+    if (!(await deckDoUsuario(req.userId, p.id))) {
+      res.status(404).json({ error: 'baralho não encontrado' })
+      return
+    }
+    const tipos = await ankiRepo.estruturasDoBaralho(req.userId, p.id)
+    const estruturas: EstruturaLida[] = []
+    for (const t of tipos) {
+      const linhas: Array<Record<string, unknown>> = []
+      for (const bruto of t.amostra) {
+        try {
+          const campos = (JSON.parse(bruto) as { campos?: unknown })?.campos
+          if (campos && typeof campos === 'object' && !Array.isArray(campos)) {
+            linhas.push(campos as Record<string, unknown>)
+          }
+        } catch {
+          // Amostra ilegível: a próxima serve.
+        }
+      }
+      if (!linhas.length) continue
+      const nomes = Object.keys(linhas[0])
+      const amostra = linhas
+        .slice(0, 3)
+        .map((l) =>
+          nomes.map((n) => limparCampo(typeof l[n] === 'string' ? (l[n] as string) : '').slice(0, AMOSTRA_MAX)),
+        )
+      const inferido = inferirMapeamento(nomes, { amostra })
+      estruturas.push({
+        hash: t.estruturaHash,
+        notetype: t.notetype ?? '',
+        campos: nomes,
+        notas: t.notas,
+        papeis: inferido.papeis,
+        palpites: inferido.palpites,
+        precisaDeConferencia: inferido.precisaDeConferencia,
+        amostra,
+      })
+    }
+    res.json({ estruturas })
+  } catch (err) {
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/** Notas lidas por página no remapear: o baralho inteiro nunca fica em memória de uma vez. */
+const PAGINA_DO_REMAPEAR = 500
+
+/**
+ * REMAPEAR SEM REIMPORTAR. Recalcula frente, verso e exemplo de cada nota a partir de `campos_brutos` com os papéis que
+ * a pessoa escolheu (`decidirRemapeamento`: função pura do núcleo + a limpeza e a régua do servidor) e grava só o texto e
+ * o motivo de descarte. Nota ATIVADA não tem o texto reescrito e SRS/`projected_card_id` nunca são tocados. O mapeamento
+ * vem do cliente, mas a limpeza e a régua são refeitas aqui: o servidor não confia nele. Baralho de outra conta: 404.
+ */
+ankiRouter.post('/decks/:id/remapear', async (req, res) => {
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+  const body = parseOr400(ankiRemapearSchema, req.body, res)
+  if (!body) return
+  try {
+    if (!(await deckDoUsuario(req.userId, p.id))) {
+      res.status(404).json({ error: 'baralho não encontrado' })
+      return
+    }
+    const mapeamentos = new Map<string, PapelNaImportacao[]>()
+    for (const m of body.mapeamentos) {
+      if (!mapeamentoServe(m.papeis, m.papeis.length)) {
+        return responderErro(
+          res,
+          400,
+          'o mapeamento precisa de palavra (ou frase) e de tradução',
+          'mapeamento_invalido',
+        )
+      }
+      mapeamentos.set(m.estruturaHash, m.papeis)
+    }
+
+    const total = {
+      notas: 0,
+      mudaram: 0,
+      passaramAServir: 0,
+      deixaramDeServir: 0,
+      preencheram: 0,
+      protegidas: 0,
+      ignoradas: 0,
+    }
+    let depoisDe: string | null = null
+    for (;;) {
+      const pagina: NotaParaRemapear[] = await ankiRepo.notasParaRemapear(
+        req.userId,
+        p.id,
+        depoisDe,
+        PAGINA_DO_REMAPEAR,
+      )
+      if (!pagina.length) break
+      const mudancas = []
+      for (const nota of pagina) {
+        total.notas++
+        const d = decidirRemapeamento(nota, mapeamentos)
+        if (d.tipo === 'mudou') {
+          total.mudaram++
+          if (d.passouAServir) total.passaramAServir++
+          if (d.deixouDeServir) total.deixaramDeServir++
+          mudancas.push(d.mudanca)
+        } else if (d.tipo === 'preencheu') {
+          total.preencheram++
+          mudancas.push(d.mudanca)
+        } else if (d.tipo === 'protegida') total.protegidas++
+        else if (d.tipo === 'ignorada') total.ignoradas++
+      }
+      if (!body.simular) await ankiRepo.gravarTextosRemapeados(req.userId, p.id, mudancas)
+      depoisDe = pagina[pagina.length - 1].id
+      if (pagina.length < PAGINA_DO_REMAPEAR) break
+    }
+    res.json({ simulado: body.simular === true, ...total })
   } catch (err) {
     res.status(400).json({
       error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),

@@ -113,9 +113,10 @@ export const TextoComMarcas = memo(function TextoComMarcas({
       {pedacos.map((p, i) => {
         const k = lista.length ? marcaDoPedaco(p, lista) : -1;
         const etiqueta = etiquetador?.etiqueta(p.texto, lang);
+        const forca = etiquetador?.forca(p.texto, lang);
         if (k < 0)
           return (
-            <span key={i} data-etiqueta={etiqueta}>
+            <span key={i} data-etiqueta={etiqueta} data-forca={forca}>
               <TextoComOcultas texto={p.texto} />
             </span>
           );
@@ -131,6 +132,7 @@ export const TextoComMarcas = memo(function TextoComMarcas({
             className="asst-marca"
             data-marca={m.tipo}
             data-etiqueta={etiqueta}
+            data-forca={forca}
             data-marca-i={k}
             data-marca-foco={foco ? '' : undefined}
             title={tituloDaMarca(m)}

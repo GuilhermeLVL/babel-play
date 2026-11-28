@@ -30,3 +30,17 @@ export interface BarramentoDaSelecao {
   aoSelecionar(f: (t: TrechoDoLeitor, origem: OrigemDaSelecao) => void): () => void;
   aoLimpar(f: () => void): () => void;
 }
+
+/** C publica (pura, sem rede); A, B e D leem. A implementação é `statusDaPalavra` em `src/lib/leitor/forcaDaPalavra.ts`. */
+export type { InfoDaPalavra, StatusDaPalavra } from './destaqueDeVocabulario';
+export type StatusDaPalavraFn = (chave: string, idioma: string) => import('./destaqueDeVocabulario').InfoDaPalavra;
+
+/** D publica; B chama. A implementação é `abrirAjustarNivel` em `PainelAjustarNivel.tsx` (nunca altera o texto do livro). */
+export type AbrirAjustarNivelFn = (
+  trecho: Pick<TrechoDoLeitor, 'texto' | 'frase' | 'paragrafo' | 'idioma'>,
+  escopo: Escopo,
+  nivelInicial?: NivelCefr,
+) => void;
+
+/** B publica; D chama. A implementação é `lerEmVozAlta` em `src/lib/leitor/lerEmVoz.ts`. */
+export type LerEmVozAltaFn = (texto: string, idioma: string, aoTerminar?: () => void) => void;

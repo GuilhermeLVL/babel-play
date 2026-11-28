@@ -1,9 +1,12 @@
 ## 0. Contrato (1 PR pequeno, antes das fatias)
 
-- [ ] 0.1 `src/core/leitura/leituraAssistida.ts` com os tipos e assinaturas do `design.md` (stubs que não fazem nada). Verificar: `npm run typecheck`; teste de que os stubs não lançam.
-- [ ] 0.2 Cinco flags NOVAS, desligadas e sem regra de plano: `escuta_player_compacto`, `leitor_selecao_firme`, `leitor_modo_traducao`, `leitor_destaque_vocab`,
+- [x] 0.1 `src/core/leitura/leituraAssistida.ts` com os tipos e assinaturas do `design.md` (stubs que não fazem nada). Verificar: `npm run typecheck`; teste de que os stubs não lançam.
+      Feito: tipos da A já existiam; acrescentadas as assinaturas (`StatusDaPalavraFn`, `AbrirAjustarNivelFn`, `LerEmVozAltaFn`) e `tests/leitura-assistida-contrato.test.ts`, que prova por `satisfies` que as implementações reais (C, D, B) as cumprem.
+- [x] 0.2 Cinco flags NOVAS, desligadas e sem regra de plano: `escuta_player_compacto`, `leitor_selecao_firme`, `leitor_modo_traducao`, `leitor_destaque_vocab`,
       `ia_ajustar_nivel` (constantes `FLAG_*` em `planos.ts`; migrações PG 0044 a 0048 e SQLite 0083 a 0087). Verificar: `npm run migracoes:conferir` e teste de flags.
-- [ ] 0.3 Pontos de encaixe em `Leitor.tsx`/`LeitorDoLivro.tsx` (4 componentes stub, lazy, só com a flag). Verificar: teste de componente com todas as flags desligadas (snapshot idêntico ao de hoje).
+      Conferido: as 5 constantes `FLAG_*` estão em `planos.ts`; migrações PG 0044 a 0047 e SQLite 0083 a 0086 (as duas flags da A dividem a 0044/0083, por isso 4 e não 5); `tests/leitura-assistida-flags-a.test.ts` e `tests/leitor-modo-traducao-flag.test.ts` cobrem.
+- [x] 0.3 Pontos de encaixe em `Leitor.tsx`/`LeitorDoLivro.tsx` (4 componentes stub, lazy, só com a flag). Verificar: teste de componente com todas as flags desligadas (snapshot idêntico ao de hoje).
+      Conferido: `CamadaDeSelecao`, `BalaoDaTraducao`, `CamadaDeDestaque`, `PraticaDoCapitulo` e (agora, via B7) `PainelAjustarNivel` são lazy em `LeitorDoLivro.tsx`, cada um só com a sua flag. O `PainelAjustarNivel` era o único sem ponto de encaixe e foi montado em B7. NÃO há snapshot de todas as flags desligadas; a garantia é por teste de flag desligada em cada fatia.
 
 ## 1. Fatia A: player e seleção (dono: ver design)
 
@@ -24,7 +27,8 @@
 - [x] B4 "Ler em voz alta este trecho" (`lerEmVozAlta`) e copiar. Verificar: teste de componente; cancelar ao limpar a seleção.
 - [x] B5 Atalhos T, V, C, A em `atalhos.ts` (só com foco no leitor, nunca em campo de texto). Verificar: teste de teclado.
 - [x] B6 Exportar grifos com as traduções; ditado de uma frase grifada. Verificar: teste do exportador (golden) e do ditado com TTS falso.
-- [ ] B7 (botão pronto no balão via `aoAjustarNivel`; falta ligar a `abrirAjustarNivel` da fatia D e a flag `ia_ajustar_nivel`) Botão "Ajustar nível" no balão (só com `ia_ajustar_nivel`), chamando `abrirAjustarNivel`. Verificar: teste com a flag ligada e desligada.
+- [x] B7 Botão "Ajustar nível" no balão (só com `ia_ajustar_nivel`), chamando `abrirAjustarNivel`. Verificar: teste com a flag ligada e desligada.
+      Feito: `aoAjustarNivelDoBalao(flag, trecho)` (devolve `undefined` com a flag desligada) liga o balão a `abrirAjustarNivel(…, 'paragrafo')`; `PainelAjustarNivel` montado lazy em `LeitorDoLivro.tsx` só com `ia_ajustar_nivel`. `tests/ao-ajustar-nivel-do-balao.test.tsx`.
 
 ## 3. Fatia C: destaque por vocabulário
 
@@ -81,9 +85,9 @@
 
 - [ ] 5.1 `npm run i18n`, `npx knip`, lint, typecheck, `npm test`, e2e Chromium e WebKit, `npm run ci:local`. Verificar: tudo verde antes do push (skill `pre-envio`).
 - [ ] 5.2 Medir todas as métricas do `design.md`, anexar em `docs/auditoria/` e deixar as flags DESLIGADAS; ligar é ato do dono.
-- [ ] 5.3 Atualizar `CLAUDE.md` (mapa do leitor) e `docs/` com as 5 flags e o contrato.
+- [x] 5.3 Atualizar `CLAUDE.md` (mapa do leitor) e `docs/` com as 5 flags e o contrato.
 
 ## Fechamento WebKit (Safari)
 
-- [x] W1 e2e do leitor (seleção firme, modo tradução, destaque, ajustar nível com IA mockada) e da escuta guiada no projeto `playwright.webkit.config.ts` (iPhone 13 e Safari desktop; `escuta*.e2e.ts` entrou no `testMatch`). Rodada completa: 97 de 108 passaram na primeira volta; 7 falhas, 3 causas: 1. CORRIGIDO (bug real do WebKit): com o foco DENTRO do iframe do capítulo (sem `allow-scripts`, bug 218086), o `Esc` não chegava ao app e o cartão da palavra não fechava. Em `LeitorDoLivro.tsx`, quando os ouvintes do capítulo não funcionam, ao abrir o cartão o foco vai para ele (que trata o `Esc`). Passam: `leitor.e2e`, `leitor-seguranca`, e as mesmas no Chromium. 2. CORRIGIDO (teste, não produto): a conquista "Ouvinte" (de outras suítes, mesmo banco) cobria a tela em `leitor-destaque-vocab.e2e.ts`; o teste agora resgata e segue (`addLocatorHandler`). Passa em WebKit iPhone e desktop. 3. NÃO TRATADO (fora do pedido): `livros.e2e.ts` "Trocar capa" só no WebKit iPhone (timeout de clique); investigar à parte.
+- [x] W1 e2e do leitor (seleção firme, modo tradução, destaque, ajustar nível com IA mockada) e da escuta guiada no projeto `playwright.webkit.config.ts` (iPhone 13 e Safari desktop; `escuta*.e2e.ts` entrou no `testMatch`). Rodada completa: 97 de 108 passaram na primeira volta; 7 falhas, 3 causas: 1. CORRIGIDO (bug real do WebKit): com o foco DENTRO do iframe do capítulo (sem `allow-scripts`, bug 218086), o `Esc` não chegava ao app e o cartão da palavra não fechava. Em `LeitorDoLivro.tsx`, quando os ouvintes do capítulo não funcionam, ao abrir o cartão o foco vai para ele (que trata o `Esc`). Passam: `leitor.e2e`, `leitor-seguranca`, e as mesmas no Chromium. 2. CORRIGIDO (teste, não produto): a conquista "Ouvinte" (de outras suítes, mesmo banco) cobria a tela em `leitor-destaque-vocab.e2e.ts`; o teste agora resgata e segue (`addLocatorHandler`). Passa em WebKit iPhone e desktop. 3. CORRIGIDO (bug real do app): `TrocarCapa` renderizava o fundo dentro do `main`, e no WebKit iPhone o dock e o botão flutuante ficavam por cima do "Usar esta capa" (timeout de clique). Agora o diálogo vai por `createPortal` para o `document.body`. `livros.e2e.ts` "Trocar capa" passa em webkit-iphone e webkit-desktop.
       LIMITES REAIS do WebKit: o capítulo não entrega eventos de toque/teclado ao app (a seleção é amostrada de fora, `vigiarSelecao`); teclas digitadas com o foco no livro só funcionam depois de o cartão abrir (foco migra) e, sem cartão, o foco no livro segue sem atalhos de teclado no Safari. A WebKit não roda na CI obrigatória (instalação pesada): rodar `playwright.webkit.config.ts` antes de cada merge do leitor.

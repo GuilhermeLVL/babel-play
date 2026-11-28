@@ -17,7 +17,7 @@ export {
   textosDaNota,
   trocarPapel,
 } from './mapeador';
-export { indicePorNome, montarNota, PADRAO_FRENTE, PADRAO_VERSO, TETO_DE_NOTAS } from './mapeamento';
+export { indicePorNome, montarNota, PADRAO_FRENTE, PADRAO_VERSO, remapearNota, TETO_DE_NOTAS } from './mapeamento';
 export { TETOS_DA_NOTA } from './tetos';
 export { lerTextoAnki } from './texto';
 export type { EstruturaLida, LeituraAnki, NotaAnki } from './tipos';

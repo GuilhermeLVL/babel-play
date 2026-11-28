@@ -4,6 +4,7 @@ import { ArrowDown, Ellipsis, RotateCcw, Square, Volume2 } from 'lucide-react';
 import { memo, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
+import type { Forca } from '../../../../core/learning/forcaDoCartao';
 import { type Etiqueta, resumoDasEtiquetas } from '../../../../core/vocabulario/etiquetas';
 import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import { aoMudarAudioDasFalas, falaTocando } from '../../../../lib/captura/audioDasFalas';
@@ -67,6 +68,7 @@ function Palavra({
   marca,
   indice,
   etiqueta,
+  forca,
 }: {
   texto: string;
   anima: boolean;
@@ -75,6 +77,8 @@ function Palavra({
   indice?: number;
   /** A etiqueta da palavra (salva, aprendendo, nova para você): também só atributo. */
   etiqueta?: Etiqueta;
+  /** A força 1 a 4 (flag `forca_na_legenda`): só atributo, sem mudar o texto. */
+  forca?: Forca;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
@@ -88,6 +92,7 @@ function Palavra({
       data-marca={marca?.tipo}
       data-marca-i={marca ? indice : undefined}
       data-etiqueta={etiqueta}
+      data-forca={forca}
       title={marca ? tituloDaMarca(marca) : undefined}
     >
       <TextoComOcultas texto={texto} />
@@ -216,6 +221,11 @@ const Linha = memo(function Linha({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `palavras` sai de `original` e `lang`
     [original, lang, etiquetador],
   );
+  const forcas = useMemo(
+    () => (etiquetador ? palavras.map((p) => etiquetador.forca(p, lang)) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `palavras` sai de `original` e `lang`
+    [original, lang, etiquetador],
+  );
   const descricao = useMemo(
     () =>
       etiquetas ? descricaoDaLinha(resumoDasEtiquetas(palavras.map((p, i) => [p, etiquetas[i]] as const))) : undefined,
@@ -333,6 +343,7 @@ const Linha = memo(function Linha({
                   marca={k >= 0 ? marcas?.[k] : undefined}
                   indice={k}
                   etiqueta={etiquetas?.[i]}
+                  forca={forcas?.[i]}
                 />
               );
             })}

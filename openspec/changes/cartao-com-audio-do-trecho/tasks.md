@@ -55,7 +55,8 @@ Legenda: **[D]** depende do dono; **[R]** pede aparelho real. A mais arriscada v
 
 - [ ] 4.1 (aberta: fora do recorte local desta entrega; decisão 19 do dono recomenda áudio do baralho só por TTS) `.apkg` com `[sound:]` e mídia quando há clipe (`lib/anki/montarApkg.ts`).
       Verificar: `tests/harness/lerApkgNode.ts` relê o arquivo e acha o áudio.
-- [ ] 4.2 "Guardar o áudio deste cartão" para cartões antigos cuja sessão tem áudio.
+- [x] 4.2 "Guardar o áudio deste cartão" para cartões antigos cuja sessão tem áudio.
+      Feito 27/11, SÓ LOCAL: `lib/cartoes/audioDoCartao/daSessao.ts` (baixa a sessão pelo `urlDeAudio`, corta o trecho da fala, guarda pelo mesmo armazém por conta; sem chave de armazenamento nova) e botão na `GavetaDaPalavra` (`GuardarAudioDoCartao.tsx`, só com a flag e "Só neste aparelho"). Sessão sem áudio: aviso no lugar do botão. Teste: `tests/audio-do-cartao-da-sessao.test.tsx`.
       Verificar: teste cobre o recorte do áudio da sessão e o aviso quando a sessão não tem áudio.
 - [ ] 4.3 **[R]** Abrir o `.apkg` exportado no Anki desktop e no AnkiDroid e tocar o clipe.
       Verificar: captura de tela anexada ao relatório.

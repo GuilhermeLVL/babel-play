@@ -791,6 +791,29 @@ export const ankiPurgarSchema = z
   })
   .strip()
 
+/**
+ * `POST /api/anki/decks/:id/remapear` — papéis por campo para cada tipo de nota do baralho (`estruturaHash`).
+ * `papeis` tem um papel por campo, na ordem do tipo de nota; `simular` só conta, sem gravar. Tetos: 50 tipos de nota
+ * por pedido e 100 campos por tipo (um tipo de nota do Anki não passa disso).
+ */
+const PAPEIS_DO_REMAPEAR = ['palavra', 'significado', 'frase', 'leitura', 'audio', 'imagem', 'nenhum'] as const
+export const ankiRemapearSchema = z
+  .object({
+    mapeamentos: z
+      .array(
+        z
+          .object({
+            estruturaHash: z.string().min(1).max(64),
+            papeis: z.array(z.enum(PAPEIS_DO_REMAPEAR)).min(2).max(100),
+          })
+          .strip(),
+      )
+      .min(1)
+      .max(50),
+    simular: z.boolean().optional(),
+  })
+  .strip()
+
 /* ══════════════════ Fase 3 da migração · importação do Anki EM LOTES (`/api/anki/imports`) ══════════════════
  *
  * O navegador lê o `.apkg` e manda as notas; estes schemas são o teto de cada pedaço do protocolo

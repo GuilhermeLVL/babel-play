@@ -419,6 +419,18 @@ describe('IDOR — usuario B contra os recursos de A', () => {
         const { deckId } = await novoBaralho()
         return { caminho: `/api/anki/decks/${deckId}/ativar`, corpo: { limite: 1 }, aindaExiste: baralhoExiste(deckId) }
       },
+      'GET /api/anki/decks/:id/estruturas': async () => {
+        const { deckId } = await novoBaralho()
+        return { caminho: `/api/anki/decks/${deckId}/estruturas`, aindaExiste: baralhoExiste(deckId) }
+      },
+      'POST /api/anki/decks/:id/remapear': async () => {
+        const { deckId } = await novoBaralho()
+        return {
+          caminho: `/api/anki/decks/${deckId}/remapear`,
+          corpo: { mapeamentos: [{ estruturaHash: 'h', papeis: ['palavra', 'significado'] }] },
+          aindaExiste: baralhoExiste(deckId),
+        }
+      },
       'POST /api/anki/decks/:id/desativar': async () => {
         const { deckId } = await novoBaralho()
         return { caminho: `/api/anki/decks/${deckId}/desativar`, corpo: {}, aindaExiste: baralhoExiste(deckId) }

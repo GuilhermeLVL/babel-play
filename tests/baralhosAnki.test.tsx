@@ -88,12 +88,28 @@ describe('Anki › Gerenciar', () => {
     await waitFor(() => expect(screen.getByText('4000 Essential English Words')).toBeTruthy())
 
     expect(screen.getAllByText(/300/).length).toBeGreaterThan(0)
-    expect(screen.getByText(/3600|3\.600/)).toBeTruthy()
+    // O total aparece no saldo de ativadas e no de praticadas.
+    expect(screen.getAllByText(/3600|3\.600/).length).toBeGreaterThanOrEqual(1)
 
     // descartadas e ausentes aparecem como rótulos DIFERENTES, não somados (40 + 12 = 52)
     expect(screen.getByText('40 descartadas')).toBeTruthy()
     expect(screen.getByText('12 ausentes')).toBeTruthy()
     expect(screen.queryByText(/52/)).toBeNull()
+  })
+
+  it('mostra o progresso "praticadas de total" por baralho (ativar não é praticar)', async () => {
+    mocks.listarBaralhosAnki.mockResolvedValue([
+      baralho({ praticadas: 120 }),
+      baralho({ id: 'deck-2', nome: 'Japonês', total: 80, ativas: 80, praticadas: 7 }),
+      baralho({ id: 'deck-3', nome: 'Sem número', praticadas: undefined }),
+    ])
+    tela()
+    await waitFor(() => expect(screen.getByText('Japonês')).toBeTruthy())
+    const linhas = screen.getAllByTestId('baralho-praticadas').map((el) => el.textContent)
+    expect(linhas[0]).toMatch(/120 de 3\.?600 notas já praticadas/)
+    expect(linhas[1]).toMatch(/7 de 80 notas já praticadas/)
+    // Servidor mais antigo, sem o campo: diz 0, não "undefined" nem "NaN".
+    expect(linhas[2]).toMatch(/^0 de /)
   })
 
   it('o botão "Ativar mais" some quando não resta nada a ativar (restantes === 0)', async () => {

@@ -1437,3 +1437,11 @@ export function armazenamentoEmTexto(plano: PlanoDeAssinatura): string {
      quando o valor é exatamente 5. */
   return mb >= 1000 ? `${(mb / 1000).toFixed(mb % 1000 === 0 ? 0 : 1)} GB` : `${mb} MB`;
 }
+
+/**
+ * A FLAG DA REVISÃO V2 (openspec `cartoes` e `modelo-do-aluno-e-dados`, onda 2; migrações PG 0049 e SQLite 0088, da faixa reservada):
+ * a Revisão usa o seletor único de `src/core/selecao/`, ganha estudo livre fora da agenda, formato lacuna, aviso de palavra difícil
+ * com saídas, saídas da pilha, "só as difíceis", tempo por cartão (só para a própria pessoa), sequência com congelamento e a tecla "?".
+ * Nasce DESLIGADA e sem regra de plano; nenhuma cota. Desligada, o app fica idêntico ao de antes. Ligar é ato do dono.
+ */
+export const FLAG_ESTUDO_REVISAO_V2 = 'estudo_revisao_v2';

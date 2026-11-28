@@ -511,6 +511,13 @@ export const ESCRITAS_MES_DOS_PAGOS = 30;
 export const FLAG_IA_AJUSTAR_NIVEL = 'ia_ajustar_nivel';
 
 /**
+ * A FLAG DA NAVEGAÇÃO "O INÍCIO É O MENU" (openspec `navegacao-mais-simples`, opção 3, decisão do dono de 27/11/2026; migrações
+ * PG 0048 e SQLite 0087): sem trilho, sem "Mais" e sem barra de baixo; o Início vira a grade de destinos e as outras telas ganham
+ * um cabeçalho fino (‹ Início, nome, busca, sino, avatar). Só interface. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono.
+ */
+export const FLAG_NAVEGACAO_SIMPLES = 'navegacao_simples';
+
+/**
  * As cotas do "Ajustar nível" nos planos pagos (PROVISÓRIAS, a proposta da spec; o dono decide depois de medir o custo por
  * parágrafo). Um ajuste de parágrafo leva ~700 tokens de entrada e ~400 de saída por chamada, no máximo 2 chamadas.
  */

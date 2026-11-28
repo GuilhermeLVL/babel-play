@@ -154,6 +154,8 @@ export interface LinhaDeMenu {
   detalhe?: string;
   acao: () => void;
   desligada?: boolean;
+  /** A tecla que faz o mesmo (`aria-keyshortcuts`). */
+  atalho?: string;
 }
 
 export function LinhasDeMenu({
@@ -175,6 +177,7 @@ export function LinhasDeMenu({
               className="q-linha"
               data-ct-m={l.chave}
               disabled={l.desligada}
+              aria-keyshortcuts={l.atalho}
               onClick={l.acao}
             >
               <span className="q-ic" aria-hidden>

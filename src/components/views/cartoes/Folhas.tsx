@@ -9,6 +9,7 @@ import {
   Ellipsis,
   ExternalLink,
   Gauge,
+  Keyboard,
   Layers,
   type LucideIcon,
   Minus,
@@ -78,6 +79,8 @@ export function MenuDeCartoes({
   aoAjustes,
   aoMemoria,
   aoExportar,
+  unicos = false,
+  aoAtalhos,
   aoFechar,
 }: {
   opcoes: Pick<OpcoesDaRevisao, 'retencao' | 'novas' | 'revisoes'>;
@@ -89,6 +92,13 @@ export function MenuDeCartoes({
   aoAjustes: () => void;
   aoMemoria: () => void;
   aoExportar?: () => void;
+  /**
+   * Flag `estudo_revisao_v2` (cartões 9.1): UMA porta de importar e UMA de exportar, com esses nomes ("Trazer e levar" era as
+   * duas coisas misturadas e o "Exportar" repetia uma delas).
+   */
+  unicos?: boolean;
+  /** Flag `estudo_revisao_v2`: a lista de atalhos, que a tecla "?" também abre. Ausente = a linha some. */
+  aoAtalhos?: () => void;
   aoFechar: () => void;
 }) {
   const folha = useFecharEAgir(aoFechar);
@@ -103,8 +113,8 @@ export function MenuDeCartoes({
     aoTrazerELevar && {
       chave: 'trazer',
       Icone: ArrowLeftRight,
-      titulo: t('Trazer e levar'),
-      detalhe: t('Arquivo do Anki e exportar'),
+      titulo: unicos ? t('Importar') : t('Trazer e levar'),
+      detalhe: unicos ? t('Arquivo do Anki, lista colada ou CSV, num lugar só') : t('Arquivo do Anki e exportar'),
       acao: folha.ir(aoTrazerELevar),
     },
     fonte && {
@@ -138,6 +148,14 @@ export function MenuDeCartoes({
       titulo: t('Exportar'),
       detalhe: t('De volta ao Anki, planilha ou texto'),
       acao: folha.ir(aoExportar),
+    },
+    aoAtalhos && {
+      chave: 'atalhos',
+      Icone: Keyboard,
+      titulo: t('Atalhos'),
+      detalhe: t('As teclas desta tela e da revisão'),
+      atalho: '?',
+      acao: folha.ir(aoAtalhos),
     },
   ];
   return (

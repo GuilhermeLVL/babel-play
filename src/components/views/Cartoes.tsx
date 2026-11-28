@@ -14,7 +14,7 @@ import {
   SlidersHorizontal,
   TriangleAlert,
 } from 'lucide-react';
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ResumoDosCartoes } from '../../core/learning/resumoDosCartoes';
 import { FLAG_ESTUDO_REVISAO_V2 } from '../../core/planos';
@@ -62,6 +62,9 @@ import TrazerELevar, { ARQUIVOS_DO_ANKI, ColarUmaLista, FluxoDoAnki } from './ca
 /* O que só desce quando a pessoa pede: a rodada de revisão, a lista de palavras, a tela de gerenciar
    baralhos do Anki e o diálogo de exportar. Abrir "Hoje" não baixa nenhum. */
 const Study = lazyComRecarga(() => import('./Study'));
+const AtalhosDaRevisao = lazy(() =>
+  import('./revisao/enxuta/DialogosDaRevisao').then((m) => ({ default: m.AtalhosDaRevisao })),
+);
 const Metrics = lazyComRecarga(() => import('./Metrics'));
 const BaralhoAnki = lazyComRecarga(() => import('./BaralhoAnki'));
 const ExportarVocabulario = lazyComRecarga(() => import('./vocab/ExportarVocabulario'));
@@ -247,6 +250,23 @@ export default function Cartoes({
     setPedidoDeAdicionar((n) => n + 1);
     aoTrocarAba('palavras');
   };
+
+  /* A TECLA "?" (flag `estudo_revisao_v2`, cartões 9.1): a lista de atalhos, da tela e da revisão. Nunca dentro de um campo
+     de texto nem com Ctrl, Alt ou Cmd; a rodada de revisão tem a dela. */
+  const [atalhosAbertos, setAtalhosAbertos] = useState(false);
+  useEffect(() => {
+    if (!v2 || estudando) return;
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+      const alvo = e.target as HTMLElement | null;
+      if (alvo && (alvo.isContentEditable || /^(input|textarea|select)$/i.test(alvo.tagName))) return;
+      if (document.querySelector('dialog[open]')) return;
+      e.preventDefault();
+      setAtalhosAbertos(true);
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [v2, estudando]);
 
   /* A Memória é tela de dentro: o voltar devolve à aba de onde a pessoa veio (`CT.voltaDaMemoria`). */
   const voltaDaMemoria = useRef<AbaDeCartoes>('hoje');
@@ -735,6 +755,8 @@ export default function Cartoes({
           aoTrazerELevar={semConta ? convidar : () => setFolha('trazer')}
           aoAjustes={() => setFolha('ajustes')}
           aoMemoria={abrirMemoria}
+          unicos={v2}
+          aoAtalhos={v2 ? () => setAtalhosAbertos(true) : undefined}
           aoExportar={semConta ? convidar : !resumo?.total ? undefined : () => void levar()}
           aoFechar={() => setFolha((f) => (f === 'menu' ? null : f))}
         />
@@ -766,6 +788,19 @@ export default function Cartoes({
           aoTrocar={trocarOpcoes}
           aoFechar={() => setFolha((f) => (f === 'ajustes' ? null : f))}
         />
+      )}
+      {v2 && atalhosAbertos && (
+        <Suspense fallback={null}>
+          <AtalhosDaRevisao
+            doisBotoes={opcoes.botoes === 2}
+            temMinhaVoz={false}
+            daTela={[
+              [t('Esta lista'), ['?']],
+              [t('Buscar palavras e telas'), ['Ctrl K']],
+            ]}
+            aoFechar={() => setAtalhosAbertos(false)}
+          />
+        </Suspense>
       )}
       {folha === 'resto' && resumo && (
         <FolhaDoResto

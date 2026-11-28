@@ -298,8 +298,8 @@ export default function Memoria({
       ? []
       : ([[t('Maior sequência'), tp(maiorSequencia, '{n} dia', '{n} dias')]] as Array<[string, string]>)),
     [t('Dia mais forte'), NOME_DO_DIA[maisForte]],
-    /* O tempo por cartão (flag `estudo_revisao_v2`): o que o servidor já guarda; só com respostas bastantes. */
-    ...(resumo.tempo && resumo.tempo.n >= MINIMO_DE_RESPOSTAS_DO_TEMPO
+    /* O tempo por cartão (flag `estudo_revisao_v2`): o que o servidor já guarda; só com respostas bastantes, e nunca para o perfil protegido (dado de comportamento). */
+    ...(resumo.tempo && resumo.tempo.n >= MINIMO_DE_RESPOSTAS_DO_TEMPO && !perfilProtegido()
       ? ([
           [
             t('Tempo por cartão'),

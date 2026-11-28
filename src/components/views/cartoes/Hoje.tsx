@@ -49,8 +49,8 @@ import { CabecaDoCartao, diaCurto, Dica, Tres } from './pecas';
  *
  * Os cinco estados (normal, vazio, primeiras palavras, dia cumprido, pilha) saem do dado
  * (`lib/cartoes/estadoDeHoje`). O que o protótipo mostra e o app não faz de verdade NÃO está aqui: o
- * tempo estimado ("uns 5 min": a revisão não mede tempo por cartão), o congelamento da sequência, o
- * "Estudo livre" fora da agenda e a volta de cada baralho ("volta amanhã com 3").
+ * tempo estimado ("uns 5 min": a revisão não mede tempo por cartão na tela) e a volta de cada baralho ("volta amanhã com 3").
+ * Com a flag `estudo_revisao_v2` entram o "Estudo livre" fora da agenda, o "Só as difíceis" e a semana com o dia congelado.
  */
 
 export interface PedidoDeEstudo {

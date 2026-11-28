@@ -95,6 +95,7 @@ const EXCECOES: Array<{ motivo: string; chaves: string[] }> = [
       'reading_layout_width',
       'reading_narration_mode',
       'reading_narration_rate',
+      'revisao.formatoLacuna',
       'revisao.palpiteDoAparelho',
       'theme',
       'transcriptSettings',

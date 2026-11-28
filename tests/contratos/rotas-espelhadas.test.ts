@@ -48,6 +48,10 @@ const SO_COM_CONTA: Record<string, string> = {
   '/api/erros-do-cliente': 'diário de erros do servidor; sem conta o erro fica no console',
   '/api/sessions/utterances/relabel': 'reetiquetagem em lote: escrita cruzada de sessões',
   '/api/vocab/relabel': 'idem, no acervo',
+  '/api/vocab/memoria-por-baralho':
+    'retenção e próxima revisão por baralho, atrás da flag estudo_palavras_v2: lê o histórico de revisões da conta, que só o servidor tem; sem conta a tela nem chama',
+  '/api/vocab/lote':
+    'seleção em massa (suspender, retomar, etiquetar) atrás da flag estudo_palavras_v2: depende de conta e de flag do servidor; sem conta a aba Palavras nem existe',
   '/api/vocab/resumo':
     'as contagens da tela Cartões (o que vence agora, a previsão, a retenção medida): a revisão exige conta, então sem conta a tela mostra o estado vazio e NÃO chama a rota. Um espelho contaria um baralho que não pode ser revisado',
   '/api/vocab/vistas':

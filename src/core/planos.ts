@@ -518,6 +518,14 @@ export const FLAG_IA_AJUSTAR_NIVEL = 'ia_ajustar_nivel';
 export const FLAG_NAVEGACAO_SIMPLES = 'navegacao_simples';
 
 /**
+ * A FLAG DO ESTUDO DE PALAVRAS V2 (onda 2, frente `palavras`; openspec `cartoes` 4.2, 4.4, 6.1, 6.2b, 6.3, 7.4, 9.2, 9.4 e
+ * `modelo-do-aluno-e-dados` 4.1 a 4.3; migracoes PG 0051 e SQLite 0090): retencao e proxima revisao por baralho, filtro por
+ * estado, selecao em massa, folha da palavra, baralhos do Anki desativaveis, busca ampliada, contagens nas abas e a cobertura
+ * "voce conhece X% das palavras". Nasce DESLIGADA e sem regra de plano; nenhuma cota. Ligar e ato do dono.
+ */
+export const FLAG_ESTUDO_PALAVRAS_V2 = 'estudo_palavras_v2';
+
+/**
  * As cotas do "Ajustar nível" nos planos pagos (PROVISÓRIAS, a proposta da spec; o dono decide depois de medir o custo por
  * parágrafo). Um ajuste de parágrafo leva ~700 tokens de entrada e ~400 de saída por chamada, no máximo 2 chamadas.
  */

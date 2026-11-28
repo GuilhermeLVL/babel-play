@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   SquareCheck,
+  Tag,
   TriangleAlert,
   Undo2,
   WalletCards,
@@ -18,9 +19,13 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
+import { etiquetasDepoisDoLote } from '../../../core/palavras/lote';
+import { FLAG_ESTUDO_PALAVRAS_V2 } from '../../../core/planos';
 import { updateCard } from '../../../data/api';
+import { aplicarEmLote } from '../../../data/rotas/palavrasEmLote';
 import { cartaoDificil, cartoesDoConteudo } from '../../../lib/conteudo/cartoes';
 import type { Conteudo } from '../../../lib/conteudo/estado';
+import { useFlag } from '../../../lib/flags';
 import { numero, t, tp } from '../../../lib/i18n';
 import { anima, polido, reduz } from '../../../lib/polimento/base';
 import { sentir } from '../../../lib/polimento/sentidos';
@@ -111,6 +116,11 @@ export default function Palavras({
   /** O que vem depois da tabela (o aviso de palavras sem tradução). */
   rodape?: ReactNode;
 }) {
+  /* Flag `estudo_palavras_v2`: Suspensas à vista, filtro por etiqueta e ações em massa pelo servidor (um pedido, posse conferida). */
+  const v2 = useFlag(FLAG_ESTUDO_PALAVRAS_V2);
+  const [etiqueta, setEtiqueta] = useState<string | null>(null);
+  const [etiquetando, setEtiquetando] = useState(false);
+  const [novaEtiqueta, setNovaEtiqueta] = useState('');
   const [estado, setEstado] = useState<Estado>('todos');
   const [ordem, setOrdem] = useState<Ordem>('vence');
   const [busca, setBusca] = useState('');
@@ -146,11 +156,20 @@ export default function Palavras({
     return n;
   }, [doConteudo, agora]);
 
+  const etiquetasEmUso = useMemo(() => {
+    if (!v2) return [] as Array<[string, number]>;
+    const n = new Map<string, number>();
+    for (const c of doConteudo) for (const e of c.etiquetas ?? []) n.set(e, (n.get(e) ?? 0) + 1);
+    return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 12);
+  }, [v2, doConteudo]);
+  const etiquetaValida = v2 && etiqueta !== null && etiquetasEmUso.some(([e]) => e === etiqueta) ? etiqueta : null;
+
   const filtradas = useMemo(() => {
     const q = busca.trim().toLocaleLowerCase();
     const l = doConteudo.filter(
       (c) =>
         noEstado(c, estado, agora) &&
+        (!etiquetaValida || (c.etiquetas ?? []).includes(etiquetaValida)) &&
         (!q ||
           c.word.toLocaleLowerCase().includes(q) ||
           (c.translation ?? '').toLocaleLowerCase().includes(q) ||
@@ -162,10 +181,10 @@ export default function Palavras({
     else if (ordem === 'recentes') l.sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
     else l.sort((a, b) => (a.dueAtMs ?? longe) - (b.dueAtMs ?? longe) || a.word.localeCompare(b.word));
     return l;
-  }, [doConteudo, estado, busca, ordem, agora]);
+  }, [doConteudo, estado, busca, ordem, agora, etiquetaValida]);
 
   /* Mudou o que a lista mostra: volta ao começo, e as linhas entram (`ctRepintarTabela`, `cartoes.js:1228`). */
-  const chaveDaLista = `${estado}|${ordem}|${busca}|${conteudo.idioma}|${JSON.stringify(conteudo.fonte)}`;
+  const chaveDaLista = `${estado}|${etiquetaValida ?? ''}|${ordem}|${busca}|${conteudo.idioma}|${JSON.stringify(conteudo.fonte)}`;
   const primeira = useRef(true);
   useEffect(() => {
     setMostrar(POR_VEZ);
@@ -195,9 +214,10 @@ export default function Palavras({
 
   const linhas = filtradas.slice(0, mostrar);
   const total = doConteudo.filter((c) => c.inDeck).length;
-  const ligados = (ordem !== 'vence' ? 1 : 0) + (estado === 'suspensa' ? 1 : 0);
+  const ligados = (ordem !== 'vence' ? 1 : 0) + (estado === 'suspensa' ? 1 : 0) + (etiquetaValida ? 1 : 0);
   const limpar = () => {
     setEstado('todos');
+    setEtiqueta(null);
     setOrdem('vence');
     setBusca('');
     campo.current?.focus();
@@ -231,6 +251,16 @@ export default function Palavras({
 
   /** Suspende (ou devolve) vários cartões; devolve os que mudaram de verdade. */
   const porNoBaralho = async (ids: string[], inDeck: boolean): Promise<VocabCard[]> => {
+    if (v2 && ids.length > 1) {
+      /* Um pedido por 50 cartões, com a posse conferida no servidor; se ele recusar, cai no caminho de um a um. */
+      const r = await aplicarEmLote(ids, { acao: inDeck ? 'retomar' : 'suspender' }).catch(() => null);
+      if (r?.ok) {
+        const alvo = new Set(ids);
+        const feitos = cartoes.filter((c) => alvo.has(c.id)).map((c) => ({ ...c, inDeck }));
+        if (feitos.length) aoMudar(feitos);
+        return feitos;
+      }
+    }
     const feitos: VocabCard[] = [];
     for (const id of ids) {
       try {
@@ -269,6 +299,32 @@ export default function Palavras({
     sentir('desliga');
     toast.ok(t('Desfeito: as palavras voltaram para a revisão.'));
   };
+  const etiquetar = async () => {
+    const texto = novaEtiqueta.trim();
+    const ids = [...marcados];
+    if (!texto || !ids.length || ocupado) return;
+    setOcupado(true);
+    const r = await aplicarEmLote(ids, { acao: 'etiquetar', adicionar: [texto], remover: [] }).catch(() => null);
+    setOcupado(false);
+    if (!r?.ok) {
+      return toast.error(
+        r && r.motivo === 'invalido'
+          ? t('Etiqueta inválida, ou alguma palavra já tem 10 etiquetas.')
+          : t('Não deu para etiquetar as palavras.'),
+      );
+    }
+    const alvo = new Set(ids);
+    aoMudar(
+      cartoes
+        .filter((c) => alvo.has(c.id))
+        .map((c) => ({ ...c, etiquetas: etiquetasDepoisDoLote(c.etiquetas ?? [], [texto], []) ?? c.etiquetas })),
+    );
+    sentir('sucesso');
+    toast.ok(tp(r.alterados, '{n} palavra etiquetada.', '{n} palavras etiquetadas.', { n: numero(r.alterados) }));
+    setNovaEtiqueta('');
+    setEtiquetando(false);
+    sairDaSelecao();
+  };
   const praticar = () => {
     const ids = [...marcados];
     if (!ids.length) return;
@@ -291,6 +347,7 @@ export default function Palavras({
     ['nova', t('Novas')],
     ['aprendendo', t('Aprendendo')],
     ['revisao', t('Em revisão')],
+    ...(v2 ? ([['suspensa', t('Suspensas')]] as Array<[Estado, string]>) : []),
   ];
   const ORDENS: Array<[Ordem, string]> = [
     ['vence', t('Volta primeiro')],
@@ -363,6 +420,26 @@ export default function Palavras({
           ))}
         </div>
       </div>
+      {v2 && etiquetasEmUso.length > 0 && (
+        <div
+          className="q-abas ct-estados ct-etiquetas"
+          role="group"
+          aria-label={t('Etiquetas')}
+          data-testid="filtro-de-etiquetas"
+        >
+          {etiquetasEmUso.map(([e, n]) => (
+            <button
+              key={e}
+              type="button"
+              className="q-aba"
+              aria-pressed={etiquetaValida === e}
+              onClick={() => setEtiqueta(etiquetaValida === e ? null : e)}
+            >
+              <Tag aria-hidden /> {e} <span className="n">{numero(n)}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {abertos && (
         <div className="q-cartao qv-filtros" id="ct-filtros">
           <div className="qv-grupo" role="group" aria-label={t('Ordenar')}>
@@ -554,6 +631,18 @@ export default function Palavras({
             >
               <Pause aria-hidden /> {t('Suspender')}
             </button>
+            {v2 && (
+              <button
+                type="button"
+                className="q-ctl"
+                data-ct-massa="etiquetar"
+                disabled={!n || ocupado}
+                aria-expanded={etiquetando}
+                onClick={() => setEtiquetando((v) => !v)}
+              >
+                <Tag aria-hidden /> {t('Etiquetar')}
+              </button>
+            )}
             <button type="button" className="q-ctl" data-ct-massa="praticar" disabled={!n} onClick={praticar}>
               <Sparkles aria-hidden /> {t('Praticar')}
             </button>
@@ -576,6 +665,31 @@ export default function Palavras({
               <X aria-hidden />
               <span>{t('Cancelar')}</span>
             </button>
+            {v2 && etiquetando && (
+              <form
+                className="ct-etiquetar"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void etiquetar();
+                }}
+              >
+                <label className="sr" htmlFor="ct-nova-etiqueta">
+                  {t('Etiqueta para as selecionadas')}
+                </label>
+                <input
+                  id="ct-nova-etiqueta"
+                  type="text"
+                  maxLength={32}
+                  autoComplete="off"
+                  placeholder={t('ex.: filme')}
+                  value={novaEtiqueta}
+                  onChange={(e) => setNovaEtiqueta(e.target.value)}
+                />
+                <button type="submit" className="q-ctl pri" disabled={!novaEtiqueta.trim() || ocupado}>
+                  {t('Aplicar')}
+                </button>
+              </form>
+            )}
           </div>
         )
       )}

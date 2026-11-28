@@ -624,6 +624,11 @@
       "when": 1794800009017,
       "tag": "0088_flag_estudo_revisao_v2",
       "breakpoints": true
+    },
+    {
+      "when": 1794800010017,
+      "tag": "0090_flag_estudo_palavras_v2",
+      "breakpoints": true
     }
   ]
 }

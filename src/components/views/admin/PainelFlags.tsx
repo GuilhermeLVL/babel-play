@@ -53,6 +53,7 @@ const FLAGS_SENSIVEIS = new Set([
   'ia_ajustar_nivel',
   'navegacao_simples',
   'estudo_revisao_v2',
+  'estudo_palavras_v2',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

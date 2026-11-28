@@ -13,9 +13,17 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import type { ContagensDeConteudo } from '../core/learning/contagensDeConteudo';
+import { itensDaBuscaAmpliada } from '../core/palavras/buscaAmpliada';
+import { FLAG_ESTUDO_PALAVRAS_V2 } from '../core/planos';
 import { fetchDeck } from '../data/api';
+import { lerContagensDeConteudo } from '../data/rotas/conteudo';
+import { conteudoAtual, escolherConteudo } from '../lib/conteudo/loja';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
+import { useFlag } from '../lib/flags';
 import { t } from '../lib/i18n';
+import { pedirParaAbrirPalavra } from '../lib/palavras/abrirPalavra';
+import { navegarPara } from '../lib/rotas';
 import type { Recording, VocabCard } from '../types';
 import CommandPalette, { type Command } from './CommandPalette';
 import { type AgeProfileType, NAV_ITEMS, navLabel } from './shell/navItems';
@@ -72,6 +80,19 @@ export default function BuscaGlobal({
   perfil,
 }: BuscaGlobalProps) {
   const [baralho, setBaralho] = useState<VocabCard[] | null>(null);
+  /* Busca ampliada (flag `estudo_palavras_v2`): ações, baralhos e as telas de dentro de Cartões; a palavra abre na própria lista. */
+  const ampliada = useFlag(FLAG_ESTUDO_PALAVRAS_V2);
+  const [catalogo, setCatalogo] = useState<ContagensDeConteudo | null>(null);
+  useEffect(() => {
+    if (!aberta || !ampliada || edicaoEstatica()) return;
+    let vivo = true;
+    void lerContagensDeConteudo(conteudoAtual().idioma)
+      .then((k) => vivo && setCatalogo(k))
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, [aberta, ampliada]);
 
   useEffect(() => {
     if (!aberta || baralho) return;
@@ -116,8 +137,40 @@ export default function BuscaGlobal({
         label: c.word,
         hint: c.translation || undefined,
         icon: <BookOpen />,
-        run: () => aoNavegar('metrics'),
+        run: () => {
+          if (!ampliada) return aoNavegar('metrics');
+          pedirParaAbrirPalavra(c.id);
+          navegarPara({ view: 'cartoes', cartoesAba: 'palavras' });
+        },
       }));
+
+    /* Só com a flag: as ações de estudo, os baralhos e as telas de Cartões (a regra de busca é a do núcleo). */
+    const ampliadas: Command[] = !ampliada
+      ? []
+      : itensDaBuscaAmpliada({ cartoes: [], conteudo: catalogo, traduzir: t }).map(
+          (i): Command => ({
+            id: `v2:${i.id}`,
+            grupo: i.grupo,
+            label: i.label,
+            hint: i.hint && i.alvo.tipo === 'baralho' ? t('{n} palavras', { n: i.hint }) : undefined,
+            keywords: i.keywords,
+            icon: i.alvo.tipo === 'baralho' ? <BookOpen /> : i.alvo.tipo === 'acao' ? <Target /> : <Sparkles />,
+            run: () => {
+              const a = i.alvo;
+              if (a.tipo === 'tela') navegarPara({ view: 'cartoes', cartoesAba: a.aba });
+              else if (a.tipo === 'baralho') {
+                escolherConteudo(a.fonte, conteudoAtual().idioma);
+                navegarPara({ view: 'cartoes', cartoesAba: 'hoje' });
+              } else if (a.tipo === 'acao') {
+                if (a.acao === 'revisar-hoje') aoNavegar('study');
+                else if (a.acao === 'revisar-dificeis') {
+                  escolherConteudo({ tipo: 'dificeis' });
+                  navegarPara({ view: 'cartoes', cartoesAba: 'palavras' });
+                } else navegarPara({ view: 'cartoes', cartoesAba: a.acao === 'palavra-nova' ? 'palavras' : 'hoje' });
+              }
+            },
+          }),
+        );
 
     // "Quando · N palavras", como no protótipo; sem contagem, a duração. `date` já vem redigido.
     const gravacoes: Command[] = recordings.map((r) => ({
@@ -206,8 +259,8 @@ export default function BuscaGlobal({
         : []),
     ];
 
-    return { comandos: [...telas, ...palavras, ...gravacoes, ...acoes], sugestoes };
-  }, [recordings, baralho, aoNavegar, vencidasAgora, escuro, aoAlternarTema, perfil]);
+    return { comandos: [...telas, ...palavras, ...gravacoes, ...acoes, ...ampliadas], sugestoes };
+  }, [recordings, baralho, aoNavegar, vencidasAgora, escuro, aoAlternarTema, perfil, ampliada, catalogo]);
 
   return (
     <CommandPalette

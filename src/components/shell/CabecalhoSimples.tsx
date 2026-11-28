@@ -13,7 +13,6 @@ import {
   LogOut,
   Mic,
   Moon,
-  PictureInPicture2,
   Search,
   Settings,
   Sparkles,
@@ -25,8 +24,11 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { FLAG_LEITURA_ATIVA } from '../../core/planos';
+import { tetoAnonimoDa } from '../../core/tetoAnonimo';
 import { ehAdmin } from '../../lib/admin';
 import * as auth from '../../lib/auth';
+import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
+import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { onPlanChange } from '../../lib/entitlements';
@@ -37,7 +39,6 @@ import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notifi
 import { comNomeDoPlano, planoDeEntradaAgora } from '../../lib/planoDeEntrada';
 import { useJanelaEstreita } from '../../lib/polimento/celular';
 import { pedirTela } from '../../lib/polimento/precarga';
-import { capturaAtiva } from '../../lib/sessaoDeCaptura';
 import { authRequired } from '../../lib/supabase';
 import { usePerfil } from '../../lib/usePerfil';
 import type { ViewType } from '../../types';
@@ -162,10 +163,23 @@ function Painel({
       const alvo = e.target as Node | null;
       if (!alvo || caixa.current?.contains(alvo) || ancora?.contains(alvo)) return;
       aoFechar();
+      /* Na folha, o toque fora cai no fundo escuro: o foco volta a quem abriu (no computador, fica onde se clicou). */
+      if (folha) ancora?.focus();
+    };
+    /* Esc fecha com o foco em qualquer lugar (um clique numa área sem alvo do painel leva o foco ao `body`). */
+    const aoTeclarFora = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      e.preventDefault();
+      aoFechar();
+      ancora?.focus();
     };
     document.addEventListener('pointerdown', aoApontar, true);
-    return () => document.removeEventListener('pointerdown', aoApontar, true);
-  }, [ancora, aoFechar]);
+    document.addEventListener('keydown', aoTeclarFora);
+    return () => {
+      document.removeEventListener('pointerdown', aoApontar, true);
+      document.removeEventListener('keydown', aoTeclarFora);
+    };
+  }, [ancora, aoFechar, folha]);
 
   const aoTeclar = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -242,6 +256,7 @@ export default function CabecalhoSimples({
   const botaoConta = useRef<HTMLButtonElement>(null);
   const estreita = useJanelaEstreita();
   const [headset] = useState(noHeadset);
+  const [temTeclado] = useState(() => recursosDoAparelho(perfilDoDispositivo()).tecladoFisico);
   const avisos = useListaDeNotificacoes();
   const novos = naoLidas(avisos);
   const { perfil } = usePerfil();
@@ -296,7 +311,7 @@ export default function CabecalhoSimples({
     >
       <Search aria-hidden />
       <span className="ns-busca-texto">{noInicio ? t('Buscar ou ir para…') : t('Buscar')}</span>
-      <kbd aria-hidden="true">{teclaDaBusca()}</kbd>
+      {temTeclado && <kbd aria-hidden="true">{teclaDaBusca()}</kbd>}
     </button>
   );
 
@@ -365,20 +380,6 @@ export default function CabecalhoSimples({
       </button>
     </div>
   );
-  /* A legenda flutuante (Alt+L), que o submenu oferecia com a captura rodando. */
-  const flutuante = noAoVivo && !headset && capturaAtiva() && (
-    <button
-      type="button"
-      className="q-ctl"
-      aria-keyshortcuts="Alt+L"
-      aria-label={t('Legenda flutuante')}
-      title={t('Legenda flutuante') + ' (Alt+L)'}
-      onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { altKey: true, code: 'KeyL', key: 'l' }))}
-    >
-      <PictureInPicture2 aria-hidden />
-    </button>
-  );
-
   const nomeAqui = noInicio ? null : nomeDaTela(activeView, ageProfile);
   const avisoDeConta = semServidor ? t('Na versão completa') : t('Pede conta');
 
@@ -517,6 +518,14 @@ export default function CabecalhoSimples({
         <div>
           <h2>{nome ?? t('Sua conta')}</h2>
           <small data-testid="estado-da-conta">{email ?? estadoDaConta}</small>
+          {convidado && (
+            <small>
+              {t(
+                'Fica só neste aparelho, até {sessoes} gravações e {palavras} palavras. Loja, ranking, importação e sincronização pedem conta.',
+                tetoAnonimoDa({ edicaoEstatica: semServidor }),
+              )}
+            </small>
+          )}
         </div>
         <button
           type="button"
@@ -633,7 +642,6 @@ export default function CabecalhoSimples({
         )}
         {noInicio && busca}
         <span className="ns-espaco" />
-        {flutuante}
         {!noInicio && busca}
         {sino}
         {avatar}

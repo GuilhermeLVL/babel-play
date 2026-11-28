@@ -281,4 +281,18 @@ describe('flag ligada: o Início é o menu', () => {
     const bloco = await screen.findByTestId('bloco-livros')
     expect(bloco.textContent).toMatch(/Meu Livro · \d+% lido/)
   })
+
+  it('livro do catálogo: só o progresso, sem o título (o filtro do perfil mora na tela de Livros)', async () => {
+    const { guardarMeuLivro, marcarAberto } = await import('../src/lib/livros/meusLivros')
+    const { posicoes } = await import('../src/lib/livros/posicoesDoAparelho')
+    await act(async () => {
+      guardarMeuLivro({ id: 'pg-123', titulo: 'Título do Catálogo', origem: 'catalogo' })
+      marcarAberto('pg-123')
+      posicoes.gravar({ livroId: 'cat:pg-123', cfi: '', secao: 3, fracao: 0.5, atualizadaEm: 3 })
+    })
+    inicio()
+    const bloco = await screen.findByTestId('bloco-livros')
+    expect(bloco.textContent).not.toContain('Título do Catálogo')
+    expect(bloco.textContent).toMatch(/\d+% lido/)
+  })
 })

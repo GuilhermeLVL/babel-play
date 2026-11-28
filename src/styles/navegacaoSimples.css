@@ -342,3 +342,21 @@
     font-size: 28px;
   }
 }
+
+/* ── QUANDO A TELA É TODA DA TAREFA: o cabeçalho some como o trilho sumia ───────────────────── */
+/* Ao vivo, a legenda fica com a tela inteira (`quest.css`, `:has(.quest-vivo)`). */
+html[data-quest-novo='true']:has(.quest-vivo) .ns-cab {
+  display: none;
+}
+/* Com a conversa do Intérprete em curso, no celular (`modoInterprete.css`, CONV-08): o "Sair" da conversa é a volta. */
+@media (max-width: 720px) {
+  :root:has(.int[data-pagina][data-em-curso]) .ns-cab {
+    display: none;
+  }
+}
+/* Navegação não vai para o papel (a impressão das Estatísticas, `questEstatisticas.css`). */
+@media print {
+  .ns-cab {
+    display: none;
+  }
+}

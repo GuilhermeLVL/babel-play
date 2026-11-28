@@ -17,6 +17,8 @@ import {
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ResumoDosCartoes } from '../../core/learning/resumoDosCartoes';
+import { baralhosDoAnkiDesativados, contagensDasAbasDePraticar } from '../../core/palavras/contagensDasAbas';
+import { FLAG_ESTUDO_PALAVRAS_V2 } from '../../core/planos';
 import { type AppMetrics, fetchDeck, lerResumoDosCartoes } from '../../data/api';
 import { ativarNotasDoBaralho, type BaralhoAnkiResumo, listarBaralhosAnki } from '../../data/apiAnki';
 import type { HojeDaRevisao } from '../../data/rotas/opcoesDaRevisao';
@@ -27,6 +29,7 @@ import { conteudoAtual, escolherConteudo, mudarIdiomaDoConteudo, useConteudo } f
 import { useContagensDeConteudo } from '../../lib/conteudo/useContagens';
 import type { EstudoAberto } from '../../lib/estado/useNavegacao';
 import { gravarFiltro } from '../../lib/filtroDaPratica';
+import { useFlag } from '../../lib/flags';
 import { numero, t, tp } from '../../lib/i18n';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang } from '../../lib/languages';
@@ -200,6 +203,20 @@ export default function Cartoes({
   const [folha, setFolha] = useState<Folha>(null);
   const [menuDaFonte, setMenuDaFonte] = useState<FonteDeConteudo | null>(null);
   const [doAnki, setDoAnki] = useState<BaralhoAnkiResumo[] | null>(null);
+  const estudoV2 = useFlag(FLAG_ESTUDO_PALAVRAS_V2);
+  /* Baralhos do Anki desativados (flag `estudo_palavras_v2`): o catálogo só lista baralho com cartão na revisão, então o
+     desativado some de lá; o "…" lembra que ele continua guardado e leva ao gerenciar. Só lê com o menu aberto. */
+  const [desativadosDoAnki, setDesativadosDoAnki] = useState(0);
+  useEffect(() => {
+    if (!estudoV2 || semConta || folha !== 'menu') return;
+    let vivo = true;
+    void listarBaralhosAnki()
+      .then((b) => vivo && setDesativadosDoAnki(baralhosDoAnkiDesativados(b).length))
+      .catch(() => vivo && setDesativadosDoAnki(0));
+    return () => {
+      vivo = false;
+    };
+  }, [estudoV2, semConta, folha]);
   const [arquivoDoAnki, setArquivoDoAnki] = useState<File | null>(null);
   const entradaDoAnki = useRef<HTMLInputElement>(null);
   const escolherArquivoDoAnki = semConta
@@ -458,6 +475,7 @@ export default function Cartoes({
         metaDeRetencao={opcoes.retencao}
         sequencia={metrics?.streakDays ?? null}
         maiorSequencia={metrics?.maiorSequenciaPresenca ?? null}
+        contagens={estudoV2 ? contagens : null}
         aoHoje={() => aoTrocarAba('hoje')}
         aoVerDificeis={() => {
           escolherConteudo({ tipo: 'dificeis' });
@@ -543,6 +561,8 @@ export default function Cartoes({
   );
   /* No celular, Cartões e Jogos dividem o botão "Praticar" da barra: o seletor das duas telas vai no
      cabeçalho, ao lado da ficha (`ctSegPraticar`, `cartoes3.js:100-104`, navegação "d"). */
+  /* As contagens das duas abas de "Praticar" (flag `estudo_palavras_v2`): as do catálogo de conteúdo, da fonte da ficha. */
+  const numerosDePraticar = estudoV2 ? contagensDasAbasDePraticar(contagens, conteudo.fonte) : null;
   const cartoesOuJogos = cinco && (
     <div
       className="q-abas ct-praticar ct-so-celular"
@@ -552,6 +572,7 @@ export default function Cartoes({
     >
       <button type="button" role="tab" className="q-aba" aria-selected>
         {t('Cartões')}
+        {numerosDePraticar && <span className="n">{numero(numerosDePraticar.cartoes)}</span>}
       </button>
       <button
         type="button"
@@ -561,6 +582,7 @@ export default function Cartoes({
         onClick={() => navegarPara({ view: 'play' })}
       >
         {t('Jogos')}
+        {numerosDePraticar && <span className="n">{numero(numerosDePraticar.jogos)}</span>}
       </button>
     </div>
   );
@@ -674,6 +696,7 @@ export default function Cartoes({
           aoAjustes={() => setFolha('ajustes')}
           aoMemoria={abrirMemoria}
           aoExportar={semConta ? convidar : !resumo?.total ? undefined : () => void levar()}
+          desativados={estudoV2 && !semConta ? { quantos: desativadosDoAnki, acao: () => void gerenciarAnki() } : null}
           aoFechar={() => setFolha((f) => (f === 'menu' ? null : f))}
         />
       )}

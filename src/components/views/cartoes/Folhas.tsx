@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Settings2,
   SlidersHorizontal,
+  WalletCards,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 
@@ -76,6 +77,7 @@ export function MenuDeCartoes({
   aoAjustes,
   aoMemoria,
   aoExportar,
+  desativados,
   aoFechar,
 }: {
   opcoes: Pick<OpcoesDaRevisao, 'retencao' | 'novas' | 'revisoes'>;
@@ -87,6 +89,8 @@ export function MenuDeCartoes({
   aoAjustes: () => void;
   aoMemoria: () => void;
   aoExportar?: () => void;
+  /** Baralhos do Anki desativados (flag `estudo_palavras_v2`): a linha que leva ao gerenciar, onde se apaga de vez. */
+  desativados?: { quantos: number; acao: () => void } | null;
   aoFechar: () => void;
 }) {
   const folha = useFecharEAgir(aoFechar);
@@ -112,6 +116,16 @@ export function MenuDeCartoes({
       detalhe: fonte.detalhe,
       acao: folha.ir(fonte.acao),
     },
+    desativados &&
+      desativados.quantos > 0 && {
+        chave: 'anki-desativados',
+        Icone: WalletCards,
+        titulo: tp(desativados.quantos, '{n} baralho do Anki desativado', '{n} baralhos do Anki desativados', {
+          n: numero(desativados.quantos),
+        }),
+        detalhe: t('Fora da fila e dos jogos; apagar de vez é aqui'),
+        acao: folha.ir(desativados.acao),
+      },
     {
       chave: 'ajustes',
       Icone: SlidersHorizontal,

@@ -26,6 +26,7 @@ import {
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import type { AppMetrics } from '../core/learning/contract';
+import { type DetalheDoPedidoAoTutor, EVENTO_PERGUNTAR_AO_TUTOR } from '../core/palavras/perguntaAoTutor';
 import { apiFetch } from '../data/api';
 import { CODIGO_EXIGE_CONTA } from '../data/efemero/nucleo';
 import { exportarApkg, fetchDeck } from '../data/rotas/vocabulario';
@@ -254,6 +255,18 @@ export default function IChat({
   const [mencao, setMencao] = useState<Sigilo | null>(null);
   const [mencaoQ, setMencaoQ] = useState('');
   const [rascunho, setRascunho] = useState('');
+  /* "Perguntar ao tutor" da folha da palavra (flag `estudo_palavras_v2`): abre a janela com a pergunta no campo; a pessoa
+     lê e envia. Nada é enviado daqui. */
+  useEffect(() => {
+    const aoPedir = (e: Event) => {
+      const texto = (e as CustomEvent<DetalheDoPedidoAoTutor>).detail?.texto;
+      if (typeof texto !== 'string' || !texto) return;
+      setRascunho(texto);
+      setIsOpen(true);
+    };
+    window.addEventListener(EVENTO_PERGUNTAR_AO_TUTOR, aoPedir);
+    return () => window.removeEventListener(EVENTO_PERGUNTAR_AO_TUTOR, aoPedir);
+  }, [setIsOpen]);
   const [busca, setBusca] = useState('');
   const [renomeando, setRenomeando] = useState<string | null>(null);
   const [pendente, setPendente] = useState<Pendente | null>(null);

@@ -4,12 +4,17 @@ import '../../../styles/questInstitucional.css';
 import { Brain, CalendarCheck, Flame, Target, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useEffect, useRef } from 'react';
 
+import type { ContagensDeConteudo } from '../../../core/learning/contagensDeConteudo';
 import { ERROS_DE_DIFICIL, type ResumoDosCartoes } from '../../../core/learning/resumoDosCartoes';
+import { type MetricaDaMemoria, porcentoComBase } from '../../../core/palavras/definicoesDasMetricas';
+import { FLAG_ESTUDO_PALAVRAS_V2 } from '../../../core/planos';
 import { diasAPartirDeAmanha, porcentoDeLembradas } from '../../../lib/cartoes/estadoDeHoje';
+import { useFlag } from '../../../lib/flags';
 import { numero, t, tp } from '../../../lib/i18n';
 import { anima, MOLA, MOLA_SUAVE, polido, reduz } from '../../../lib/polimento/base';
 import { celular } from '../../../lib/polimento/celular';
 import { Semana } from './Hoje';
+import { DefinicaoDaMetrica, MemoriaPorFonte } from './MemoriaV2';
 import { CabecaDoCartao, diaCurto, diaEMes, Dica } from './pecas';
 
 /**
@@ -150,6 +155,7 @@ export default function Memoria({
   maiorSequencia,
   aoHoje,
   aoVerDificeis,
+  contagens = null,
 }: {
   /** `null` = estado vazio (sem conta, ou nenhum cartão). */
   resumo: ResumoDosCartoes | null;
@@ -161,7 +167,10 @@ export default function Memoria({
   aoHoje: () => void;
   /** "Ver as N difíceis": "Difíceis" vira o conteúdo e a lista de Palavras abre. */
   aoVerDificeis: () => void;
+  /** As contagens do catálogo de conteúdo: a seção "Por fonte" (flag `estudo_palavras_v2`) usa as mesmas da ficha. */
+  contagens?: ContagensDeConteudo | null;
 }) {
+  const v2 = useFlag(FLAG_ESTUDO_PALAVRAS_V2);
   const raiz = useRef<HTMLDivElement>(null);
   const semDado = !resumo || resumo.revisoesDeSempre === 0;
 
@@ -227,32 +236,38 @@ export default function Memoria({
     );
   }
 
-  const mes = porcentoDeLembradas(resumo.retencao.d30);
+  /* Com a flag, a retenção só aparece com a base mínima (20 revisões): antes disso, "—" e o aviso. */
+  const mes = v2 ? porcentoComBase(resumo.retencao.d30) : porcentoDeLembradas(resumo.retencao.d30);
+  const poucas = v2 && mes === null && resumo.retencao.d30.total > 0;
   const revisoes30 = resumo.retencao.d30.total;
-  const kpis: Array<[ReactNode, string, string, string]> = [
+  const kpis: Array<[ReactNode, string, string, string, MetricaDaMemoria]> = [
     [
       <Brain key="i" aria-hidden />,
       t('Retenção real'),
       mes === null ? '—' : `${mes}%`,
-      t('meta {n}% · últimos 30 dias', { n: metaDeRetencao }),
+      poucas ? t('poucas revisões ainda') : t('meta {n}% · últimos 30 dias', { n: metaDeRetencao }),
+      'retencaoReal',
     ],
     [
       <Target key="i" aria-hidden />,
       t('Revisões'),
       numero(revisoes30),
       t('em 30 dias · {n} por dia', { n: numero(Math.round(revisoes30 / 30)) }),
+      'revisoes',
     ],
     [
       <Flame key="i" aria-hidden />,
       t('Sequência'),
       sequencia === null ? '—' : tp(sequencia, '{n} dia', '{n} dias'),
       maiorSequencia === null ? t('dias de prática seguidos') : t('recorde: {n}', { n: maiorSequencia }),
+      'sequencia',
     ],
     [
       <TriangleAlert key="i" aria-hidden />,
       t('Difíceis'),
       numero(resumo.dificeis),
       t('erradas {n} vezes ou mais', { n: ERROS_DE_DIFICIL }),
+      'dificeis',
     ],
   ];
 
@@ -312,10 +327,11 @@ export default function Memoria({
   return (
     <div ref={raiz} className="ct-memoria" data-testid="memoria-dos-cartoes">
       <div className="qe-kpis ct-kpis ct-kpis-4">
-        {kpis.map(([icone, rotulo, valor, sub]) => (
+        {kpis.map(([icone, rotulo, valor, sub, metrica]) => (
           <div key={rotulo} className="q-num qe-kpi">
             <span className="q-rotulo">
               {icone} {rotulo}
+              {v2 && <DefinicaoDaMetrica id={metrica} />}
             </span>
             <b>{valor}</b>
             <span>{sub}</span>
@@ -358,7 +374,9 @@ export default function Memoria({
           </div>
           <p className="qv-nota">
             {mes === null
-              ? t('Sem revisão nos últimos 30 dias.')
+              ? poucas
+                ? t('Poucas revisões nos últimos 30 dias: com {n} ou mais, a porcentagem aparece.', { n: 20 })
+                : t('Sem revisão nos últimos 30 dias.')
               : mes >= metaDeRetencao
                 ? t('Dentro da meta nos 30 dias.')
                 : tp(
@@ -372,6 +390,7 @@ export default function Memoria({
         <section className="q-cartao ct-mem-prev" data-testid="previsao-de-carga">
           <CabecaDoCartao
             titulo={t('Previsão de carga · 30 dias')}
+            extra={v2 ? <DefinicaoDaMetrica id="previsao" /> : undefined}
             sub={t('Quantos cartões voltam em cada dia. Média de {media} por dia; o dia mais cheio tem {maior}.', {
               media: numero(media),
               maior: numero(Math.max(...carga, 0)),
@@ -459,6 +478,7 @@ export default function Memoria({
         <section className="q-cartao ct-mem-botoes" data-testid="botoes-usados">
           <CabecaDoCartao
             titulo={t('Botões usados')}
+            extra={v2 ? <DefinicaoDaMetrica id="botoes" /> : undefined}
             sub={tp(totalDeBotoes, '{n} resposta em 30 dias.', '{n} respostas em 30 dias.', {
               n: numero(totalDeBotoes),
             })}
@@ -466,13 +486,14 @@ export default function Memoria({
           <div className="ct-barras-h">
             {botoes.map(([rotulo, v, classe]) => {
               const pct = totalDeBotoes ? (v / totalDeBotoes) * 100 : 0;
+              const semBase = v2 && totalDeBotoes < 20;
               return (
                 <div key={classe} className={`ct-bh ${classe}`}>
                   <span>{rotulo}</span>
                   <span className="q-barra">
                     <span style={{ width: `${pct}%` }} />
                   </span>
-                  <b>{Math.round(pct)}%</b>
+                  <b>{semBase ? '—' : `${Math.round(pct)}%`}</b>
                   <small>{numero(v)}</small>
                 </div>
               );
@@ -487,6 +508,7 @@ export default function Memoria({
         <section className="q-cartao ct-mem-fases" data-testid="cartoes-por-estado">
           <CabecaDoCartao
             titulo={t('Cartões por estado')}
+            extra={v2 ? <DefinicaoDaMetrica id="fases" /> : undefined}
             sub={t('{n} no caderno. Jovem é o cartão em revisão com menos de 21 dias de estabilidade.', {
               n: numero(noCaderno),
             })}
@@ -517,6 +539,7 @@ export default function Memoria({
           )}
         </section>
       </div>
+      {v2 && <MemoriaPorFonte contagens={contagens} inicioDoDia={resumo.inicioDoDia} />}
     </div>
   );
 }

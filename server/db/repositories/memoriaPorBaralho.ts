@@ -6,7 +6,7 @@
  * agrupadas pelo baralho do cartão, e a menor data de vencimento dos cartões no baralho. O baralho do Anki e a Trilha vêm de
  * `vocab_occurrences` (DISTINCT: a mesma nota pode ter mais de uma ocorrência para o mesmo cartão).
  */
-import { type SQL,sql } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 
 import {
   JANELA_DA_RETENCAO_DIAS,

@@ -13,7 +13,3 @@
  */
 export const ESTADOS_DO_CARTAO = ['nova', 'aprendendo', 'revisao', 'hoje', 'dificeis', 'suspensa'] as const;
 export type EstadoDoCartao = (typeof ESTADOS_DO_CARTAO)[number];
-
-export function ehEstadoDoCartao(v: string): v is EstadoDoCartao {
-  return (ESTADOS_DO_CARTAO as readonly string[]).includes(v);
-}

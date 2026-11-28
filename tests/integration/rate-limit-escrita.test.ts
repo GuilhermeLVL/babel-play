@@ -153,4 +153,33 @@ describe('writeLimiter × lote da importação do Anki', () => {
     expect(primeiro429, 'a outra rota de escrita nunca foi barrada').toBeGreaterThan(0)
     expect(primeiro429, 'os lotes gastaram o balde da escrita').toBeGreaterThanOrEqual(119)
   }, 120_000)
+
+  it('o remapear em MAIÚSCULAS também leva 429 no 11º pedido do minuto', async () => {
+    const resta = 60_000 - (Date.now() % 60_000)
+    if (resta < 20_000) await new Promise((r) => setTimeout(r, resta + 50))
+    const token = await s.token('quem-remapeia-em-maiusculas')
+    const status: number[] = []
+    for (let i = 0; i < 11; i++) {
+      const r = await s.post(`/api/anki/decks/deck-inexistente/REMAPEAR`, {}, token)
+      await r.arrayBuffer()
+      status.push(r.status)
+    }
+    expect(status.slice(0, 10)).not.toContain(429)
+    expect(status[10], 'a variante em maiúsculas pulou o balde do remapear').toBe(429)
+  }, 60_000)
+})
+
+/**
+ * O CASAMENTO DO CAMINHO NOS BALDES PRÓPRIOS NÃO DEPENDE DE CAIXA (revisão de segurança, 27/11/2026). Os routers
+ * filhos do Express casam sem caixa (`/decks/1/REMAPEAR` chega à rota), então a regex que decide se o balde conta
+ * tem de casar sem caixa também; senão a variante em maiúsculas pula o limitador e ainda executa a rota.
+ */
+describe('baldes próprios do Anki casam o caminho sem caixa', () => {
+  for (const nome of ['ehRemapearDoAnki', 'ehLoteDaImportacaoAnki']) {
+    it(`${nome} usa regex com a flag i`, () => {
+      const corpo = new RegExp(`function ${nome}\\([^)]*\\)[^{]*\\{([\\s\\S]*?)\\n\\}`).exec(servidor)
+      expect(corpo, `${nome} não encontrada`).not.toBeNull()
+      expect(corpo![1]).toContain('$/i.test(')
+    })
+  }
 })

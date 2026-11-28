@@ -136,12 +136,13 @@ function interpretarTrustProxy(valor: string): boolean | number | string {
  * Pelo caminho COMPLETO (`baseUrl + path`): o limitador é montado sobre uma lista de prefixos, e dentro
  * dele `req.path` é relativo ao prefixo que casou.
  */
+/** Os routers filhos casam sem caixa: a regex também, senão `/REMAPEAR` pula o balde (revisão de 27/11/2026). */
 function ehRemapearDoAnki(req: express.Request): boolean {
-  return req.method === 'POST' && /^\/api\/anki\/decks\/[^/]+\/remapear\/?$/.test(req.baseUrl + req.path)
+  return req.method === 'POST' && /^\/api\/anki\/decks\/[^/]+\/remapear\/?$/i.test(req.baseUrl + req.path)
 }
 
 function ehLoteDaImportacaoAnki(req: express.Request): boolean {
-  return req.method === 'POST' && /^\/api\/anki\/imports\/[^/]+\/notas\/?$/.test(req.baseUrl + req.path)
+  return req.method === 'POST' && /^\/api\/anki\/imports\/[^/]+\/notas\/?$/i.test(req.baseUrl + req.path)
 }
 
 export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {

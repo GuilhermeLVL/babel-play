@@ -337,6 +337,13 @@
       "when": 1795616226198,
       "tag": "0047_flag_ia_ajustar_nivel",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1795616227198,
+      "tag": "0053_flag_captura_da_extensao",
+      "breakpoints": true
     }
   ]
 }

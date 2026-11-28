@@ -151,6 +151,7 @@
   "{n} de {total} jogos": "{n} of {total} games",
   "{n} de {total} medidas": "{n} of {total} measured",
   "{n} de {total} no caderno": "{n} of {total} in the notebook",
+  "{n} de {total} notas já praticadas": "{n} of {total} notes practiced",
   "{n} de {total} novas hoje. Mudar o limite do dia": "{n} of {total} new today. Change the daily limit",
   "{n} de {total} perguntas": "{n} of {total} questions",
   "{n} de {total} rodadas para o nível {proximo}": "{n} of {total} rounds to level {proximo}",
@@ -272,6 +273,10 @@
   "{n} notas fora da régua de qualidade": {
     "one": "{n} note failed the quality check",
     "other": "{n} notes failed the quality check"
+  },
+  "{n} notas foram corrigidas em {nome}": {
+    "one": "{n} note was fixed in {nome}",
+    "other": "{n} notes were fixed in {nome}"
   },
   "{n} notas não chegaram ao servidor. Se você sair agora, elas se perdem.": {
     "one": "{n} rating didn't reach the server. If you leave now, it is lost.",
@@ -1008,6 +1013,7 @@
     "one": "Apply {n} fix",
     "other": "Apply {n} fixes"
   },
+  "Aplicar correção": "Apply fix",
   "Apontar": "Point",
   "Aprenda idiomas com o que você já assiste. O app ouve o som do computador, transcreve, traduz e transforma tudo em jogo e revisão.": "Learn languages from what you already watch. The app listens to your computer's sound, transcribes, translates and turns it all into games and review.",
   "aprendendo": "learning",
@@ -1847,6 +1853,7 @@
   "Correto!": "Correct!",
   "Correto! A tradução era “{traducao}”.": "Correct! The translation was “{traducao}”.",
   "Corrigir": "Fix",
+  "Corrigir campos": "Fix fields",
   "Corrigir e mandar de novo": "Fix and send again",
   "corte de domínio: {pct}%.": "mastery cutoff: {pct}%.",
   "Costuma ser o cartão, não você: edite a tradução, troque a frase ou suspenda por um tempo.": "It is usually the card, not you: edit the translation, change the sentence or suspend it for a while.",
@@ -2498,6 +2505,7 @@
   "Este arquivo tem {total} notas, mais do que dá para ler de uma vez; só as primeiras {lidas} entraram. Traga o mesmo arquivo de novo para o resto.": "This file has {total} notes, more than can be read at once; only the first {lidas} came in. Import the same file again for the rest.",
   "Este avatar não tem braços articulados.": "This avatar has no articulated arms.",
   "Este avatar não tem dedos articulados.": "This avatar has no articulated fingers.",
+  "Este baralho não guardou os campos originais, então não dá para corrigir sem reimportar o arquivo.": "This deck didn't keep the original fields, so it can't be fixed without importing the file again.",
   "Este cartão não nasceu de uma captura.": "This card didn't come from a capture.",
   "Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. O modelo Preciso pede 8 GB de memória ou um Mac com chip Apple. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.": "This computer is modest: captions run here, but with a light model that makes more mistakes. The Accurate model needs 8 GB of memory or an Apple-chip Mac. Premium's cloud makes fewer, especially in Portuguese and in noisy audio.",
   "Este computador roda o modelo Preciso: a legenda sai aqui mesmo, sem limite e sem custo, com cerca de 6 erros a cada 100 palavras em português e espanhol. Para estudar inglês, o Grátis já resolve.": "This computer runs the Accurate model: captions come out right here, with no limit and no cost, with about 6 errors per 100 words in Portuguese and Spanish. For studying English, Free is already enough.",
@@ -3221,6 +3229,7 @@
   "Lendo em voz alta": "Reading aloud",
   "Lendo o arquivo…": "Reading the file…",
   "Lendo o seu texto…": "Reading your text…",
+  "Lendo os campos do baralho…": "Reading the deck fields…",
   "Lendo…": "Reading…",
   "Lenta": "Slow",
   "Lenta, com uma pausa depois de cada frase e cada frase lida duas vezes, para repetir em voz alta.": "Slow, with a pause after each sentence and each sentence read twice, so you can repeat aloud.",
@@ -3676,6 +3685,7 @@
   "Não consegui carregar os seus cartões. A conexão pode ter caído.": "I couldn't load your cards. The connection may have dropped.",
   "Não consegui carregar seu vocabulário.": "I could not load your vocabulary.",
   "Não consegui começar o teste agora. Tente de novo.": "I couldn't start the trial right now. Try again.",
+  "Não consegui corrigir os campos. Nada foi alterado.": "Couldn't fix the fields. Nothing was changed.",
   "Não consegui desfazer a troca agora. Tente de novo.": "I could not undo the change right now. Try again.",
   "Não consegui devolver a palavra à revisão.": "I couldn't put the word back into review.",
   "Não consegui falar com o servidor agora. Isto NÃO significa consumo zero — significa que não sei o número.": "I could not reach the server right now. This does NOT mean zero usage: it means I do not know the number.",
@@ -3685,6 +3695,7 @@
   "Não consegui ler a temporada agora.": "Couldn't read the season right now.",
   "Não consegui ler essa imagem. Tente outra.": "I couldn't read this image. Try another one.",
   "Não consegui ler esta legenda.": "I couldn't read this subtitle file.",
+  "Não consegui ler os campos deste baralho.": "Couldn't read this deck's fields.",
   "Não consegui migrar: {erro}": "I could not migrate: {erro}",
   "Não consegui registrar a autorização agora.": "I couldn't record the permission right now.",
   "Não consegui registrar a escolha. Verifique a conexão e tente de novo.": "I couldn't save your choice. Check your connection and try again.",
@@ -3926,6 +3937,7 @@
   "Nenhuma gravação tem “{busca}” no título em {idioma}.": "No recording has “{busca}” in the title in {idioma}.",
   "Nenhuma gravação tem “{busca}” no título.": "No recording has “{busca}” in its title.",
   "Nenhuma nota deste baralho passou pela régua de qualidade. Reveja os campos no arquivo original e traga de novo.": "No note in this deck passed the quality check. Review the fields in the original file and import it again.",
+  "Nenhuma nota mudou: os campos já estavam assim.": "No notes changed: the fields were already like this.",
   "nenhuma palavra de nível {nivel} neste recorte": "no {nivel} words in this subset",
   "Nenhuma palavra desta sessão foi para o caderno ainda. Toque numa fala e depois numa palavra para analisá-la e guardá-la.": "No word from this session has gone to the notebook yet. Tap a line and then a word to analyze and save it.",
   "Nenhuma palavra desta sessão neste grupo.": "No words from this session in this group.",
@@ -6352,6 +6364,7 @@
   "Trocar por uma palavra melhor": "Swap in a better word",
   "Trocar senha": "Change password",
   "Troque o filtro ou busque por outra mecânica.": "Change the filter or search for another mechanic.",
+  "Troque o papel de cada campo e confira como as notas vão ficar. O arquivo não precisa ser enviado de novo, e o que você já estuda não muda.": "Change each field's role and check how the notes will look. You don't need to send the file again, and what you already study doesn't change.",
   "troque o simples pelo mais legal": "swap the plain one for the cooler one",
   "Troque por uma definição curta, hoje é um pedaço de fala.": "Replace it with a short definition — right now it is a fragment of speech.",
   "Troque quando quiser. Os outros aparelhos saem da conta.": "Change it whenever you want. The other devices are signed out.",

@@ -56,6 +56,7 @@ import {
   METRIC_RATELIMIT_ESCRITA,
   METRIC_RATELIMIT_FLAGS,
   METRIC_RATELIMIT_LOTE_ANKI,
+  METRIC_RATELIMIT_REMAPEAR_ANKI,
   METRIC_RATELIMIT_TELEMETRIA,
 } from '../lib/rateLimitStore'
 import { requestIdMiddleware } from '../lib/requestId'
@@ -135,6 +136,10 @@ function interpretarTrustProxy(valor: string): boolean | number | string {
  * Pelo caminho COMPLETO (`baseUrl + path`): o limitador é montado sobre uma lista de prefixos, e dentro
  * dele `req.path` é relativo ao prefixo que casou.
  */
+function ehRemapearDoAnki(req: express.Request): boolean {
+  return req.method === 'POST' && /^\/api\/anki\/decks\/[^/]+\/remapear\/?$/.test(req.baseUrl + req.path)
+}
+
 function ehLoteDaImportacaoAnki(req: express.Request): boolean {
   return req.method === 'POST' && /^\/api\/anki\/imports\/[^/]+\/notas\/?$/.test(req.baseUrl + req.path)
 }
@@ -367,6 +372,18 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     skip: (req) => !ehLoteDaImportacaoAnki(req),
   })
   marcarVerbos(loteDeImportLimiter, 'escrita')
+
+  /** O REMAPEAR DO ANKI: 10 por minuto e por usuário, em balde próprio (cada chamada reescreve o baralho inteiro). */
+  const remapearAnkiLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: chaveDoRequest,
+    store: createDbRateLimitStore(METRIC_RATELIMIT_REMAPEAR_ANKI),
+    skip: (req) => !ehRemapearDoAnki(req),
+  })
+  marcarVerbos(remapearAnkiLimiter, 'escrita')
 
   /* ISOLAMENTO DE ORIGEM, LIGADO DE FÁBRICA (A8). Dá `SharedArrayBuffer` e, com ele, as threads do
      WASM do Whisper/opus-mt — sem isto o orçamento do A3 põe todo motor em 1 thread. Era opt-in
@@ -619,6 +636,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
       writeLimiter,
     )
     app.use('/api/anki/imports', loteDeImportLimiter)
+    app.use('/api/anki/decks', remapearAnkiLimiter)
 
     /* TETOS DE LEITURA (auditoria de segurança 2026-09-26). O `writeLimiter` pula GET por desenho,
        e nenhuma leitura autenticada tinha teto — inclusive as que montam a conta inteira em memória

@@ -1,0 +1,36 @@
+{
+  "status": 200,
+  "forma": {
+    "estruturas": [
+      {
+        "amostra": [
+          [
+            "string"
+          ]
+        ],
+        "campos": [
+          "string"
+        ],
+        "hash": "string",
+        "notas": "number",
+        "notetype": "string",
+        "palpites": {
+          "palavra": {
+            "confianca": "string",
+            "indice": "number",
+            "origem": "string"
+          },
+          "significado": {
+            "confianca": "string",
+            "indice": "number",
+            "origem": "string"
+          }
+        },
+        "papeis": [
+          "string"
+        ],
+        "precisaDeConferencia": "boolean"
+      }
+    ]
+  }
+}

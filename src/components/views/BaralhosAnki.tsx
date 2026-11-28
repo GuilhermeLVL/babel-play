@@ -9,11 +9,13 @@ import {
   Plus,
   RotateCw,
   Search,
+  SlidersHorizontal,
   Trash2,
   Upload,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
+import { FLAG_ANKI_MAPEADOR } from '../../core/planos';
 import {
   ativarNotasDoBaralho,
   type BaralhoAnkiResumo,
@@ -23,10 +25,12 @@ import {
   type NotaAnkiDetalhe,
   purgarBaralho,
 } from '../../data/apiAnki';
+import { useFlag } from '../../lib/flags';
 import { data, numero, t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import { toast } from '../Toast';
 import { Dialogo, IconeEmBloco } from '../ui';
+import { CorrigirCampos } from './anki/CorrigirCampos';
 
 /**
  * A ABA "GERENCIAR" DA TELA DO ANKI — o que já foi trazido, e o que fazer com cada baralho.
@@ -95,6 +99,9 @@ export default function GerenciarBaralhos({
   const [aberto, setAberto] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [apagando, setApagando] = useState<BaralhoAnkiResumo | null>(null);
+  /* "Corrigir campos": o Mapeador sobre um baralho já importado (remapear sem reimportar). Atrás da flag `anki_mapeador`. */
+  const mapeadorLigado = useFlag(FLAG_ANKI_MAPEADOR);
+  const [corrigindo, setCorrigindo] = useState<string | null>(null);
 
   const ativarMais = async (b: BaralhoAnkiResumo) => {
     setOcupado(b.id);
@@ -237,6 +244,10 @@ export default function GerenciarBaralhos({
               <div className="barra" style={{ marginTop: 6 }}>
                 <span style={{ width: `${pct}%` }} />
               </div>
+              {/* PRATICADO / TOTAL: ativar põe a nota na fila, praticar é jogar ou revisar o cartão ao menos uma vez. */}
+              <p className="mut tn" style={{ fontSize: 12.5, marginTop: 6 }} data-testid="baralho-praticadas">
+                {t('{n} de {total} notas já praticadas', { n: numero(b.praticadas ?? 0), total: numero(b.total) })}
+              </p>
               <ul className="qv-notas-do-baralho" data-testid="notas-por-escrito">
                 <li>{t('Notas do arquivo do Anki. Uma nota pode virar mais de um cartão na sua fila.')}</li>
                 {b.descartadas > 0 && (
@@ -276,6 +287,17 @@ export default function GerenciarBaralhos({
                   <Play aria-hidden /> Jogar só com este
                 </button>
               )}
+              {mapeadorLigado && b.total > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-outline peq"
+                  aria-expanded={corrigindo === b.id}
+                  disabled={ocupado === b.id}
+                  onClick={() => setCorrigindo(corrigindo === b.id ? null : b.id)}
+                >
+                  <SlidersHorizontal aria-hidden /> {t('Corrigir campos')}
+                </button>
+              )}
               {on && (
                 <button
                   type="button"
@@ -295,6 +317,16 @@ export default function GerenciarBaralhos({
                 <Trash2 aria-hidden /> Apagar
               </button>
             </div>
+            {mapeadorLigado && corrigindo === b.id && (
+              <CorrigirCampos
+                baralho={b}
+                aoFechar={() => setCorrigindo(null)}
+                aoCorrigir={() => {
+                  recarregar();
+                  onMudou?.();
+                }}
+              />
+            )}
             {abertoAqui && <NotasDoBaralho baralho={b} />}
           </section>
         );

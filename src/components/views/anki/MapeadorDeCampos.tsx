@@ -116,10 +116,19 @@ export function MapeadorDeCampos({
   estruturas,
   aoConfirmar,
   aoCancelar,
+  introducao,
+  rotuloConfirmar,
+  ocupado = false,
 }: {
   estruturas: EstruturaLida[];
   aoConfirmar: (escolhas: Record<string, PapelNaImportacao[]>) => void;
   aoCancelar: () => void;
+  /** O parágrafo de cima. Sem ele, o da importação ("nada foi enviado ainda"). */
+  introducao?: string;
+  /** O botão de confirmar. Sem ele, "Importar assim". */
+  rotuloConfirmar?: string;
+  /** Enquanto o pedido está em andamento, os dois botões ficam parados. */
+  ocupado?: boolean;
 }) {
   const [escolhas, setEscolhas] = useState<Record<string, PapelNaImportacao[]>>(() =>
     Object.fromEntries(estruturas.map((e) => [e.hash, [...e.papeis]])),
@@ -132,9 +141,10 @@ export function MapeadorDeCampos({
         <p className="aviso-info">
           <Info aria-hidden />
           <span>
-            {t(
-              'Não deu para ter certeza de qual campo é a palavra e qual é a tradução. Ajuste se precisar: nada foi enviado ainda, e o que você escolher fica só neste aparelho.',
-            )}
+            {introducao ??
+              t(
+                'Não deu para ter certeza de qual campo é a palavra e qual é a tradução. Ajuste se precisar: nada foi enviado ainda, e o que você escolher fica só neste aparelho.',
+              )}
           </span>
         </p>
       </header>
@@ -152,11 +162,11 @@ export function MapeadorDeCampos({
         {t('Campos que ficam sem papel continuam guardados na nota, com o nome que têm no Anki.')}
       </p>
       <div className="mapeador-acoes">
-        <button type="button" className="q-ctl" onClick={aoCancelar}>
+        <button type="button" className="q-ctl" disabled={ocupado} onClick={aoCancelar}>
           {t('Cancelar')}
         </button>
-        <button type="button" className="q-ctl pri" disabled={!pronto} onClick={() => aoConfirmar(escolhas)}>
-          {t('Importar assim')}
+        <button type="button" className="q-ctl pri" disabled={!pronto || ocupado} onClick={() => aoConfirmar(escolhas)}>
+          {rotuloConfirmar ?? t('Importar assim')}
         </button>
       </div>
     </div>

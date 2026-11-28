@@ -17,16 +17,24 @@
 
 ## 2. Matriz jogo × dados
 
-- [ ] 2.1 Conferir a matriz do `design.md` contra `estadoDeCadaJogo` (`src/core/minigames/estadoDosJogos.ts`), que já decide
+- [x] 2.1 Conferir a matriz do `design.md` contra `estadoDeCadaJogo` (`src/core/minigames/estadoDosJogos.ts`), que já decide
       elegibilidade por jogo (spec vigente `openspec/specs/elegibilidade-por-jogo/`). Só criar `elegibilidadePorJogo(item)` se faltar
       a decisão POR ITEM (hoje é por conjunto).
       Verificar: tabela linha a linha (jogo × campo ausente) no PR, cada linha apontando a função que a cobre; nenhuma regra duplicada de `MINIGAMES`/`REVELAVEL`.
-- [ ] 2.2 Motivo de indisponibilidade quando o baralho escolhido não serve ao jogo, pelo gate existente (`sem-voz`, `trilha-sem-frase`).
+
+      **Feito 27/11 (restos/anki):** matriz conferida linha a linha contra `estadoDeCadaJogo`; a decisão por item não faltava (o gate é por conjunto e a regra por item já mora em `canPlay`/`promptFor`/`buildItems`), então `elegibilidadePorJogo(item)` NÃO foi criada. Cada linha e quem a decide: memória = `requiresTranslation` + `canPlay`; caça-palavras = `requisitos.alfabeto` (`alfabeto-nao-suportado`) + pista sem lacuna; duelo = `promptFor` (tradução ou frase com lacuna); termo = `contarJogaveisMulti` + alfabeto; embaralhar = `buildScrambleRounds` (frase de 4 a 10 palavras COM tradução; a frase do acervo do Anki vem sem tradução, então só abre quando a frase tem uma); escuta e ditado = `buildRodadasEscuta/Ditado` por TTS (`falasSoDoAcervo` + `temVoz`); karaokê = `sem-clipe-de-audio`; conectores = `temConectores(lang)`. Lacuna achada: a matriz diz "idioma sem lista de conectores → indisponível", e o gate fecha o jogo mas SEM motivo próprio (cai em "Precisa de N frases"); não criei motivo novo porque `Play.tsx`/`LobbyDoQuest.tsx` tratam "sem motivo" como "faltam N, ofereça o catálogo". Prova: `tests/matriz-anki-nos-jogos.test.ts`.
+
+- [x] 2.2 Motivo de indisponibilidade quando o baralho escolhido não serve ao jogo, pelo gate existente (`sem-voz`, `trilha-sem-frase`).
       Verificar: com um baralho sem frases, os cinco jogos de frase mostram o motivo (teste de `estadoDeCadaJogo` com a fonte do baralho).
+
+      **Feito 27/11 (restos/anki):** o gate já nomeava `sem-clipe-de-audio` (karaokê) e `alfabeto-nao-suportado`; faltava `sem-voz` para a frase do baralho sem voz (escuta e ditado ficavam sem motivo): corrigido em `estadoDosJogos.ts`. Baralho SEM frases: os cinco jogos de frase ficam fechados com `fonte:'falas'`, `disponiveis:0` e `faltam`, e a tela diz "Precisa de N frases; aqui há 0" (a contagem é o motivo; `trilha-sem-frase` é da Trilha e a mensagem dele diria "a Trilha não tem"). Provas no mesmo arquivo da matriz.
+
 - [x] 2.3 Alfabeto não latino: caça-palavras e termo indisponíveis com motivo. Feito: `requisitos.alfabeto: 'latino'` em
       `estadoDosJogos.ts:383` e `:446`.
-- [ ] 2.4 Teste tabular da matriz, um caso por linha.
+- [x] 2.4 Teste tabular da matriz, um caso por linha.
       Verificar: `npx vitest run <arquivo>` com 9 jogos × (completo, sem tradução, sem frase, script não latino), todos verdes.
+
+      **Feito 27/11 (restos/anki):** `tests/matriz-anki-nos-jogos.test.ts`, as 9 linhas da matriz × 4 cenários do baralho (completo, sem tradução, sem frase, escrita não latina; o último em russo, que tem espaço e deixa o gate falar), 36 casos mais os de motivo.
 
 ## 3. Frase do baralho vira fala
 
@@ -53,8 +61,10 @@
 - [x] 4.3 Modo "só revisão" para item que não serve a nenhum jogo (grava memória, sem mecânica).
       Verificar: item sem tradução e sem frase aparece na revisão simples e atualiza a memória (teste do repositório e de componente).
       Feito (decisão assumida: recomendação a, agora, 25/11): `src/core/minigames/soRevisao.ts` + `RevisaoSimples.tsx`, oferta no lobby sem menu novo; nota via `reviewCard` (origem `revisao`, formato `lembrar`). Testes: `tests/revisaoSimples.test.tsx`, `tests/baralhoNosJogos.test.ts`.
-- [ ] 4.4 Progresso por baralho na tela do baralho.
+- [x] 4.4 Progresso por baralho na tela do baralho.
       Verificar: teste do payload `praticado/total` por `deckId` e e2e que abre a tela e lê o número.
+
+      **Feito 27/11 (restos/anki):** `GET /api/anki/decks` devolve `praticadas` por baralho (nota cujo cartão projetado tem `reps > 0`; ativar não é praticar) e `BaralhosAnki.tsx` mostra "N de M notas já praticadas" (`data-testid="baralho-praticadas"`). Provas: `tests/integration/anki-progresso-por-baralho.test.ts` (payload por `deckId`, outra conta não entra), `tests/baralhosAnki.test.tsx` e `tests/e2e/baralhos.e2e.ts` (abre a tela e lê o número).
 
 ## 5. Validação de ponta a ponta
 

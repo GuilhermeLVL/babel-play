@@ -12,7 +12,7 @@
  */
 import type { EstadoDeNotaAnki, FiltroDeNotaAnki } from '@core'
 
-import { type NotaAnki, TETOS_DA_NOTA as TETOS } from '../core/anki'
+import { type EstruturaLida, type NotaAnki, type PapelNaImportacao, TETOS_DA_NOTA as TETOS } from '../core/anki'
 import { apiFetch, IMPORT_TIMEOUT_MS, lerErro } from './api'
 
 // ───────────────────────────── tipos do contrato ─────────────────────────────
@@ -41,6 +41,11 @@ export interface BaralhoAnkiResumo {
    * não defeito daqui — não há nada para "consertar".
    */
   ausentes: number
+  /**
+   * Notas cujo cartão já foi praticado ao menos uma vez: ativar não é praticar. É o "praticado" de
+   * "praticado/total" na tela do baralho. Ausente num servidor mais antigo (a tela mostra 0).
+   */
+  praticadas?: number
 }
 
 /**
@@ -120,6 +125,49 @@ export async function ativarNotasDoBaralho(deckId: string, limite?: number): Pro
   })
   if (!res.ok) throw new Error(`não consegui ativar as notas (HTTP ${res.status})`)
   return (await res.json()) as ResultadoAtivar
+}
+
+/** Um papel por campo, na ordem do tipo de nota (os mesmos do Mapeador: `PapelNaImportacao`). */
+export interface MapeamentoParaRemapear {
+  estruturaHash: string
+  papeis: PapelNaImportacao[]
+}
+
+export interface ResultadoRemapear {
+  simulado: boolean
+  notas: number
+  /** Notas cujo texto ou motivo de descarte mudou. */
+  mudaram: number
+  passaramAServir: number
+  deixaramDeServir: number
+  /** Notas ativadas que só ganharam um exemplo que faltava. */
+  preencheram: number
+  /** Notas ativadas, deixadas como estavam. */
+  protegidas: number
+  ignoradas: number
+}
+
+/** Os tipos de nota do baralho com os campos reais: o que o Mapeador mostra em "Corrigir campos". */
+export async function lerEstruturasDoBaralho(deckId: string): Promise<EstruturaLida[]> {
+  const res = await apiFetch(`/api/anki/decks/${encodeURIComponent(deckId)}/estruturas`)
+  if (!res.ok) throw new Error(`não consegui ler os campos do baralho (HTTP ${res.status})`)
+  return ((await res.json()) as { estruturas: EstruturaLida[] }).estruturas
+}
+
+/** Refaz frente, verso e exemplo das notas a partir dos campos originais, sem reimportar o arquivo. */
+export async function remapearBaralho(
+  deckId: string,
+  mapeamentos: MapeamentoParaRemapear[],
+  opcoes: { simular?: boolean } = {},
+): Promise<ResultadoRemapear> {
+  const res = await apiFetch(`/api/anki/decks/${encodeURIComponent(deckId)}/remapear`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mapeamentos, ...(opcoes.simular ? { simular: true } : {}) }),
+    timeoutMs: IMPORT_TIMEOUT_MS,
+  })
+  if (!res.ok) throw new Error(`não consegui corrigir os campos (HTTP ${res.status})`)
+  return (await res.json()) as ResultadoRemapear
 }
 
 /** Tira o baralho das rodadas sem apagar nada — ação padrão, reversível. */

@@ -84,6 +84,10 @@ test.describe('Baralhos do Anki', () => {
 
     // O saldo é a promessa central da tela: "N de M notas ativadas", nunca um total bruto sozinho.
     await expect(lista.getByText(/[\d.]+\s+de\s+[\d.]+\s+notas ativadas/).first()).toBeVisible()
+    // E o progresso por baralho: "praticadas de total" (ativar não é praticar).
+    await expect(lista.getByTestId('baralho-praticadas').first()).toHaveText(
+      /[\d.]+\s+de\s+[\d.]+\s+notas já praticadas/,
+    )
 
     /* `.first()`: com MAIS DE UM baralho importado o locator casa vários botões, e o modo estrito do
        Playwright estouraria. */

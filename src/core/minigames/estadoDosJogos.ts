@@ -412,6 +412,21 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
       };
     }
 
+    /* A FRASE DO BARALHO EXISTE, MAS NÃO HÁ VOZ PARA LÊ-LA: Escuta e Ditado dependem do TTS (sem clipe, a voz é o
+       som). Sem este motivo a carta dizia só "precisa de N frases; aqui há M" para quem tem as frases de sobra — o
+       mesmo caso que `sem-voz` já nomeia na trilha. A matriz do `motor-anki-jogos` ("sem áudio e sem voz → indisponível"). */
+    if ((id === 'escuta' || id === 'ditado') && frasesDoBaralho && !e.temVoz && falas.length > 0) {
+      return {
+        id,
+        ok: false,
+        disponiveis: 0,
+        faltam: def.minItems,
+        fonte: 'falas',
+        motivo: 'sem-voz',
+        tamanhoDaRodada: 0,
+      };
+    }
+
     const n =
       id === 'scramble'
         ? buildScrambleRounds(falas, { quantidade: TETO_DE_FALAS }).length

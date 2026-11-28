@@ -132,6 +132,7 @@ import Toaster from './components/Toast';
 import Vazio from './components/ui/Vazio';
 import PortaoDoDiario from './components/views/diario/PortaoDoDiario';
 import PortaoDaLeituraAtiva from './components/views/leituraAtiva/PortaoDaLeituraAtiva';
+import { FLAG_NAVEGACAO_SIMPLES } from './core/planos';
 import { carregarProtecao, fetchSessions } from './data/api';
 import { lerTokenDoConvite } from './lib/conviteNaUrl';
 import { edicaoEstatica } from './lib/edicaoEstatica';
@@ -150,6 +151,7 @@ import { useRecompensas } from './lib/estado/useRecompensas';
    hooks são chamados exatamente onde o bloco original estava. */
 import { useSessaoSupabase } from './lib/estado/useSessaoSupabase';
 import { tirarDaFila } from './lib/filaDeRecompensas';
+import { useFlag } from './lib/flags';
 import { equiparItem } from './lib/galeria/equipar';
 import { t } from './lib/i18n';
 import { estaAnonimo } from './lib/identidade';
@@ -434,6 +436,8 @@ export default function App() {
   // Item aceso no menu (protótipo): a sessão vive na Biblioteca; a revisão, em Cartões.
   /* Livros tem item próprio no menu (27/10/2026): o catálogo, o detalhe e o leitor acendem "Livros"; só a
      aula (analysis) vive na Biblioteca. */
+  /* A navegação "O Início é o menu" (flag `navegacao_simples`): a casca vira coluna, com o cabeçalho em cima. */
+  const navSimples = useFlag(FLAG_NAVEGACAO_SIMPLES);
   const viewDoMenu: ViewType = activeView === 'analysis' ? 'library' : activeView === 'leitor' ? 'livros' : activeView;
   /* Sem conta, o convite fica NO LUGAR da tela que exige conta: uma regra só decide os dois lados. */
   const conviteNaTela = conviteNoLugarDaTela(activeView, anonimo);
@@ -586,11 +590,11 @@ export default function App() {
     // `h-dvh`: com 100vh a raiz cinza (bg-surface) ficava maior que a viewport dinamica e o
     // overflow-hidden cortava o rodape, a "faixa cinza" que escondia conteudo na Captura.
     <div data-raiz-do-app className="@container/app flex flex-col h-tela w-full bg-canvas overflow-hidden relative">
-      <div className="flex-1 flex min-h-0 w-full q-casca">
+      <div className="flex-1 flex min-h-0 w-full q-casca" data-nav={navSimples ? 'simples' : undefined}>
         {/* O trilho é um chunk à parte: sem reservar o lugar dele, o <main> nascia com a largura toda e
              saltava 108 px quando o trilho chegava (CLS 0,08 em toda tela do desktop). A reserva (`index.css`)
              tem as mesmas medidas do trilho, na janela larga e na estreita. */}
-        <Suspense fallback={<div className="q-trilho-reserva" aria-hidden="true" />}>
+        <Suspense fallback={<div className={navSimples ? 'ns-cab-reserva' : 'q-trilho-reserva'} aria-hidden="true" />}>
           <TrilhoDoQuest
             activeView={viewDoMenu}
             /* É este caminho que abre Ajustes na aba pedida (o botão

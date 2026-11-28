@@ -1734,6 +1734,15 @@ svg.lucide { flex-shrink: 0; }
   .q-trilho-reserva { width: 100%; min-height: 74px; border-right: 0; border-top: 1.5px solid var(--border-subtle); }
 }
 
+/* NAVEGAÇÃO "O INÍCIO É O MENU" (flag `navegacao_simples`): o cabeçalho fica EM CIMA, em toda largura, e não há trilho nem
+   barra de baixo. Aqui (CSS inicial) porque vale antes do pedaço do cabeçalho chegar; a reserva tem a altura dele (sem CLS). */
+.q-casca[data-nav='simples'] { flex-direction: column; }
+.ns-cab-reserva { flex: none; min-height: 64px; background: var(--surface); border-bottom: 1.5px solid var(--border-subtle); }
+@media (max-width: 720px) {
+  .q-casca[data-nav='simples'] { flex-direction: column; }
+  .ns-cab-reserva { min-height: 56px; }
+}
+
 .q-missoes-reserva { min-height: 209px; }
 @media (max-width: 720px) {
   .missoes-reserva, .q-missoes-reserva { min-height: 304px; }

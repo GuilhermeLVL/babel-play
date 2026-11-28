@@ -239,6 +239,7 @@ import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 // A conversa em balões (lados opostos, agrupamento por pessoa, estado vazio que ensina).
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
 import ChatTranscript from '../ChatTranscript';
+import AvisoDaExtensao from './captura/AvisoDaExtensao';
 import { useAvatarDaLegenda } from './captura/legendas/AvatarDaLegenda';
 
 /** O benchmark do aparelho agendado pela última saída da captura (cancelado por uma captura nova). */
@@ -253,6 +254,7 @@ import {
   paginaMostraOAssistente,
 } from '../../lib/assistente/falasDoAssistente';
 import { esperaDaLegenda, mioloDoPreparo } from '../../lib/captura/esperaDoPreparo';
+import { useCapturaDaExtensao } from '../../lib/captura/useCapturaDaExtensao';
 import { guardarClipeDaFraseSalva } from '../../lib/cartoes/audioDoCartao/daFala';
 import { cenaDoCartaoAtiva, guardarCenaDoCartao } from '../../lib/cartoes/cenaDoCartao';
 import { useFlag } from '../../lib/flags';
@@ -801,6 +803,8 @@ export default function LiveCapture({
   // dispositivo de entrada de loopback (Stereo Mix / VB-Cable via getUserMedia; à prova de falhas,
   // capta o sistema INTEIRO incl. Discord/jogos, com setup único). Persistido em settings.ui.
   const [systemSource, setSystemSource] = useState<'display' | 'loopback' | 'server'>('display');
+  /* A extensão do Frasy (flag `captura_da_extensao` + `?fonte=extensao`): sem os dois, estado `null` e nenhum ouvinte. */
+  const { estado: estadoDaExtensao, receptorRef: extensaoRef } = useCapturaDaExtensao();
   // MODO DESEMPENHO (jogos): pula os decodes PARCIAIS (a legenda só aparece no fim de cada frase).
   // Corta a maior fatia de GPU/CPU da captura contínua — o decode final continua intacto.
   /* Começa LIGADO no aparelho leve (Quest, celular fraco, desktop de 2 núcleos): ali o parcial é o
@@ -1512,6 +1516,7 @@ export default function LiveCapture({
       micHandlers,
       prepareModels,
       systemSourceRef,
+      extensaoRef,
       loopbackDeviceIdRef,
       inputDeviceIdRef,
       systemCaptureRef,
@@ -3655,6 +3660,7 @@ export default function LiveCapture({
         avisos={
           <>
             <AvisoDeNuvemSemConsentimento />
+            {estadoDaExtensao && !isRecording && <AvisoDaExtensao estado={estadoDaExtensao} />}
             {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} aoVivo={noQuest} />}
             {faixaDaNuvemDeAlivio}
             {/* "Ganhe 30 min de nuvem" (premiado, flag `anuncios`): só com a captura parada e o alívio disponível. */}

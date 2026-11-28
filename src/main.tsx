@@ -14,6 +14,7 @@ import './styles/prototipo-app.css';
 import './styles/dispositivo.css';
 /* Por último: só QUANDO o navegador trabalha (content-visibility etc.), nunca o desenho. */
 import './styles/desempenho.css';
+import './lib/captura/fonteDaAbertura';
 
 import { RefreshCw } from 'lucide-react';
 import { StrictMode } from 'react';

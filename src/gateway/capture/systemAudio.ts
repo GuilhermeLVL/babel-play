@@ -2,6 +2,7 @@ import type { MicVAD, RealTimeVADOptions } from '@ricky0123/vad-web';
 
 import { erroDoDetectorDeFala, mostraDetalheTecnico } from '../../core/falhas/mensagemDeFalha';
 import { apiFetch } from '../../data/api';
+import type { ReceptorDaExtensao } from '../../lib/captura/daExtensao';
 import { dicasDoSeletor, lembrarSuperficie, superficieLembrada } from '../../lib/captura/dicasDoSeletor';
 import { navegadorSemAudioDaTela } from '../../lib/captura/navegadorSemAudioDaTela';
 import { marcarAberturaDoVad } from '../../lib/captura/vigiaDoMainThread';
@@ -1296,6 +1297,62 @@ export async function startServerLoopbackCapture(
       },
     };
   } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    cb.onError?.(error);
+    throw error;
+  }
+}
+
+/**
+ * Captura o som da aba entregue pela EXTENSÃO do Frasy (flag `captura_da_extensao`, `lib/captura/daExtensao.ts`): sem o
+ * seletor do navegador. Os quadros PCM 16 kHz que o receptor já validou entram no mesmo worklet do loopback e viram um
+ * MediaStream, e o resto (VAD, parciais, gravador) é `startCaptureFromStream`, sem fork. O áudio não passa por rede aqui:
+ * o que o pipeline faz com ele depois é o de sempre (motor local; nuvem só com consentimento).
+ */
+export async function startExtensionCapture(
+  receptor: Pick<ReceptorDaExtensao, 'consumir'>,
+  cb: SystemAudioCallbacks,
+  opcoes?: OpcoesDeCaptura,
+): Promise<AudioCapture> {
+  aquecerVad();
+  let ctx: AudioContext | null = null;
+  try {
+    ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+    await ctx.audioWorklet.addModule('/loopback-worklet.js');
+    const dest = ctx.createMediaStreamDestination();
+    const feeder = new AudioWorkletNode(ctx, 'loopback-feeder', { numberOfInputs: 0, outputChannelCount: [1] });
+    feeder.connect(dest);
+    receptor.consumir(({ pcm }) => feeder.port.postMessage(pcm, [pcm.buffer]));
+    vlog('captura pela EXTENSÃO: grafo WebAudio montado');
+    const capture = await startCaptureFromStream(dest.stream, dest.stream, cb, 'system', opcoes);
+    const contexto = ctx;
+    return {
+      startedAtMs: capture.startedAtMs,
+      setMuted: (m) => capture.setMuted(m),
+      setPaused: (p) => capture.setPaused(p),
+      async stop(): Promise<Blob | null> {
+        receptor.consumir(null);
+        const blob = await capture.stop();
+        try {
+          feeder.disconnect();
+        } catch {
+          /* já desconectado */
+        }
+        try {
+          await contexto.close();
+        } catch {
+          /* já fechado */
+        }
+        return blob;
+      },
+    };
+  } catch (err) {
+    receptor.consumir(null);
+    try {
+      await ctx?.close();
+    } catch {
+      /* já fechado */
+    }
     const error = err instanceof Error ? err : new Error(String(err));
     cb.onError?.(error);
     throw error;

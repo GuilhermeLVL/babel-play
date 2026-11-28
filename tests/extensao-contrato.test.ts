@@ -86,8 +86,28 @@ describe('manifesto: permissões mínimas e privacidade', () => {
     const todas = JSON.stringify(manifesto)
     expect(todas).not.toMatch(/<all_urls>|\*:\/\/\*\/\*|https?:\/\/\*\/\*/)
     for (const c of manifesto.content_scripts) {
-      for (const m of c.matches) expect(m).toMatch(/^https?:\/\/(localhost|[a-z0-9.-]+)\/\*$/)
+      for (const m of c.matches) expect(m).toMatch(/^https?:\/\/(localhost|[a-z0-9.-]+)\/(app\/)?\*$/)
     }
+  })
+
+  it('a origem de produção é a mesma no manifesto, nos recursos acessíveis e no URL_DO_APP, e a ponte só roda em /app', () => {
+    const origem = 'https://frasy.com.br'
+    const sw = readFileSync('extensao/service-worker.js', 'utf8')
+    const url = /^const URL_DO_APP = '([^']+)'/m.exec(sw)?.[1] ?? ''
+    expect(new URL(url).origin).toBe(origem)
+    expect(new URL(url).pathname).toBe('/app/capturar')
+    expect(new URL(url).searchParams.get('fonte')).toBe('extensao')
+    expect(manifesto.content_scripts[0].matches).toContain(`${origem}/app/*`)
+    expect(manifesto.web_accessible_resources[0].matches).toContain(`${origem}/*`)
+    // nenhum outro host além do dev (localhost) e da produção
+    const hosts = new Set<string>(
+      [...manifesto.content_scripts[0].matches, ...manifesto.web_accessible_resources[0].matches].map(
+        (m: string) => new URL(m.replace('*', 'x')).host,
+      ),
+    )
+    expect([...hosts].sort()).toEqual(['frasy.com.br', 'localhost'])
+    // a produção é a mesma que o Worker declara
+    expect(readFileSync('wrangler.jsonc', 'utf8')).toContain('"HOST_DE_PRODUCAO": "frasy.com.br"')
   })
 
   it('nenhum arquivo da extensão faz requisição de rede', () => {

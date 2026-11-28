@@ -18,6 +18,7 @@ import {
   MAX_SPEECH_MS_NUVEM,
   MAX_SPEECH_MS_SEM_PARCIAL,
   type OpcoesDeCaptura,
+  startExtensionCapture,
   startMicCapture,
   startServerLoopbackCapture,
   startSystemAudioCapture,
@@ -36,6 +37,7 @@ import { t } from '../i18n';
 import { nuvemDoQuestAtiva } from '../nuvemDoQuest';
 import { isTtsActive } from '../tts';
 import { abrirContextoDoClique, descartarContextoDoClique, tomarContextoDoClique } from './contextoDoClique';
+import type { ReceptorDaExtensao } from './daExtensao';
 import { SILENCIO_DO_TURNO_MS } from './interprete';
 import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
 import { criarProgressoDosPacotesNativos } from './pacotesNativos';
@@ -72,6 +74,8 @@ export interface DepsDasFontesDeAudio {
   pausada?: () => boolean;
   /* --- escolhas de rota/dispositivo (espelhadas em ref: lidas ao ABRIR a captura) --- */
   systemSourceRef: RefObject<'display' | 'loopback' | 'server'>;
+  /** O receptor da extensão (flag `captura_da_extensao` + `?fonte=extensao`); ausente ou desconectado = seletor de sempre. */
+  extensaoRef?: RefObject<ReceptorDaExtensao | null>;
   loopbackDeviceIdRef: RefObject<string>;
   inputDeviceIdRef: RefObject<string>;
   /* --- sessões de captura em curso --- */
@@ -410,8 +414,16 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           setTimeout(() => setFeedbackMsg(''), 6000);
         },
       };
+      /* EXTENSÃO CONECTADA: o PCM vem dela, sem o seletor. Só vale com a fonte "aba/tela" (a padrão); sem a extensão, ou se o
+         grafo dela não abrir, segue o `getDisplayMedia` como sempre. */
+      const daExtensao = source === 'display' ? deps.extensaoRef?.current : null;
+      const viaExtensao =
+        daExtensao?.estado() === 'conectada'
+          ? await startExtensionCapture(daExtensao, cb, opcoesDeCaptura).catch(() => null)
+          : null;
       const captura: AudioCapture =
-        source === 'server'
+        viaExtensao ??
+        (source === 'server'
           ? await startServerLoopbackCapture(cb, opcoesDeCaptura)
           : source === 'loopback'
             ? await (async () => {
@@ -429,7 +441,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
                 }
                 return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb, opcoesDeCaptura);
               })()
-            : await startSystemAudioCapture(cb, opcoesDeCaptura);
+            : await startSystemAudioCapture(cb, opcoesDeCaptura));
       aberta = true;
       /* A captura com a Web Speech junto: parar/pausar/mudar a captura faz o mesmo com o reconhecedor. */
       systemCaptureRef.current = {

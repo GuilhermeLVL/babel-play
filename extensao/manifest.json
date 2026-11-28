@@ -15,7 +15,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://localhost/*"],
+      "matches": ["http://localhost/*", "https://frasy.com.br/app/*"],
       "js": ["ponte.js"],
       "run_at": "document_start"
     }
@@ -23,7 +23,7 @@
   "web_accessible_resources": [
     {
       "resources": ["contrato.js"],
-      "matches": ["http://localhost/*"]
+      "matches": ["http://localhost/*", "https://frasy.com.br/*"]
     }
   ]
 }

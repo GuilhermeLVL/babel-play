@@ -526,6 +526,14 @@ export const FLAG_NAVEGACAO_SIMPLES = 'navegacao_simples';
 export const FLAG_ESTUDO_PALAVRAS_V2 = 'estudo_palavras_v2';
 
 /**
+ * A CAPTURA PELA EXTENSÃO (openspec `captura-em-um-clique`, fatia 2; migrações PG 0053 e SQLite 0092, faixa da onda 2): com a
+ * página aberta em `?fonte=extensao`, a captura recebe o PCM 16 kHz da extensão do Frasy por `postMessage` (origem e forma
+ * validadas), sem o seletor do navegador; sem a extensão, cai no `getDisplayMedia`. Nasce DESLIGADA e sem regra de plano; sem a
+ * flag ou sem o parâmetro nenhum listener é registrado. O receptor nunca envia áudio ao servidor. Ligar é ato do dono.
+ */
+export const FLAG_CAPTURA_DA_EXTENSAO = 'captura_da_extensao';
+
+/**
  * As cotas do "Ajustar nível" nos planos pagos (PROVISÓRIAS, a proposta da spec; o dono decide depois de medir o custo por
  * parágrafo). Um ajuste de parágrafo leva ~700 tokens de entrada e ~400 de saída por chamada, no máximo 2 chamadas.
  */

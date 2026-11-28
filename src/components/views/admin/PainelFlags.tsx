@@ -51,6 +51,7 @@ const FLAGS_SENSIVEIS = new Set([
   'leitor_modo_traducao',
   'leitor_destaque_vocab',
   'ia_ajustar_nivel',
+  'estudo_palavras_v2',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

@@ -215,7 +215,9 @@ function Painel({
       aria-label={rotulo}
       onKeyDown={aoTeclar}
       onBlur={aoPerderFoco}
-      style={!folha && pos ? { right: pos.right, top: pos.top } : undefined}
+      style={
+        !folha && pos ? { right: pos.right, top: pos.top, maxHeight: `calc(100dvh - ${pos.top + 8}px)` } : undefined
+      }
       data-testid={testid}
     >
       {children}

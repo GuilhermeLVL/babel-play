@@ -102,6 +102,32 @@ test('o avatar abre "Configurações" (interruptores role=switch), e Esc devolve
   await expect(page).toHaveURL(/\/ajustes/, { timeout: 10_000 })
 })
 
+/**
+ * "CONFIGURAÇÕES" CABE INTEIRO, SEM ROLAR, EM 1280×720 (e 1280×800). O servidor de dev roda sem login, e aí não há a linha
+ * "Sair" (ela só existe com `authRequired` e conta): o teste exige que o painel não role, que o último item esteja à vista,
+ * e que ainda sobre a altura de uma linha (48 px) para o "Sair" da produção.
+ */
+for (const altura of [720, 800]) {
+  test(`Configurações cabe sem rolar em 1280×${altura}, com lugar para o "Sair"`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop-1280', 'só no computador; no celular a folha pode rolar')
+    await page.setViewportSize({ width: 1280, height: altura })
+    await abrir(page, '/jogar')
+    await clicarRobusto(page, page.getByTestId('avatar-da-conta'))
+    const painel = page.getByTestId('painel-da-conta')
+    await expect(painel).toBeVisible()
+    const m = await painel.evaluate((el) => {
+      const r = el.getBoundingClientRect()
+      const ultimo = el.lastElementChild!.getBoundingClientRect()
+      return { rola: el.scrollHeight - el.clientHeight, fundo: r.bottom, ultimo: ultimo.bottom, janela: innerHeight }
+    })
+    expect(m.rola).toBeLessThanOrEqual(1)
+    expect(m.ultimo).toBeLessThanOrEqual(m.fundo + 1)
+    expect(m.fundo + 48).toBeLessThanOrEqual(m.janela)
+    const sair = painel.getByRole('button', { name: /^Sair/ })
+    if (await sair.count()) await expect(sair).toBeInViewport()
+  })
+}
+
 test('Ctrl+, continua abrindo Ajustes', async ({ page }) => {
   await abrir(page, '/jogar')
   await page.getByTestId('cabecalho-simples').waitFor()

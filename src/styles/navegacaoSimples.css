@@ -130,6 +130,47 @@
   width: min(360px, calc(100vw - 24px));
   max-height: calc(100dvh - 88px);
   overflow-y: auto;
+  gap: 2px;
+  padding: 6px;
+}
+/* COMPACTO (pedido do dono, 28/11/2026): o painel inteiro, até o "Sair", cabe sem rolar em 1280×720. Linhas de 48 px
+   (o alvo mínimo do app), ícone de 34 px e interruptores mais baixos. */
+.ns-painel .q-vivo-opcao {
+  min-height: 48px;
+  padding: 4px 10px;
+  gap: 10px;
+}
+.ns-painel .q-vivo-opcao .q-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.ns-painel .q-vivo-opcao .q-ic svg {
+  width: 20px;
+  height: 20px;
+}
+.ns-painel .ns-interruptor {
+  min-height: 48px;
+  padding-left: 16px;
+}
+.ns-painel .q-interruptor {
+  width: 68px;
+  height: 44px;
+}
+.ns-painel .q-interruptor::before {
+  inset: 8px 6px;
+}
+.ns-painel .q-interruptor::after {
+  top: 10px;
+  left: 9px;
+  width: 24px;
+  height: 24px;
+}
+.ns-painel .q-interruptor[aria-checked='true']::after {
+  transform: translateX(26px);
+}
+.ns-painel .ns-sep {
+  margin: 2px 6px;
 }
 .ns-painel.q-vivo-folha {
   width: 100%;

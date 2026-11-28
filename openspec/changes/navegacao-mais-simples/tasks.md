@@ -29,6 +29,15 @@ trilho, abas de Praticar) saíram do escopo.
       Verificar: e2e (desktop-1280 e mobile-375).
 - [x] 2.3 i18n dos textos novos em `en`, `es`, `ar` e `npm run i18n`.
 
+## 2b. Ajustes do dono (28/11/2026)
+
+- [x] 2b.1 Início: Personalizar e Planos (para todos) ao lado de Progresso, fechando a última fileira; o bloco separado
+      "Seja Premium" virou o Planos em destaque.
+- [x] 2b.2 O menu do avatar vira "Configurações" (sem Progresso, Personalizar e Seu plano); nome acessível "Configurações e
+      conta"; Ctrl+, continua abrindo Ajustes.
+- [x] 2b.3 Bugs: sem o anel do polimento no ícone do Ao vivo; no celular, sem a reserva de espaço da barra antiga.
+      Verificar: `tests/navegacaoSimples.test.tsx` e e2e `navegacao-simples.e2e.ts` (grade e reserva).
+
 ## 3. Rampa e remoção
 
 - [ ] 3.1 **[D][R]** Ligar só para o dono por uma semana (computador e celular); depois rampa olhando cliques em Planos

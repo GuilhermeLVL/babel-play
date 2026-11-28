@@ -15,7 +15,6 @@ import {
   Moon,
   Search,
   Settings,
-  Sparkles,
   UserRound,
   Volume2,
   X,
@@ -31,12 +30,10 @@ import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
-import { onPlanChange } from '../../lib/entitlements';
 import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
-import { comNomeDoPlano, planoDeEntradaAgora } from '../../lib/planoDeEntrada';
 import { useJanelaEstreita } from '../../lib/polimento/celular';
 import { pedirTela } from '../../lib/polimento/precarga';
 import { authRequired } from '../../lib/supabase';
@@ -45,7 +42,6 @@ import type { ViewType } from '../../types';
 import { exigeConta } from '../conta/exigeConta';
 import { useListaDeNotificacoes } from './CentralDeNotificacoes';
 import { type DestinoAoVivo, guardarUltimaAoVivo } from './EscolhaAoVivo';
-import { fraseDoPlano, veConviteDoPremium } from './fraseDoPlano';
 import {
   type AgeProfileType,
   ITEM_ADMIN,
@@ -265,10 +261,6 @@ export default function CabecalhoSimples({
   const convidado = useFlag('modo_convidado') && anonimo;
   const leituraAtiva = useFlag(FLAG_LEITURA_ATIVA);
   const semServidor = edicaoEstatica();
-  /* O plano muda (assinatura, fim do teste): o convite e o "Seu plano" acompanham. */
-  const [, setVersaoDoPlano] = useState(0);
-  useEffect(() => onPlanChange(() => setVersaoDoPlano((v) => v + 1)), []);
-  const convite = !semServidor && veConviteDoPremium();
   const nome = perfil?.displayName?.trim() || null;
   const email = perfil?.email?.trim() || null;
   const estadoDaConta = semServidor
@@ -339,7 +331,7 @@ export default function CabecalhoSimples({
       className="ns-avatar"
       aria-haspopup="dialog"
       aria-expanded={aberto === 'conta'}
-      aria-label={t('Sua conta')}
+      aria-label={t('Configurações e conta')}
       onClick={() => alternar('conta')}
       data-testid="avatar-da-conta"
     >
@@ -510,14 +502,17 @@ export default function CabecalhoSimples({
     <Painel
       ancora={botaoConta.current}
       folha={estreita}
-      rotulo={t('Sua conta')}
+      rotulo={t('Configurações')}
       aoFechar={fechar}
       testid="painel-da-conta"
     >
       <div className="ns-painel-cab">
         <div>
-          <h2>{nome ?? t('Sua conta')}</h2>
-          <small data-testid="estado-da-conta">{email ?? estadoDaConta}</small>
+          <h2>{t('Configurações')}</h2>
+          <small data-testid="estado-da-conta">
+            {nome ? `${nome} · ` : ''}
+            {email ?? estadoDaConta}
+          </small>
           {convidado && (
             <small>
               {t(
@@ -536,33 +531,15 @@ export default function CabecalhoSimples({
           <X aria-hidden />
         </button>
       </div>
-      {convite && (
-        <button
-          type="button"
-          className="q-vivo-opcao"
-          data-ultima="true"
-          data-primeiro=""
-          onClick={() => ir('planos')}
-          data-testid="seja-premium-na-conta"
-        >
-          <span className="q-ic">
-            <Sparkles aria-hidden />
-          </span>
-          <span className="q-vivo-texto">
-            <b>{comNomeDoPlano(t('Seja Premium'), planoDeEntradaAgora())}</b>
-            <small>{fraseDoPlano()}</small>
-          </span>
-        </button>
-      )}
-      {doMenu('estatisticas')}
-      {doMenu('loja')}
       {linhaDeDestino(
         'settings',
         Settings,
         navLabel(item('settings')!, ageProfile),
-        <kbd className="q-fim" aria-hidden="true">
-          {teclaDosAjustes()}
-        </kbd>,
+        temTeclado ? (
+          <kbd className="q-fim" aria-hidden="true">
+            {teclaDosAjustes()}
+          </kbd>
+        ) : undefined,
       )}
       {linhaDeDestino('profile', UserRound, t('Seu perfil'))}
       {linhaDeDestino('ajuda', LifeBuoy, t('Ajuda e suporte'))}
@@ -570,10 +547,6 @@ export default function CabecalhoSimples({
       {headset && linhaDeDestino('diagnostico', Activity, t('Diagnóstico do aparelho'))}
       {leituraAtiva &&
         linhaDeDestino('leituraAtiva', ITEM_LEITURA_ATIVA.icon, navLabel(ITEM_LEITURA_ATIVA, ageProfile))}
-      {!semServidor &&
-        !convite &&
-        item('planos') &&
-        linhaDeDestino('planos', item('planos')!.icon, t('Seu plano'), undefined, fraseDoPlano())}
       {ehAdmin(perfil) && linhaDeDestino('admin', ITEM_ADMIN.icon, navLabel(ITEM_ADMIN, ageProfile))}
       <div className="ns-sep" role="separator" />
       {interruptor(t('Tema escuro'), Moon, darkMode, toggleDarkMode, 'interruptor-tema')}

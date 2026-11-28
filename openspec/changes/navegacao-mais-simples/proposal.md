@@ -43,7 +43,7 @@ adulto ocupado que quer legendar um vídeo e rever os cartões em poucos toques.
 3. **A opção escolhida (3, "O Início é o menu"), atrás da flag `navegacao_simples`** (nasce DESLIGADA, sem regra de plano):
    sem trilho, sem "Mais" e sem barra de baixo; o Início é a grade de destinos (Ao vivo em destaque, abrindo no último modo;
    Cartões com o número do dia; Jogar; Livros com progresso; Biblioteca; Progresso; "Seja Premium" só para quem não assina);
-   nas outras telas, um cabeçalho fino com "‹ Início", o nome, a busca, o sino (avisos direto) e o avatar (menu da conta). O
+   nas outras telas, um cabeçalho fino com "‹ Início", o nome, a busca, o sino (avisos direto) e o avatar ("Configurações"). O
    seletor "Legendar | Conversar" fica dentro da tela do Ao vivo.
 4. **Um orçamento de navegação** escrito (spec): máximo de itens por nível e a regra "item novo entra tirando outro".
 

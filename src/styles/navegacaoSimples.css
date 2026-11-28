@@ -275,6 +275,34 @@
   border-color: var(--q-acento, var(--accent));
   background: var(--q-suave, var(--accent-soft));
 }
+/* Planos fecha a última fileira (ao lado de Progresso e Personalizar): ocupa duas colunas nas duas grades. */
+.ns-blocos > .ns-planos {
+  grid-column: span 2;
+}
+
+/* O ÍCONE DO AO VIVO sem o anel do polimento (`polimento/efeitos.css`): no bloco grande ele virava um contorno quadrado
+   deslocado em volta do ícone. */
+html[data-px] .ns-blocos .q-tile.pri .q-ic::before,
+html[data-px] .ns-blocos .q-tile.pri .q-ic::after {
+  content: none;
+  display: none;
+}
+
+/* CELULAR SEM A BARRA DE BAIXO (flag ligada): o conteúdo não reserva mais os 156 px da barra, só o botão do iChat; o
+   botão, o selo "Salvando…" e a tela do avatar descem para o pé. */
+@media (max-width: 720px) {
+  html:has(.q-casca[data-nav='simples']) :is(.q-palco, .rolagem) {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+  html:has(.q-casca[data-nav='simples']) .fab,
+  html:has(.q-casca[data-nav='simples']) .indicador-de-salvamento {
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  html:has(.q-casca[data-nav='simples']) .av-tela {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+}
 
 @media (max-width: 1023px) {
   .ns-blocos {

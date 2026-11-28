@@ -5,7 +5,8 @@
  * Desligada: o trilho e o "Mais" de sempre, e o Início de sempre (nada do cabeçalho nem da grade nova).
  * Ligada: sem trilho e sem "Mais"; o cabeçalho fino (‹ Início, nome, busca, sino, avatar), o sino abre os avisos direto, o
  * avatar abre a conta (interruptores `role=switch`), Esc devolve o foco, o Ao vivo troca de modo dentro da tela, e o Início
- * vira a grade de blocos (o Ao vivo abre no último modo; "Seja Premium" só para quem não assina).
+ * vira a grade de blocos (o Ao vivo abre no último modo; Planos é "Seja Premium" para quem não assina e "Seu plano" para
+ * quem assina). O avatar abre "Configurações" (sem Progresso, Personalizar e Planos, que estão no Início).
  */
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
@@ -156,16 +157,18 @@ describe('flag ligada: o cabeçalho', () => {
     expect(ir).toHaveBeenCalledWith('cartoes')
   })
 
-  it('o avatar abre a conta: destinos, interruptores role=switch e "Seja Premium" no Grátis', async () => {
+  it('o avatar abre "Configurações": destinos, interruptores role=switch; Esc devolve o foco', async () => {
     casca('play')
     const avatar = await screen.findByTestId('avatar-da-conta')
+    expect(avatar.getAttribute('aria-label')).toBe('Configurações e conta')
     fireEvent.click(avatar)
     const painel = screen.getByTestId('painel-da-conta')
-    for (const nome of ['Progresso', 'Personalizar', 'Ajustes', 'Seu perfil', 'Ajuda e suporte', 'Sobre'])
+    expect(painel.getAttribute('aria-label')).toBe('Configurações')
+    expect(within(painel).getByRole('heading', { name: 'Configurações' })).toBeTruthy()
+    for (const nome of ['Ajustes', 'Seu perfil', 'Ajuda e suporte', 'Sobre'])
       expect(within(painel).getByRole('button', { name: new RegExp(`^${nome}`) })).toBeTruthy()
-    expect(within(painel).getByTestId('seja-premium-na-conta').textContent).toContain('Seja Premium')
-    expect(within(painel).queryByRole('button', { name: /^Seu plano/ })).toBeNull()
-    expect(within(painel).queryByRole('button', { name: /^Administração/ })).toBeNull()
+    for (const fora of [/^Progresso/, /^Personalizar/, /^Seu plano/, /Seja Premium/, /^Administração/])
+      expect(within(painel).queryByRole('button', { name: fora })).toBeNull()
     const chaves = within(painel).getAllByRole('switch')
     expect(chaves.map((c) => c.getAttribute('aria-label'))).toEqual([
       'Tema escuro',
@@ -173,23 +176,20 @@ describe('flag ligada: o cabeçalho', () => {
       'Modo desempenho',
     ])
     expect(chaves.map((c) => c.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false'])
-    expect(document.activeElement).toBe(within(painel).getByTestId('seja-premium-na-conta'))
+    expect(document.activeElement).toBe(within(painel).getByRole('button', { name: /^Ajustes/ }))
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
     expect(screen.queryByTestId('painel-da-conta')).toBeNull()
     expect(document.activeElement).toBe(avatar)
   })
 
-  it('quem assina vê "Seu plano" (e não o convite); admin vê Administração', async () => {
+  it('admin vê Administração em Configurações (e nada de plano ali, mesmo assinando)', async () => {
     plano.atual = 'premium'
     admin.eh = true
     const { ir } = casca('play')
     fireEvent.click(await screen.findByTestId('avatar-da-conta'))
     const painel = screen.getByTestId('painel-da-conta')
-    expect(within(painel).queryByTestId('seja-premium-na-conta')).toBeNull()
-    fireEvent.click(within(painel).getByRole('button', { name: /^Seu plano/ }))
-    expect(ir).toHaveBeenCalledWith('planos')
-    fireEvent.click(await screen.findByTestId('avatar-da-conta'))
-    fireEvent.click(within(screen.getByTestId('painel-da-conta')).getByRole('button', { name: /^Administração/ }))
+    expect(within(painel).queryByRole('button', { name: /^Seu plano/ })).toBeNull()
+    fireEvent.click(within(painel).getByRole('button', { name: /^Administração/ }))
     expect(ir).toHaveBeenCalledWith('admin')
   })
 
@@ -230,7 +230,7 @@ describe('flag ligada: o Início é o menu', () => {
   it('a grade com os seis destinos, o número de hoje e o convite do Grátis; sem os caminhos antigos', async () => {
     inicio()
     const menu = await screen.findByTestId('inicio-menu')
-    for (const id of ['ao-vivo', 'cartoes', 'jogar', 'livros', 'biblioteca', 'progresso', 'premium'])
+    for (const id of ['ao-vivo', 'cartoes', 'jogar', 'livros', 'biblioteca', 'progresso', 'personalizar', 'planos'])
       expect(within(menu).getByTestId(`bloco-${id}`)).toBeTruthy()
     expect(within(menu).getByTestId('bloco-cartoes').getAttribute('aria-label')).toBe('Cartões, 42 cartões para hoje')
     expect(screen.queryByTestId('cartoes-no-inicio')).toBeNull()
@@ -253,15 +253,30 @@ describe('flag ligada: o Início é o menu', () => {
     expect(ir).toHaveBeenCalledWith('capture')
   })
 
-  it('quem assina não vê o convite; no teste, vê', async () => {
+  it('Planos para todos: "Seja Premium" em destaque no Grátis e no teste; "Seu plano" para quem assina', async () => {
+    const ir = inicio()
+    let bloco = await screen.findByTestId('bloco-planos')
+    expect(bloco.getAttribute('data-convite')).toBe('true')
+    expect(bloco.textContent).toContain('Seja Premium')
+    fireEvent.click(bloco)
+    expect(ir).toHaveBeenCalledWith('planos')
+    cleanup()
     plano.atual = 'premium'
     inicio()
-    await screen.findByTestId('inicio-menu')
-    expect(screen.queryByTestId('bloco-premium')).toBeNull()
+    bloco = await screen.findByTestId('bloco-planos')
+    expect(bloco.getAttribute('data-convite')).toBeNull()
+    expect(bloco.textContent).toContain('Seu plano')
+    expect(bloco.textContent).toContain('Você está no Premium')
     cleanup()
     plano.teste = { terminaEm: Date.now() + 2 * 86_400_000 }
     inicio()
-    expect(await screen.findByTestId('bloco-premium')).toBeTruthy()
+    expect((await screen.findByTestId('bloco-planos')).textContent).toContain('Seja Premium')
+  })
+
+  it('Personalizar abre a tela de hoje (loja)', async () => {
+    const ir = inicio()
+    fireEvent.click(await screen.findByTestId('bloco-personalizar'))
+    expect(ir).toHaveBeenCalledWith('loja')
   })
 
   it('o rótulo segue o perfil (kids: "Meu progresso")', async () => {

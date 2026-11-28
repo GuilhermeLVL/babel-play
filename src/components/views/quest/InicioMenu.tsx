@@ -1,11 +1,24 @@
 import '../../../styles/navegacaoSimples.css';
 
-import { BookOpen, ChartColumn, Gamepad2, Languages, Layers, Library, Lock, Mic, Sparkles } from 'lucide-react';
-import React from 'react';
+import {
+  BookOpen,
+  ChartColumn,
+  CreditCard,
+  Gamepad2,
+  Languages,
+  Layers,
+  Library,
+  Lock,
+  Mic,
+  Shirt,
+  Sparkles,
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 import { porcentagemDe } from '../../../core/livros/meusLivros';
 import type { AppMetrics } from '../../../data/api';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
+import { onPlanChange } from '../../../lib/entitlements';
 import { numero, t, tp } from '../../../lib/i18n';
 import { idNaEstante, recentes, useMeusLivros } from '../../../lib/livros/meusLivros';
 import { posicoes } from '../../../lib/livros/posicoesDoAparelho';
@@ -21,8 +34,9 @@ import { ITEM_AO_VIVO, NAV_ITEMS, navLabel } from '../../shell/navItems';
 /**
  * O INÍCIO É O MENU (flag `navegacao_simples`; openspec `navegacao-mais-simples`, opção 3): a grade de destinos que tomou
  * o lugar do trilho. O Ao vivo é o bloco grande e abre DIRETO no último modo usado (Legendar ou Conversar; a troca é dentro
- * da tela); Cartões traz o número do dia, Livros o progresso do livro atual, e "Seja Premium" só aparece para o Grátis,
- * para quem está sem conta e no teste. Os rótulos são os do perfil (`navItems`), e os textos, os que o Início já dizia.
+ * da tela); Cartões traz o número do dia, Livros o progresso do livro atual; Progresso, Personalizar e Planos fecham a
+ * grade (Planos é "Seja Premium" em destaque para o Grátis, sem conta e teste, e "Seu plano" para quem assina). Os rótulos
+ * são os do perfil (`navItems`).
  * Pedaço à parte (desce só com a flag): com ela desligada, ninguém o baixa.
  */
 interface Props {
@@ -65,7 +79,11 @@ export default function InicioMenu({ onChangeView, metrics, progress, semConta, 
   const modo = lerUltimaAoVivo();
   const hoje = !semConta && metrics ? metrics.dueToday : 0;
   const livro = useLivroAtual();
-  const convite = !edicaoEstatica() && veConviteDoPremium();
+  /* O plano muda (assinatura, fim do teste): o bloco Planos acompanha. */
+  const [, setVersaoDoPlano] = useState(0);
+  useEffect(() => onPlanChange(() => setVersaoDoPlano((v) => v + 1)), []);
+  const temPlanos = !edicaoEstatica() && NAV_ITEMS.some((i) => i.id === 'planos');
+  const convite = temPlanos && veConviteDoPremium();
   const pedeConta = (id: string) =>
     semConta && exigeConta(id) ? (
       <span className="q-d q-pede-conta">
@@ -197,18 +215,33 @@ export default function InicioMenu({ onChangeView, metrics, progress, semConta, 
             ) : null)}
         </button>
 
-        {convite && (
+        <button
+          type="button"
+          className="q-tile"
+          onClick={() => onChangeView('loja')}
+          {...intencaoDe('loja')}
+          data-testid="bloco-personalizar"
+        >
+          <span className="q-ic">
+            <Shirt aria-hidden />
+          </span>
+          <b>{rotulo('loja', ageProfile)}</b>
+          {pedeConta('loja') ?? <span className="q-d">{t('Seu visual, a loja e as conquistas.')}</span>}
+        </button>
+
+        {/* PLANOS PARA TODOS (pedido do dono, 28/11/2026): quem não assina vê o convite em destaque; quem assina, o plano. Não
+            existe no site sem servidor (não há plano a assinar). */}
+        {temPlanos && (
           <button
             type="button"
-            className="q-tile ns-premium"
+            className={convite ? 'q-tile ns-planos ns-premium' : 'q-tile ns-planos'}
             onClick={() => onChangeView('planos')}
             {...intencaoDe('planos')}
-            data-testid="bloco-premium"
+            data-testid="bloco-planos"
+            data-convite={convite ? 'true' : undefined}
           >
-            <span className="q-ic">
-              <Sparkles aria-hidden />
-            </span>
-            <b>{comNomeDoPlano(t('Seja Premium'), planoDeEntradaAgora())}</b>
+            <span className="q-ic">{convite ? <Sparkles aria-hidden /> : <CreditCard aria-hidden />}</span>
+            <b>{convite ? comNomeDoPlano(t('Seja Premium'), planoDeEntradaAgora()) : t('Seu plano')}</b>
             <span className="q-d">{fraseDoPlano()}</span>
           </button>
         )}

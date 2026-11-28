@@ -4,8 +4,9 @@
 
 Com a flag `navegacao_simples` ligada, o app MUST NOT mostrar trilho lateral, painel "Mais" nem barra de baixo, no computador
 e no celular. O Início SHALL ser a grade de destinos: Ao vivo (em destaque), Cartões (com o número de hoje), Jogar, Livros (com
-o progresso do livro atual, quando houver), Biblioteca e Progresso, mais "Seja Premium" só para quem está no Grátis, sem conta
-ou no teste. Os rótulos SHALL seguir o perfil (`navItems.ts`).
+o progresso do livro atual, quando houver), Biblioteca, Progresso, Personalizar e Planos. Planos SHALL aparecer para todos:
+"Seja Premium" em destaque para quem está no Grátis, sem conta ou no teste, e "Seu plano" para quem assina. Os rótulos SHALL
+seguir o perfil (`navItems.ts`).
 
 #### Scenario: Computador e celular
 
@@ -16,7 +17,7 @@ ou no teste. Os rótulos SHALL seguir o perfil (`navItems.ts`).
 #### Scenario: Quem assina
 
 - **WHEN** a pessoa tem um plano pago (fora do teste)
-- **THEN** o Início não mostra "Seja Premium", e o menu da conta mostra "Seu plano"
+- **THEN** o bloco Planos do Início mostra "Seu plano" em vez de "Seja Premium"
 
 #### Scenario: Flag desligada
 
@@ -27,7 +28,7 @@ ou no teste. Os rótulos SHALL seguir o perfil (`navItems.ts`).
 
 Fora do Início, o app SHALL mostrar um cabeçalho com "‹ Início", o nome da tela, a busca (Ctrl/⌘+K abre a busca global de
 sempre), o sino e o avatar. O sino SHALL abrir direto a lista de avisos, com o número de não lidos preso a ele; o avatar SHALL
-abrir o menu da conta (Progresso, Personalizar, Ajustes, Seu perfil, Ajuda e suporte, Sobre, Planos, Administração para admin,
+abrir "Configurações" (Ajustes, Seu perfil, Ajuda e suporte, Sobre, Administração para admin,
 interruptores `role="switch"` de tema, som e modo desempenho, estado da conta e Sair). Esc SHALL fechar o painel e devolver o
 foco ao botão que o abriu, e Ctrl+, SHALL continuar abrindo Ajustes.
 
@@ -38,7 +39,7 @@ foco ao botão que o abriu, e Ctrl+, SHALL continuar abrindo Ajustes.
 
 #### Scenario: Esc devolve o foco
 
-- **WHEN** a pessoa abre o menu da conta e aperta Esc
+- **WHEN** a pessoa abre "Configurações" pelo avatar e aperta Esc
 - **THEN** o menu fecha e o foco volta ao avatar
 
 ### Requirement: Ao vivo abre direto no último modo
@@ -80,5 +81,5 @@ tela de antes.
 #### Scenario: Planos continua achável
 
 - **WHEN** a pessoa procura Planos
-- **THEN** encontra pelo bloco "Seja Premium" do Início (quem não assina), pelo menu da conta, pelo atalho em Ajustes e
+- **THEN** encontra pelo bloco Planos do Início, pelo atalho em Ajustes e
   pela busca

@@ -46,6 +46,7 @@ import { ancorar } from '../../../core/leitura/reancorar';
 import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
 import {
   FLAG_AUDIOLIVROS,
+  FLAG_IA_AJUSTAR_NIVEL,
   FLAG_LEITOR_DESTAQUE_VOCAB,
   FLAG_LEITOR_MODO_TRADUCAO,
   FLAG_LEITOR_SELECAO_FIRME,
@@ -74,6 +75,7 @@ import { audiolivroDoLivro } from '../../../lib/leitor/audiolivroDoLivro';
 import { barramentoDaSelecao, montarTrecho } from '../../../lib/leitor/barramentoDaSelecao';
 import { dicaDoElencoJaVista, marcarDicaDoElencoVista } from '../../../lib/leitor/dicaDoElenco';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
+import { lerEmVozAlta } from '../../../lib/leitor/lerEmVoz';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
 import { type AudioGravadoDoLivro, Narrador, type VistaDoNarrador } from '../../../lib/leitor/narrador';
 import { paragrafoDoTrecho, retanguloDoTrecho } from '../../../lib/leitor/retanguloDoTrecho';
@@ -139,9 +141,12 @@ const BotaoBaixarCapitulo = lazy(() => import('./BotaoBaixarCapitulo'));
 const CamadaDeSelecao = lazy(() => import('./CamadaDeSelecao'));
 /* O balão da tradução (flag `leitor_modo_traducao`): só carrega com a flag ligada e uma seleção na tela. */
 const BalaoDaTraducao = lazy(() => import('./BalaoDaTraducao'));
+/* O "Ajustar nível" (flag `ia_ajustar_nivel`): o painel da fatia D só carrega com a flag ligada. */
+const PainelAjustarNivel = lazy(() => import('./PainelAjustarNivel'));
 /* O destaque por vocabulário e a prática do fim do capítulo (flag `leitor_destaque_vocab`): só carregam com ela ligada. */
 const CamadaDeDestaque = lazy(() => import('./CamadaDeDestaque'));
 const PraticaDoCapitulo = lazy(() => import('./PraticaDoCapitulo'));
+import { aoAjustarNivelDoBalao } from './aoAjustarNivelDoBalao';
 import { useElencoDoLivro } from './useElencoDoLivro';
 import { useFatosDasFerramentas } from './useFatosDasFerramentas';
 import { usePerfilDeLeitura } from './usePerfilDeLeitura';
@@ -305,6 +310,7 @@ export default function LeitorDoLivro({
   }, [selecao, painel]);
   /* ── o modo tradução (flag `leitor_modo_traducao`): o balão da tradução junto do trecho ── */
   const balaoLigado = useFlag(FLAG_LEITOR_MODO_TRADUCAO);
+  const ajustarNivelLigado = useFlag(FLAG_IA_AJUSTAR_NIVEL);
   const [modoTraducao, setModoTraducao] = useState(() => lerLocal(LS_MODO_TRADUCAO) === '1');
   const [balaoAberto, setBalaoAberto] = useState(false);
   const [comandoDoBalao, setComandoDoBalao] = useState<{ acao: AcaoDoAtalho; n: number } | null>(null);
@@ -1580,6 +1586,22 @@ export default function LeitorDoLivro({
               gravarLocal(LS_MODO_TRADUCAO, '0');
             }}
             comando={comandoDoBalao}
+            aoAjustarNivel={aoAjustarNivelDoBalao(ajustarNivelLigado, {
+              texto: selecao.trecho.texto,
+              frase: selecao.trecho.frase,
+              paragrafo: selecao.paragrafo || selecao.trecho.frase,
+              idioma: selecao.trecho.idioma,
+            })}
+          />
+        </Suspense>
+      )}
+
+      {ajustarNivelLigado && (
+        <Suspense fallback={null}>
+          <PainelAjustarNivel
+            idiomaDaPessoa={baseLang(langConfig.mine)}
+            paragrafosDoCapitulo={() => motorRef.current?.secaoAtual()?.paragrafos ?? []}
+            aoOuvir={(texto, idioma) => lerEmVozAlta(texto, idioma)}
           />
         </Suspense>
       )}

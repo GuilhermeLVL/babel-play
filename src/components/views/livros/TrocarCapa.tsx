@@ -1,5 +1,6 @@
 import { ImagePlus, Undo2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { type ModoDoAjuste, TETO_DA_IMAGEM_DE_ORIGEM, TIPOS_DE_IMAGEM } from '../../../core/livros/imagemDeCapa';
 import { t } from '../../../lib/i18n';
@@ -128,7 +129,9 @@ export default function TrocarCapa({
     }
   };
 
-  return (
+  /* No `document.body`: dentro do `main` o fundo ficava num contexto de empilhamento abaixo do dock e do botão flutuante
+     no WebKit do iPhone, e o "Usar esta capa" ficava coberto. */
+  return createPortal(
     <div className="lvc-fundo" onMouseDown={(e) => e.target === e.currentTarget && aoFechar()}>
       <div
         ref={caixa}
@@ -228,6 +231,7 @@ export default function TrocarCapa({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

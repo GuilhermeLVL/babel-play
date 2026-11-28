@@ -16,6 +16,10 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
   O leitor de livros (`/leitor`): motor em `src/lib/leitor/` (foliate-js VENDORIZADO em `foliate/`, fora do
   lint/prettier; mudanças só com `FRASY:` e registro em `foliate/PATCHES.md`), tela em `src/components/views/leitor/`,
   regras puras (anotação W3C, exportações, CFI, perfil) em `src/core/leitura/`, estante e `abrirLivroNoLeitor` em `src/lib/livros/`.
+  Leitura assistida (5 flags `escuta_player_compacto`, `leitor_*`, `ia_ajustar_nivel`, desligadas; `openspec/changes/leitura-assistida`):
+  o contrato entre as fatias é `src/core/leitura/leituraAssistida.ts` (mudar exige aviso no PR); seleção em `CamadaDeSelecao`, balão em
+  `BalaoDaTraducao`, destaque em `CamadaDeDestaque`, "Ajustar nível" em `PainelAjustarNivel` (tudo lazy em `LeitorDoLivro.tsx`, só com a flag).
+  Rode `playwright.webkit.config.ts` antes de mergear mudança no leitor.
 - `src/data/`: acesso a dados e clientes das rotas da API (`src/data/rotas/`), trilha de conteúdo.
   `public/catalogo/fichas/` (as fichas dos livros) e `src/data/livros/fichasDoParceiro.json` (a parte delas que o
   servidor do parceiro de leitura empacota) são GERADOS por `scripts/livros/gerar-fichas.mjs`; não edite à mão.

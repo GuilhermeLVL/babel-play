@@ -701,6 +701,23 @@ export const notaDoCartaoSchema = z.object({ nota: z.string().max(500) }).strip(
 export const etiquetasDoCartaoSchema = z.object({ etiquetas: z.array(z.string().max(64)).max(40) }).strip()
 
 /**
+ * `POST /api/vocab/lote` (openspec `cartoes` 6.2b, flag `estudo_palavras_v2`): uma ação para até 50 cartões. Os ids vêm do
+ * cliente e NÃO são confiáveis: a posse é conferida no repositório (id de outra conta = 404, igual a id que não existe).
+ */
+export const loteDeCartoesSchema = z.discriminatedUnion('acao', [
+  z.object({ acao: z.literal('suspender'), ids: z.array(z.string().min(1).max(128)).min(1).max(50) }).strip(),
+  z.object({ acao: z.literal('retomar'), ids: z.array(z.string().min(1).max(128)).min(1).max(50) }).strip(),
+  z
+    .object({
+      acao: z.literal('etiquetar'),
+      ids: z.array(z.string().min(1).max(128)).min(1).max(50),
+      adicionar: z.array(z.string().max(64)).max(40).default([]),
+      remover: z.array(z.string().max(64)).max(40).default([]),
+    })
+    .strip(),
+])
+
+/**
  * PATCH de cartão: o handler fazia `typeof` + `slice(0,2000)` à mão.
  *
  * Só `back` e `inDeck`, porque é só isso que a rota aceita hoje — o resto do cartão (agendamento,

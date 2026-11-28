@@ -19,6 +19,7 @@ import {
 } from '../../../src/core/learning/forcaDoCartao'
 import { avaliarCartao, foraDoBulkAdd, type MotivoDescarte } from '../../../src/core/learning/quality'
 import { type Grade, makeFsrs5, metaDeRetencao, type SchedulingState } from '../../../src/core/learning/scheduler'
+import { type AcaoEmLote, etiquetasDepoisDoLote, idsDoLote } from '../../../src/core/palavras/lote'
 import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import type { UserId } from '../../lib/authContext'
 import { garantirNiveis } from '../../lib/niveisDaTrilha'
@@ -1456,6 +1457,48 @@ export const vocabRepo = {
       .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
       .returning({ id: vocabCards.id, etiquetas: vocabCards.etiquetas })
     return r[0]
+  },
+
+  /**
+   * A AÇÃO EM LOTE (`POST /api/vocab/lote`, openspec `cartoes` 6.2b): suspender, retomar ou etiquetar até 50 cartões numa
+   * transação. TUDO OU NADA e sem vazar: se algum id não é da conta (ou foi apagado), nada muda e o retorno é `null`, o mesmo
+   * para "de outro usuário" e "não existe" (a rota responde 404). `'etiquetas'` devolve `null` na mesma posição quando alguma
+   * etiqueta é inválida ou um cartão passaria de 10: aí `{ erro }`.
+   */
+  async aplicarLote(
+    userId: UserId,
+    ids: string[],
+    acao: AcaoEmLote,
+  ): Promise<{ alterados: number } | { erro: 'etiquetas' } | null> {
+    const unicos = idsDoLote(ids)
+    return emTransacao(async (tx) => {
+      const donos = await tx
+        .select({ id: vocabCards.id, etiquetas: vocabCards.etiquetas })
+        .from(vocabCards)
+        .where(and(inArray(vocabCards.id, unicos), eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
+      if (donos.length !== unicos.length) return null
+      const agora = Date.now()
+      if (acao.acao === 'etiquetar') {
+        const novas = new Map<string, string[]>()
+        for (const d of donos) {
+          const r = etiquetasDepoisDoLote(d.etiquetas ?? [], acao.adicionar, acao.remover)
+          if (!r) return { erro: 'etiquetas' as const }
+          novas.set(d.id, r)
+        }
+        for (const [id, etiquetas] of novas) {
+          await tx
+            .update(vocabCards)
+            .set({ etiquetas, updatedAt: agora })
+            .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId)))
+        }
+        return { alterados: novas.size }
+      }
+      await tx
+        .update(vocabCards)
+        .set({ inDeck: acao.acao === 'retomar' ? 1 : 0, updatedAt: agora })
+        .where(and(inArray(vocabCards.id, unicos), eq(vocabCards.userId, userId)))
+      return { alterados: unicos.length }
+    })
   },
 
   /** As etiquetas em uso na conta, com quantos cartões cada uma tem (as mais usadas primeiro): a sugestão e o filtro. */

@@ -344,8 +344,9 @@
 }
 
 /* ── QUANDO A TELA É TODA DA TAREFA: o cabeçalho some como o trilho sumia ───────────────────── */
-/* Ao vivo, a legenda fica com a tela inteira (`quest.css`, `:has(.quest-vivo)`). */
-html[data-quest-novo='true']:has(.quest-vivo) .ns-cab {
+/* Ao vivo, GRAVANDO, a legenda fica com a tela inteira (`quest.css`, `:has(.quest-vivo)`); pronta ou parada, a navegação
+   continua à vista (`polimentoCaptura.css`, `.px-pronto` e `.px-parada`). */
+html[data-quest-novo='true']:has(.quest-vivo:not(.px-pronto):not(.px-parada)) .ns-cab {
   display: none;
 }
 /* Com a conversa do Intérprete em curso, no celular (`modoInterprete.css`, CONV-08): o "Sair" da conversa é a volta. */

@@ -44,6 +44,9 @@ test('Início → Ao vivo em 1 toque, no último modo, e o modo troca dentro da 
   await clicarRobusto(page, page.getByTestId('modo-legendar'))
   await expect(page).toHaveURL(/\/capturar$/, { timeout: 10_000 })
   await expect(page.getByTestId('modo-legendar')).toHaveAttribute('aria-pressed', 'true')
+  /* Pronta para legendar (sem gravar), a navegação continua à vista. */
+  await expect(page.getByTestId('modo-legendar')).toBeVisible()
+  await expect(page.getByTestId('voltar-ao-inicio')).toBeVisible()
   expect(await page.evaluate(() => localStorage.getItem('babel.aoVivo.ultima'))).toBe('capture')
 })
 

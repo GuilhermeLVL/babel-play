@@ -102,7 +102,7 @@ describe('manifesto: permissões mínimas e privacidade', () => {
     // nenhum outro host além do dev (localhost) e da produção
     const hosts = new Set<string>(
       [...manifesto.content_scripts[0].matches, ...manifesto.web_accessible_resources[0].matches].map(
-        (m: string) => new URL(m.replace('*', 'x')).host,
+        (m: string) => new URL(m.replaceAll('*', 'x')).host,
       ),
     )
     expect([...hosts].sort()).toEqual(['frasy.com.br', 'localhost'])

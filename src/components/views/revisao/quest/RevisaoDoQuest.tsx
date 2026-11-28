@@ -493,6 +493,7 @@ export function RodadaDoQuest({
   instrucao,
   aviso,
   formato,
+  lacuna = false,
   notas,
   mostrandoResposta,
   aoMostrarResposta,
@@ -551,6 +552,11 @@ export function RodadaDoQuest({
   instrucao?: string;
   aviso?: AvisoDaRodada;
   formato: FormatoDaRodada;
+  /**
+   * Formato LACUNA do Lembrar (flag `estudo_revisao_v2`, cartões 3.2): a frente mostra a frase com a palavra escondida e a
+   * tradução como pista; o verso é o de sempre. Só chega com uma lacuna válida na frase.
+   */
+  lacuna?: boolean;
   notas: NotaDoQuest[];
   mostrandoResposta: boolean;
   aoMostrarResposta: () => void;
@@ -744,6 +750,19 @@ export function RodadaDoQuest({
       <IconeDeOnde aria-hidden />
       <span>{onde.texto}</span>
     </p>
+  );
+
+  const topoDaLacuna = (
+    <>
+      <p className="ct-lacuna-pergunta">{t('Que palavra completa a frase?')}</p>
+      <div className="ct-frase cx-frase-linha">
+        <p className="exemplo" lang={idioma} data-testid="frase-com-lacuna">
+          “<FraseMarcada frase={frase} palavra={cartao.word} modo="vao" />”
+        </p>
+      </div>
+      <p className="exemplo ct-lacuna-pista">{cartao.translation || '—'}</p>
+      {linhaDeOnde}
+    </>
   );
 
   const topoDoCartao = (
@@ -1005,9 +1024,9 @@ export function RodadaDoQuest({
             )}
           </>
         ) : !mostrandoResposta ? (
-          /* LEMBRAR: a palavra e a frase; a tradução só depois. */
+          /* LEMBRAR: a palavra e a frase; a tradução só depois. Em LACUNA: a frase sem a palavra e a tradução. */
           <>
-            {topoDoCartao}
+            {lacuna ? topoDaLacuna : topoDoCartao}
             <div className="resp qr-sem-linha">
               {convidaDizer && (
                 <p className="cx-diga">
@@ -1185,6 +1204,7 @@ export function OpcoesDaRevisaoNoQuest({
   padrao,
   temVoz,
   producao,
+  lacuna,
   aoTrocar,
   aoFechar,
 }: {
@@ -1193,6 +1213,8 @@ export function OpcoesDaRevisaoNoQuest({
   /** Há voz para o idioma estudado neste aparelho? Sem ela, "ouvir ao mostrar" diz o motivo. */
   temVoz: boolean;
   producao?: ProducaoAtivaNoQuest;
+  /** Flag `estudo_revisao_v2`: o interruptor do formato lacuna e da frase que muda a cada revisão. Ausente = não aparece. */
+  lacuna?: { ligada: boolean; aoTrocar: (ligada: boolean) => void };
   aoTrocar: (v: Partial<ValoresDaRevisaoNoQuest>) => void;
   aoFechar: () => void;
 }) {
@@ -1267,6 +1289,24 @@ export function OpcoesDaRevisaoNoQuest({
             ]}
           />
         </div>
+        {lacuna && (
+          <div className="q-ajuste" data-testid="opcao-lacuna">
+            <div>
+              <b>{t('Esconder a palavra na frase')}</b>
+              <small>
+                {t('No Lembrar, a frente mostra a frase com a palavra escondida. A frase muda a cada revisão.')}
+              </small>
+            </div>
+            <button
+              type="button"
+              className="q-interruptor"
+              role="switch"
+              aria-checked={lacuna.ligada}
+              aria-label={t('Esconder a palavra na frase')}
+              onClick={() => lacuna.aoTrocar(!lacuna.ligada)}
+            />
+          </div>
+        )}
         <div className="q-ajuste">
           <div>
             <b>{t('Ouvir a palavra ao mostrar')}</b>

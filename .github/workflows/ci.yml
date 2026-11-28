@@ -621,6 +621,9 @@ jobs:
       - name: Carga leve (autocannon; p95 e rotas do slo.json, zero erro)
         run: node scripts/perf/ci-carga.mjs
         timeout-minutes: 5
+      - name: Orçamento de tamanho por usuário pesado em PG (slo.json → banco)
+        run: node scripts/perf/escala/tamanho-por-usuario.mjs
+        timeout-minutes: 5
       - name: Suíte de carga, 10 usuários virtuais (SLO por classe do slo.json)
         run: node scripts/perf/suite/rodar.mjs --vus=10 --duracao=30 --rampa=5 --pensar=6 --pesados=2 --medios=50 --saida=suite-carga.json
         timeout-minutes: 5

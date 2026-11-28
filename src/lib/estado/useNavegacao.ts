@@ -78,6 +78,10 @@ export interface EstudoAberto {
   limite?: number;
   /** "Mais 5 novas": só palavras nunca vistas. */
   soNovas?: boolean;
+  /** Estudo livre (flag `estudo_revisao_v2`): fora da agenda; não grava nota nem mexe em vencimento. */
+  livre?: boolean;
+  /** No estudo livre, só as palavras difíceis. */
+  soDificeis?: boolean;
   /** "Praticar de outro jeito": a tela abre com a folha das práticas sobre este recorte, sem rodada. */
   praticar?: RecorteDaPratica;
   /**
@@ -170,6 +174,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
         sessionId: data?.id ?? null,
         limite: typeof data?.limite === 'number' ? data.limite : undefined,
         soNovas: data?.soNovas === true ? true : undefined,
+        livre: data?.livre === true ? true : undefined,
+        soDificeis: data?.soDificeis === true ? true : undefined,
         praticar: lerRecorteDaPratica(data?.praticar),
         conteudo: data?.conteudo ? lerConteudo(data.conteudo) : undefined,
       });

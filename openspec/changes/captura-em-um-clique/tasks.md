@@ -18,15 +18,15 @@ Legenda: **[D]** depende do dono; **[R]** pede aparelho real.
 
 ## 3. App: receber da extensão
 
-- [ ] 3.1 Receptor (`src/lib/captura/daExtensao.ts`): `pedir` ao abrir `/capturar?fonte=extensao`, valida com
+- [x] 3.1 (28/11, onda 2: `src/lib/captura/daExtensao.ts` + `startExtensionCapture` em `systemAudio.ts` + `useCapturaDaExtensao`; origem estrita (`event.source === window` e `event.origin` igual), forma pelo contrato, quadro repetido descartado, perdido contado, sem rede nem eval; testes `tests/captura-da-extensao.test.ts` e `tests/e2e/captura-da-extensao.e2e.ts`; atrás da flag `captura_da_extensao`, PG 0053 e SQLite 0092; o áudio de verdade pelo Chrome/Edge segue em 2.3 e 1.4 **[R]**) Receptor (`src/lib/captura/daExtensao.ts`): `pedir` ao abrir `/capturar?fonte=extensao`, valida com
       `validarDaExtensao`, junta quadros por `seq` (avisa quadro perdido), entrega Float32 ao pipeline do VAD.
       Verificar: teste com `window.postMessage` simulado; e2e com a extensão falsa.
-- [ ] 3.2 Estado na tela: "Extensão conectada" / "Sem extensão: usar o seletor" (cai no `getDisplayMedia`).
-- [ ] 3.3 Com `fonte=extensao` ausente, nada muda (sem listener, sem custo).
+- [x] 3.2 (28/11, `AvisoDaExtensao`: conectada, procurando, sem extensão, parada) Estado na tela: "Extensão conectada" / "Sem extensão: usar o seletor" (cai no `getDisplayMedia`).
+- [x] 3.3 (28/11: o parâmetro é lido no boot por `fonteDaAbertura.ts`, porque o roteador apaga a busca; sem ele ou sem a flag o receptor nem é baixado e nenhum listener existe, provado no e2e) Com `fonte=extensao` ausente, nada muda (sem listener, sem custo).
 
 ## 4. Loja **[D]**
 
 - [ ] 4.1 Ícones, capturas, descrição pt-BR e en, política de privacidade no site público.
-- [ ] 4.2 Origem de produção em `matches`/`web_accessible_resources` e `URL_DO_APP`.
+- [x] 4.2 (28/11: `https://frasy.com.br`, a do `HOST_DE_PRODUCAO` do `wrangler.jsonc`; a ponte só em `/app/*`; `URL_DO_APP` aponta para `/app/capturar`, a linha de localhost fica comentada para desenvolvimento; **[D]** ainda confirma o domínio final) Origem de produção em `matches`/`web_accessible_resources` e `URL_DO_APP`.
 - [ ] 4.3 Conta de desenvolvedor, justificativas por permissão, envio e revisão (Chrome Web Store e Edge Add-ons).
 - [ ] 4.4 Decidir listada x não listada na primeira versão.

@@ -96,7 +96,6 @@ import React, { Suspense, useCallback, useDeferredValue, useEffect, useMemo, use
 import { createPortal } from 'react-dom';
 
 import { escalaDe } from '../../core/learning/cefrWordlist';
-import { ERROS_DE_DIFICIL } from '../../core/learning/resumoDosCartoes';
 import { rotuloDaEtapa } from '../../core/learning/trilha';
 import { type EstrategiaDaUI } from '../../core/minigames/composicao';
 import {
@@ -120,6 +119,7 @@ import {
 import { previaDaFolha } from '../../core/minigames/previaDaFolha';
 import { type MaterialDaRodada, montarRodada as montarRodadaPura } from '../../core/minigames/rodada';
 import { itensSoRevisao } from '../../core/minigames/soRevisao';
+import { ehDificil } from '../../core/selecao/dificil';
 import {
   type AppMetrics,
   bulkAddCards,
@@ -547,7 +547,7 @@ export default function Play({
   const rankingDeDificeis = useMemo(
     () =>
       (deck ?? [])
-        .filter((c) => (c.lapses ?? 0) >= ERROS_DE_DIFICIL)
+        .filter((c) => ehDificil(c))
         .sort((a, b) => (b.lapses ?? 0) - (a.lapses ?? 0))
         .map((c) => c.id),
     [deck],

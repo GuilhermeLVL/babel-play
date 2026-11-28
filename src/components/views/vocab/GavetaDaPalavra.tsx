@@ -35,6 +35,7 @@ import {
   GraduationCap,
   History,
   type LucideIcon,
+  MessageCircleQuestion,
   Mic,
   Monitor,
   Pause,
@@ -50,13 +51,16 @@ import {
 } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
+import { FLAG_ESTUDO_PALAVRAS_V2 } from '../../../core/planos';
 import { fetchMemoriaDoCartao, updateCard } from '../../../data/api';
 import { useCenaDoCartao } from '../../../hooks/useCenaDoCartao';
 import { cartaoDificil } from '../../../lib/conteudo/cartoes';
 import { type DictionaryResult, forvoUrl, lookup, wiktionaryUrl } from '../../../lib/dictionary';
 import { noHeadset } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { useFlag } from '../../../lib/flags';
 import { numero, t, tp } from '../../../lib/i18n';
 import { baseLang, langLabelNaUI } from '../../../lib/languages';
+import { perguntarAoTutorSobre, tutorDisponivelParaAPalavra } from '../../../lib/palavras/tutorDaPalavra';
 import { classesDaPalavra } from '../../../lib/pelesDeCartao';
 import { anima, polido, reduz } from '../../../lib/polimento/base';
 import { sentir } from '../../../lib/polimento/sentidos';
@@ -174,6 +178,7 @@ export default function GavetaDaPalavra({
   const [editando, setEditando] = useState(editandoInicial);
   const [confirmaExcluir, setConfirmaExcluir] = useState(false);
   const imagemDaCena = useCenaDoCartao(cartao.id);
+  const estudoV2 = useFlag(FLAG_ESTUDO_PALAVRAS_V2);
   const [verbete, setVerbete] = useState<DictionaryResult | null>(null);
   const [memoria, setMemoria] = useState<{ revisoes: number; acertos: number } | null>(null);
   const [origem, setOrigem] = useState<OrigemDoCartao | null>(null);
@@ -308,6 +313,8 @@ export default function GavetaDaPalavra({
           ? t('Sessão')
           : t('Adicionada à mão');
   const outras = origem?.outrasFrases ?? [];
+  /* Flag `estudo_palavras_v2`: só onde o tutor responderia (conta, e para perfil protegido a conta liberada; a resposta passa pelo filtro). */
+  const perguntarAoTutor = estudoV2 && tutorDisponivelParaAPalavra();
   const temFala = !!cena?.temAudio;
 
   const ouvirOriginal = () => {
@@ -642,6 +649,19 @@ export default function GavetaDaPalavra({
             }}
           >
             <Sparkles aria-hidden /> {t('Praticar de outro jeito')}
+          </button>
+        )}
+        {perguntarAoTutor && (
+          <button
+            type="button"
+            className="btn btn-outline peq"
+            data-testid="perguntar-ao-tutor"
+            onClick={() => {
+              fechar();
+              perguntarAoTutorSobre(cartao.word, fraseDaCena);
+            }}
+          >
+            <MessageCircleQuestion aria-hidden /> {t('Perguntar ao tutor')}
           </button>
         )}
         <button

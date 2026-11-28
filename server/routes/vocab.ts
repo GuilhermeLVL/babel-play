@@ -1,20 +1,25 @@
 /** Rotas de vocabulário/SRS (montadas em `/api/vocab`). */
 import { Router } from 'express'
 
+import { DIAS_DO_CALENDARIO } from '../../src/core/learning/resumoDosCartoes'
 import type { Grade } from '../../src/core/learning/scheduler'
+import { FLAG_ESTUDO_PALAVRAS_V2 } from '../../src/core/planos'
 import { chaveDaPalavraNaVersao } from '../../src/core/texto/palavra'
 import { MAX_ETIQUETAS, normalizarEtiqueta, normalizarEtiquetas } from '../../src/core/vocabulario/etiquetasDoUsuario'
 import { TETO_DE_MARCADAS } from '../../src/core/vocabulario/marcadas'
 import { contagensDeConteudo, versaoDosBaralhos } from '../db/repositories/contagensDeConteudo'
+import { memoriaPorBaralho } from '../db/repositories/memoriaPorBaralho'
+import { sequenciaDosDias } from '../db/repositories/metrics'
 import { opcoesDaRevisaoRepo } from '../db/repositories/opcoesDaRevisao'
 import { palavrasMarcadasRepo } from '../db/repositories/palavrasMarcadas'
 import { palavrasVistasRepo } from '../db/repositories/palavrasVistas'
-import { resumoDosCartoes } from '../db/repositories/resumoDosCartoes'
+import { resumoDosCartoes, tempoPorCartao } from '../db/repositories/resumoDosCartoes'
 import { versoesRepo } from '../db/repositories/versoes'
 import { vocabRepo } from '../db/repositories/vocab'
 import { CachePorVersao } from '../lib/cachePorVersao'
 import { erroDeRota } from '../lib/erroDeRota'
 import { casaComIfNoneMatch, etagPorVersao } from '../lib/etagPorVersao'
+import { flagLigada } from '../lib/flags'
 import { log } from '../lib/logger'
 import { versaoDaChaveDedup } from '../lib/versaoDaChaveDedup'
 import {
@@ -22,6 +27,7 @@ import {
   desfazerRevisaoSchema,
   etiquetasDoCartaoSchema,
   idParamSchema,
+  loteDeCartoesSchema,
   loteDeMarcadasSchema,
   marcarPalavraSchema,
   notaDoCartaoSchema,
@@ -148,6 +154,8 @@ vocabRouter.get('/pagina', async (req, res) => {
         origens: q.origens,
         etiquetas,
         forcas: q.forcas,
+        /* O filtro por estado é da flag: desligada, o parâmetro é ignorado e a página é a de sempre. */
+        estados: q.estados?.length && (await flagLigada(req, FLAG_ESTUDO_PALAVRAS_V2)) ? q.estados : undefined,
         desde: q.desde,
         ate: q.ate,
         ordem: q.ordem ?? 'recentes',
@@ -183,13 +191,29 @@ vocabRouter.get('/resumo', async (req, res) => {
     const agora = Math.ceil(Date.now() / 60_000) * 60_000
     // A versão ANTES das tabelas — ver `CachePorVersao` para o porquê da ordem.
     const { vocab, atividade } = await versoesRepo.de(req.userId)
-    const etag = etagPorVersao('resumo-cartoes', req.userId, `${vocab}.${atividade}`, `${q.inicioDoDia}|${agora}`)
+    const etag = etagPorVersao(
+      'resumo-cartoes',
+      req.userId,
+      `${vocab}.${atividade}`,
+      `${q.inicioDoDia}|${agora}${q.v2 ? '|v2' : ''}`,
+    )
     res.setHeader('ETag', etag)
     if (casaComIfNoneMatch(req.headers['if-none-match'], etag)) {
       res.status(304).end()
       return
     }
-    res.json(await resumoDosCartoes(req.userId, { agora, inicioDoDia: q.inicioDoDia }))
+    const resumo = await resumoDosCartoes(req.userId, { agora, inicioDoDia: q.inicioDoDia })
+    /* REVISÃO V2 (flag `estudo_revisao_v2`): o cliente só pede com a flag ligada, então sem o pedido a resposta é a de
+       sempre. Tudo da própria conta (`req.userId`). */
+    if (q.v2) {
+      const [tempo, sequencia] = await Promise.all([
+        tempoPorCartao(req.userId, agora),
+        sequenciaDosDias(req.userId, DIAS_DO_CALENDARIO),
+      ])
+      res.json({ ...resumo, tempo, sequencia })
+      return
+    }
+    res.json(resumo)
   } catch (err) {
     /* 500, e não o 400 das vizinhas: a entrada já passou pelo schema, então o que estoura aqui é
        do servidor. Sem o ETag, para um erro não ser revalidado como se fosse o resumo. */
@@ -617,6 +641,44 @@ vocabRouter.put('/:id/etiquetas', async (req, res) => {
     const salvo = await vocabRepo.salvarEtiquetas(req.userId, p.id, norm.etiquetas)
     if (!salvo) return res.status(404).json({ error: 'card não encontrado' })
     res.json(salvo)
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/**
+ * A MEMÓRIA POR BARALHO (openspec `cartoes` 4.2), atrás da flag `estudo_palavras_v2` (desligada: 404). Retenção dos últimos
+ * 90 dias e próxima revisão de cada idioma, sessão, baralho do Anki e da Trilha da conta. A regra dos 20 é do cliente
+ * (`retencaoDoBaralho`): o servidor manda as contagens cruas.
+ */
+vocabRouter.get('/memoria-por-baralho', async (req, res) => {
+  if (!(await flagLigada(req, FLAG_ESTUDO_PALAVRAS_V2))) return res.status(404).json({ error: 'não encontrado' })
+  try {
+    res.set('Cache-Control', 'private, no-store')
+    res.json(await memoriaPorBaralho(req.userId, Date.now()))
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/**
+ * A SELEÇÃO EM MASSA (openspec `cartoes` 6.2b), atrás da flag `estudo_palavras_v2` (desligada: 404, como se a rota não
+ * existisse). Até 50 ids: suspender, retomar ou etiquetar. Posse por `user_id` no repositório; id de outra conta e id que não
+ * existe dão o MESMO 404, e nada muda (tudo ou nada).
+ */
+vocabRouter.post('/lote', async (req, res) => {
+  if (!(await flagLigada(req, FLAG_ESTUDO_PALAVRAS_V2))) return res.status(404).json({ error: 'não encontrado' })
+  const body = parseOr400(loteDeCartoesSchema, req.body, res)
+  if (!body) return
+  try {
+    const r = await vocabRepo.aplicarLote(req.userId, body.ids, body)
+    if (!r) return res.status(404).json({ error: 'card não encontrado' })
+    if ('erro' in r) return res.status(400).json({ error: 'etiqueta inválida ou mais de 10 etiquetas num cartão' })
+    res.json(r)
   } catch (err) {
     res.status(500).json({
       error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),

@@ -19,7 +19,7 @@
  * vez, e "Tudo" quer dizer "tudo em inglês". Quem tem um só não é filtrado (o cartão sem idioma
  * continua contando) e `idioma` volta vazio.
  */
-import { ERROS_DE_DIFICIL } from './resumoDosCartoes';
+import { ehDificil } from '../selecao/dificil';
 
 /** Os três números de uma fonte. */
 export interface ContagemDaFonte {
@@ -163,7 +163,7 @@ export function contarConteudo(e: EntradaDaContagem): ContagensDeConteudo {
     const vence = c.dueAt != null && c.dueAt <= e.agora;
     contado.set(c.id, { vence, frase });
     somar(tudo, vence, frase);
-    if ((c.lapses ?? 0) >= ERROS_DE_DIFICIL) somar(dificeis, vence, frase);
+    if (ehDificil(c)) somar(dificeis, vence, frase);
     if (c.sessionId) {
       let s = porSessao.get(c.sessionId);
       if (!s) porSessao.set(c.sessionId, (s = nova()));

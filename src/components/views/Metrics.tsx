@@ -18,6 +18,7 @@ import { type Conteudo, CONTEUDO_PADRAO } from '../../lib/conteudo/estado';
 import { gravarFiltro } from '../../lib/filtroDaPratica';
 import { numero, t, tp } from '../../lib/i18n';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
+import { consumirPedidoDePalavra, pedidoDePalavraPendente } from '../../lib/palavras/abrirPalavra';
 import { copyDoPerfil, coreOnly } from '../../lib/profile';
 import type { RecorteDaPratica as PedidoDePratica } from '../../lib/revisao/pratica';
 import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
@@ -386,6 +387,16 @@ export default function Metrics({
 
   /* A gaveta da palavra (V3): abre sobre o cartão real; o analista busca a tradução se faltar. */
   const [cartaoAberto, setCartaoAberto] = useState<VocabCard | null>(null);
+  /* A busca global pediu uma palavra (flag `estudo_palavras_v2`): abre quando o cartão já chegou da lista. */
+  const palavraPedidaAChegar = pedidoDePalavraPendente();
+  useEffect(() => {
+    if (!palavraPedidaAChegar) return;
+    const c = vocabCards.find((x) => x.id === palavraPedidaAChegar);
+    if (!c) return;
+    consumirPedidoDePalavra();
+    setCartaoAberto(c);
+    void examineWord(c.word, c.sentence);
+  }, [palavraPedidaAChegar, vocabCards]); // eslint-disable-line react-hooks/exhaustive-deps -- `examineWord` é estável o bastante: o pedido vale uma vez
   /* EXCLUIR COM DESFAZER: o cartão some na hora e o DELETE (que leva as revisões junto) só sai
      depois da janela do aviso — ou ao sair da página. */
   const exclusoes = useRef(new Map<string, ReturnType<typeof setTimeout>>());

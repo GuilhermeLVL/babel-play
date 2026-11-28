@@ -9,6 +9,7 @@ import { z } from 'zod'
 
 import { TETOS_DA_NOTA as T } from '../src/core/anki/tetos'
 import { FILTROS_DE_NOTA_ANKI } from '../src/core/learning/contract'
+import { ESTADOS_DO_CARTAO } from '../src/core/palavras/estados'
 import { subtipoDeCapaAceito } from './lib/capaDeSessao'
 
 const shortStr = (max: number) => z.string().max(max).optional()
@@ -584,6 +585,8 @@ export const vocabPaginaQuerySchema = z
     forcas: csv(4)
       .transform((v) => v?.map(Number))
       .pipe(z.array(z.number().int().min(1).max(4)).max(4).optional()),
+    /** Estados do cartão (`ESTADOS_DO_CARTAO`): um OU outro. Só vale com a flag `estudo_palavras_v2`; nome desconhecido: 400. */
+    estados: csv(6).pipe(z.array(z.enum(ESTADOS_DO_CARTAO)).max(6).optional()),
     desde: z.coerce.number().int().min(0).optional(),
     ate: z.coerce.number().int().min(0).optional(),
     ordem: z
@@ -609,6 +612,8 @@ export const vocabResumoQuerySchema = z
       .refine((v) => Math.abs(v - Date.now()) <= FOLGA_DO_INICIO_DO_DIA_MS, {
         message: 'inicioDoDia longe demais do relógio do servidor',
       }),
+    /** Revisão v2 (flag `estudo_revisao_v2`): pede também o tempo médio e a sequência com congelamento. */
+    v2: z.enum(['1']).optional(),
   })
   .strip()
 
@@ -699,6 +704,23 @@ export const notaDoCartaoSchema = z.object({ nota: z.string().max(500) }).strip(
  * `normalizarEtiquetas` (`src/core/vocabulario/etiquetasDoUsuario.ts`), aplicada pela rota, que responde 400 com o motivo.
  */
 export const etiquetasDoCartaoSchema = z.object({ etiquetas: z.array(z.string().max(64)).max(40) }).strip()
+
+/**
+ * `POST /api/vocab/lote` (openspec `cartoes` 6.2b, flag `estudo_palavras_v2`): uma ação para até 50 cartões. Os ids vêm do
+ * cliente e NÃO são confiáveis: a posse é conferida no repositório (id de outra conta = 404, igual a id que não existe).
+ */
+export const loteDeCartoesSchema = z.discriminatedUnion('acao', [
+  z.object({ acao: z.literal('suspender'), ids: z.array(z.string().min(1).max(128)).min(1).max(50) }).strip(),
+  z.object({ acao: z.literal('retomar'), ids: z.array(z.string().min(1).max(128)).min(1).max(50) }).strip(),
+  z
+    .object({
+      acao: z.literal('etiquetar'),
+      ids: z.array(z.string().min(1).max(128)).min(1).max(50),
+      adicionar: z.array(z.string().max(64)).max(40).default([]),
+      remover: z.array(z.string().max(64)).max(40).default([]),
+    })
+    .strip(),
+])
 
 /**
  * PATCH de cartão: o handler fazia `typeof` + `slice(0,2000)` à mão.

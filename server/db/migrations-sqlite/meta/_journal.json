@@ -617,6 +617,27 @@
       "when": 1794800008017,
       "tag": "0087_flag_navegacao_simples",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "6",
+      "when": 1794800009017,
+      "tag": "0088_flag_estudo_revisao_v2",
+      "breakpoints": true
+    },
+    {
+      "when": 1794800010017,
+      "tag": "0090_flag_estudo_palavras_v2",
+      "breakpoints": true,
+      "idx": 89,
+      "version": "6"
+    },
+    {
+      "idx": 90,
+      "version": "6",
+      "when": 1794800011017,
+      "tag": "0092_flag_captura_da_extensao",
+      "breakpoints": true
     }
   ]
 }

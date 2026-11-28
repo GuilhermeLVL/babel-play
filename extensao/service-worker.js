@@ -4,8 +4,13 @@
  * há `storage` nem permissão para isso. Nenhuma requisição de rede sai daqui.
  */
 
-/** Onde o app abre (desenvolvimento). Em produção, o dono troca aqui e em `manifest.json` (matches). */
-const URL_DO_APP = 'http://localhost:3100/capturar?fonte=extensao';
+/**
+ * Onde o app abre: a PRODUÇÃO (o app mora em `/app`; `manifest.json` autoriza a ponte só nessa origem e em localhost).
+ * Em desenvolvimento, troque pela linha de baixo (`extensao/README.md`). A origem de produção é a do `HOST_DE_PRODUCAO`
+ * (`wrangler.jsonc`); se o domínio mudar, mude aqui e em `matches` e `web_accessible_resources` (um teste confere os três).
+ */
+const URL_DO_APP = 'https://frasy.com.br/app/capturar?fonte=extensao';
+// const URL_DO_APP = 'http://localhost:3100/capturar?fonte=extensao';
 const PAGINA_OFFSCREEN = 'offscreen.html';
 
 async function documentoOffscreen() {

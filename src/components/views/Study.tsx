@@ -6,6 +6,15 @@ import { Brain, Zap } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ehVolta, type MarcaDeVolta, reinserirErrado } from '../../core/learning/filaDaRevisao';
+import { FLAG_ESTUDO_REVISAO_V2 } from '../../core/planos';
+import {
+  embaralharAoAcaso,
+  formatoDoCartao,
+  LIMITE_DO_ESTUDO_LIVRE,
+  selecionarEstudoLivre,
+  selecionarRevisao,
+  soOsDificeis,
+} from '../../core/selecao';
 import {
   desfazerRevisao,
   type EstadoAntesDaNota,
@@ -21,6 +30,7 @@ import type { Conteudo } from '../../lib/conteudo/estado';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { ActiveProductionExercise, similarityPercentage, stabilityThreshold } from '../../lib/exercicios';
+import { useFlag } from '../../lib/flags';
 import { data as dataPorExtenso, t, tp } from '../../lib/i18n';
 import { ganho } from '../../lib/juice';
 import { classesDaPalavra } from '../../lib/pelesDeCartao';
@@ -38,6 +48,7 @@ import {
 } from '../../lib/revisao/cena';
 import { itensDaPratica, palavraDificil, pedeDizer, relogio, type TipoDePratica } from '../../lib/revisao/enxuta';
 import { criarTocador, type Tocador } from '../../lib/revisao/falaOriginal';
+import { gravarLacuna, lerLacuna } from '../../lib/revisao/lacuna';
 import { enviarOpcoes, restamDeHoje, sincronizarOpcoes } from '../../lib/revisao/opcoesNaConta';
 import type { RecorteDaPratica } from '../../lib/revisao/pratica';
 import {
@@ -138,6 +149,10 @@ export interface RecorteDaRodada {
   limite?: number;
   /** Só palavras nunca vistas: é pedir mais novas com o dia em dia, sem adiantar revisão. */
   soNovas?: boolean;
+  /** Estudo livre (flag `estudo_revisao_v2`): fora da agenda, não grava nota nem mexe em vencimento. */
+  livre?: boolean;
+  /** No estudo livre, só as palavras difíceis. */
+  soDificeis?: boolean;
 }
 
 function lerPreferencia(chave: string): string | null {
@@ -314,6 +329,9 @@ export default function Study({
   // Ajustes da memória (diálogo) — preferências locais (`lib/revisao/preferencias`), valem para as
   // próximas rodadas.
   const [opcoesIniciais] = useState(lerOpcoesDaRevisao);
+  /** A REVISÃO V2 (flag `estudo_revisao_v2`, desligada de fábrica): estudo livre, lacuna, saídas e o resto. */
+  const v2 = useFlag(FLAG_ESTUDO_REVISAO_V2);
+  const [lacunaLigada, setLacunaLigada] = useState<boolean>(lerLacuna);
   const [tipo, setTipo] = useState<TipoDeCartao>(opcoesIniciais.tipo);
   const [ouvirAoMostrar, setOuvirAoMostrar] = useState<boolean>(opcoesIniciais.ouvir);
   const [novasPorDia, setNovasPorDia] = useState(opcoesIniciais.novas);
@@ -489,7 +507,7 @@ export default function Study({
     let aceita = false;
     const registro: RegistroDaNota = {
       origem: 'revisao',
-      formato: exerciseKind === 'active-production' ? 'producao-ativa' : tipo,
+      formato: exerciseKind === 'active-production' ? 'producao-ativa' : antes && emLacuna(antes) ? 'lacuna' : tipo,
       respostaMs: mostradoEm.current ? Math.max(0, Date.now() - mostradoEm.current) : undefined,
     };
     let lapsos = (antes as ComMemoria | undefined)?.lapses ?? 0;
@@ -618,45 +636,60 @@ export default function Study({
   /* `useCallback`: vai empacotada no catálogo da paleta ⌘K (um `useMemo`). Sem identidade que mude
      junto com `activeVocabCards`, a paleta guardaria uma closure com os cartões de antes. */
   const startReviewSession = useCallback(() => {
-    /* Os VENCIDOS primeiro, pela data real (`isDueNow`). A comparação antiga era com a string
-       'hoje', que a API nunca grava — a fila nunca achava vencido e caía sempre no baralho inteiro. */
-    const noBaralho = activeVocabCards.filter((c) => c.inDeck);
-    /* "Mais N novas" (tela Cartões, dia cumprido): só palavras nunca vistas, sem adiantar revisão. */
-    if (rodada?.soNovas) {
-      const nuncaVistas = noBaralho.filter((c) => c.fsrsState === 'New').slice(0, rodada.limite ?? novasPorDia);
-      if (nuncaVistas.length > 0) abrirRodada(nuncaVistas, false);
+    /* O SELETOR ÚNICO (`core/selecao`, modelo-do-aluno 3.2): a conta que morava aqui, com a mesma ordem e o mesmo
+       corte. Os vencidos primeiro, pela data real (`isDueNow`); o limite do dia desconta do que a conta já contou. */
+    const restam = restamDeHoje(feitoHoje, { novas: novasPorDia, revisoes: revisoesPorDia });
+    /* ESTUDO LIVRE (flag `estudo_revisao_v2`, cartões 2.6): fora da agenda. Toda a rodada é "volta" (prática que não
+       grava nota nem mexe em data de vencimento), e quem pede escolhe o recorte (só as difíceis, ou o que vence antes). */
+    if (v2 && rodada?.livre) {
+      const base = activeVocabCards.filter((c) => c.inDeck);
+      const escolhidas = rodada.soDificeis
+        ? soOsDificeis(base).slice(0, rodada.limite ?? LIMITE_DO_ESTUDO_LIVRE)
+        : selecionarEstudoLivre(base, rodada.limite);
+      if (escolhidas.length > 0)
+        abrirRodada(
+          escolhidas.map((c) => ({ ...c, repeticaoNaRodada: true })),
+          false,
+        );
+      else setEncerrada(true);
       return;
     }
-    const due = noBaralho.filter((c) => isDueNow(c, scheduler));
-    const base = due.length > 0 ? due : noBaralho;
-    /* OPÇÕES DA REVISÃO: no máximo N novas (nunca vistas) e M revisões por rodada; "Vencidas
-       primeiro" põe as de vencimento mais antigo na frente, "Misturar" embaralha. */
-    /* O LIMITE DO DIA (cartões 2.1): o que a conta já contou hoje desconta dos dois limites. Sem contador
-       (sem conta, sem rede), vale só o limite por rodada. */
-    const restam = restamDeHoje(feitoHoje, { novas: novasPorDia, revisoes: revisoesPorDia });
-    const limiteDeNovas = restam ? restam.novas : novasPorDia;
-    const limiteDeRevisoes = restam ? restam.revisoes : revisoesPorDia;
-    const novas = base.filter((c) => c.fsrsState === 'New').slice(0, limiteDeNovas);
-    const revisoes = base.filter((c) => c.fsrsState !== 'New').slice(0, limiteDeRevisoes);
-    let fila =
-      ordem === 'misturar'
-        ? [...revisoes, ...novas].sort(() => Math.random() - 0.5)
-        : [...revisoes.sort((a, b) => (a.dueAtMs ?? 0) - (b.dueAtMs ?? 0)), ...novas];
-    if (!fila.length) {
-      /* Venceu algo, mas o limite de HOJE já foi: não abre rodada escondida (nem estuda "o baralho todo"). */
-      const cabiaSemOLimiteDoDia =
-        due.some((c) => (c.fsrsState === 'New' ? novasPorDia > 0 : true)) && !!restam && due.length > 0;
-      if (cabiaSemOLimiteDoDia) {
-        setEncerrada(true);
-        toast.info(t('Você chegou ao limite de hoje. Dá para mudar o limite em Cartões.'));
-        return;
-      }
-      fila = base.slice(0, Math.max(1, revisoesPorDia));
+    const r = selecionarRevisao(activeVocabCards, {
+      agora: Date.now(),
+      scheduler,
+      novasPorDia,
+      revisoesPorDia,
+      restam,
+      ordem,
+      limite: rodada?.limite,
+      soNovas: rodada?.soNovas,
+      embaralhar: embaralharAoAcaso,
+      semFallbackDoBaralho: v2,
+    });
+    if (r.limiteDoDia) {
+      setEncerrada(true);
+      toast.info(t('Você chegou ao limite de hoje. Dá para mudar o limite em Cartões.'));
+      return;
     }
-    /* "Só 10 agora": as primeiras da fila, que na ordem padrão são as vencidas há mais tempo. */
-    if (rodada?.limite) fila = fila.slice(0, rodada.limite);
-    if (fila.length > 0) abrirRodada(fila, false);
-  }, [activeVocabCards, scheduler, novasPorDia, revisoesPorDia, ordem, rodada?.limite, rodada?.soNovas, feitoHoje]);
+    if (r.nadaVence) {
+      setEncerrada(true);
+      toast.info(t('Nada vence agora. Dá para fazer um estudo livre, que não mexe na agenda.'));
+      return;
+    }
+    if (r.fila.length > 0) abrirRodada(r.fila, false);
+  }, [
+    activeVocabCards,
+    scheduler,
+    novasPorDia,
+    revisoesPorDia,
+    ordem,
+    rodada?.limite,
+    rodada?.soNovas,
+    rodada?.livre,
+    rodada?.soDificeis,
+    feitoHoje,
+    v2,
+  ]);
 
   /** Revisão FOCADA numa palavra — o "Revisar agora" do Analista de Vocabulário, via semente. */
   const startReviewSessionFor = (card: VocabCard) => abrirRodada([card], false);
@@ -763,6 +796,11 @@ export default function Study({
         : tipo === 'escolha'
           ? 'mc'
           : 'cloze';
+  /* Com a revisão v2 as OUTRAS frases do cartão são lidas ao mostrá-lo: é de onde vem a frase que muda a cada revisão. */
+  useEffect(() => {
+    if (v2 && reviewing && currentCard) void pedirOrigem(currentCard);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [v2, reviewing, currentCard?.id]);
   /* O relógio do tempo de resposta recomeça a cada cartão mostrado. */
   const idDoCartaoAtual = currentCard?.id;
   useEffect(() => {
@@ -777,10 +815,18 @@ export default function Study({
       (f, i, l) => f.trim() && l.indexOf(f) === i,
     );
   };
+  /* Com a revisão v2 a frase gira sozinha a cada revisão do cartão (`core/selecao/formato`); a escolha da pessoa
+     ("Outra frase") continua mandando. Sem a flag, a frase é a do cartão, como sempre. */
+  const baseDaFrase = (card: VocabCard): number => (v2 ? (card.reps ?? 0) : 0);
   const fraseDe = (card: VocabCard): string => {
     const l = frasesDe(card);
-    return l[(fraseDaVez[card.id] ?? 0) % Math.max(1, l.length)] ?? '';
+    return l[(fraseDaVez[card.id] ?? baseDaFrase(card)) % Math.max(1, l.length)] ?? '';
   };
+  /** Este cartão aparece no formato LACUNA agora? (flag, opção ligada, Lembrar, frase com a palavra.) */
+  const emLacuna = (card: VocabCard): boolean =>
+    v2 &&
+    !isActiveProductionOnly &&
+    formatoDoCartao({ lacunaLigada, tipo, frase: fraseDe(card), palavra: card.word }) === 'lacuna';
 
   /** A fala original soa (a gravação da sessão; sem ela, a voz do aparelho lendo a frase). */
   const ouvirOriginal = async (card: VocabCard) => {
@@ -1170,7 +1216,10 @@ export default function Study({
     !!cenaDe(card)?.temAudio ||
     (!!card.sourceSessionId && !!card.sentence && !!sessoes.find((g) => g.id === card.sourceSessionId)?.audioUrl);
   const outraFrase = (card: VocabCard) => {
-    setFraseDaVez((m) => ({ ...m, [card.id]: ((m[card.id] ?? 0) + 1) % Math.max(1, frasesDe(card).length) }));
+    setFraseDaVez((m) => ({
+      ...m,
+      [card.id]: ((m[card.id] ?? baseDaFrase(card)) + 1) % Math.max(1, frasesDe(card).length),
+    }));
     sentir('aba');
   };
 
@@ -1266,6 +1315,17 @@ export default function Study({
           padrao={OPCOES_PADRAO}
           temVoz={haVozPara(studyLang)}
           producao={producaoNoQuest}
+          lacuna={
+            v2
+              ? {
+                  ligada: lacunaLigada,
+                  aoTrocar: (ligada) => {
+                    setLacunaLigada(ligada);
+                    gravarLacuna(ligada);
+                  },
+                }
+              : undefined
+          }
           aoTrocar={trocarOpcoes}
           aoFechar={() => setOpcoesAbertas(false)}
         />
@@ -1645,6 +1705,7 @@ export default function Study({
       instrucao={currentReviewIndex < 3 && notasDaRodada.length < 3 ? instrucoes[format] : undefined}
       aviso={aviso}
       formato={format}
+      lacuna={emLacuna(currentCard)}
       notas={notasDoQuest}
       mostrandoResposta={showAnswer}
       aoMostrarResposta={mostrarResposta}
@@ -1725,7 +1786,7 @@ export default function Study({
             outraFrase={
               frases.length > 1
                 ? t('{qual} de {total}', {
-                    qual: ((fraseDaVez[currentCard.id] ?? 0) % frases.length) + 1,
+                    qual: ((fraseDaVez[currentCard.id] ?? baseDaFrase(currentCard)) % frases.length) + 1,
                     total: frases.length,
                   })
                 : undefined

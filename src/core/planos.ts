@@ -518,6 +518,22 @@ export const FLAG_IA_AJUSTAR_NIVEL = 'ia_ajustar_nivel';
 export const FLAG_NAVEGACAO_SIMPLES = 'navegacao_simples';
 
 /**
+ * A FLAG DO ESTUDO DE PALAVRAS V2 (onda 2, frente `palavras`; openspec `cartoes` 4.2, 4.4, 6.1, 6.2b, 6.3, 7.4, 9.2, 9.4 e
+ * `modelo-do-aluno-e-dados` 4.1 a 4.3; migracoes PG 0051 e SQLite 0090): retencao e proxima revisao por baralho, filtro por
+ * estado, selecao em massa, folha da palavra, baralhos do Anki desativaveis, busca ampliada, contagens nas abas e a cobertura
+ * "voce conhece X% das palavras". Nasce DESLIGADA e sem regra de plano; nenhuma cota. Ligar e ato do dono.
+ */
+export const FLAG_ESTUDO_PALAVRAS_V2 = 'estudo_palavras_v2';
+
+/**
+ * A CAPTURA PELA EXTENSÃO (openspec `captura-em-um-clique`, fatia 2; migrações PG 0053 e SQLite 0092, faixa da onda 2): com a
+ * página aberta em `?fonte=extensao`, a captura recebe o PCM 16 kHz da extensão do Frasy por `postMessage` (origem e forma
+ * validadas), sem o seletor do navegador; sem a extensão, cai no `getDisplayMedia`. Nasce DESLIGADA e sem regra de plano; sem a
+ * flag ou sem o parâmetro nenhum listener é registrado. O receptor nunca envia áudio ao servidor. Ligar é ato do dono.
+ */
+export const FLAG_CAPTURA_DA_EXTENSAO = 'captura_da_extensao';
+
+/**
  * As cotas do "Ajustar nível" nos planos pagos (PROVISÓRIAS, a proposta da spec; o dono decide depois de medir o custo por
  * parágrafo). Um ajuste de parágrafo leva ~700 tokens de entrada e ~400 de saída por chamada, no máximo 2 chamadas.
  */
@@ -1444,3 +1460,11 @@ export function armazenamentoEmTexto(plano: PlanoDeAssinatura): string {
      quando o valor é exatamente 5. */
   return mb >= 1000 ? `${(mb / 1000).toFixed(mb % 1000 === 0 ? 0 : 1)} GB` : `${mb} MB`;
 }
+
+/**
+ * A FLAG DA REVISÃO V2 (openspec `cartoes` e `modelo-do-aluno-e-dados`, onda 2; migrações PG 0049 e SQLite 0088, da faixa reservada):
+ * a Revisão usa o seletor único de `src/core/selecao/`, ganha estudo livre fora da agenda, formato lacuna, aviso de palavra difícil
+ * com saídas, saídas da pilha, "só as difíceis", tempo por cartão (só para a própria pessoa), sequência com congelamento e a tecla "?".
+ * Nasce DESLIGADA e sem regra de plano; nenhuma cota. Desligada, o app fica idêntico ao de antes. Ligar é ato do dono.
+ */
+export const FLAG_ESTUDO_REVISAO_V2 = 'estudo_revisao_v2';

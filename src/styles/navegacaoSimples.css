@@ -172,6 +172,19 @@
 .ns-painel .ns-sep {
   margin: 2px 6px;
 }
+/* Fora do headset, o painel fica de fora do mínimo de 56 px dos diálogos (`quest.css`, "os diálogos e folhas que ainda têm
+   o desenho do computador"), como o "Mais" ficava: ele já nasce nas medidas certas (48 px). No headset, vale o de 56.
+   A classe repetida ganha da especificidade daquela regra (o `:is(...)` dela conta como `a[href]`). */
+html:not([data-dispositivo='quest']) .ns-painel.ns-painel.q-vivo[role='dialog'] :is(.q-vivo-opcao, .q-interruptor) {
+  min-height: 0;
+}
+html:not([data-dispositivo='quest']) .ns-painel.ns-painel.q-vivo[role='dialog'] .q-vivo-opcao {
+  min-height: 48px;
+}
+html:not([data-dispositivo='quest']) .ns-painel.ns-painel.q-vivo[role='dialog'] .ns-painel-cab .q-ctl {
+  min-height: 44px;
+  min-width: 44px;
+}
 .ns-painel.q-vivo-folha {
   width: 100%;
   max-height: 88dvh;

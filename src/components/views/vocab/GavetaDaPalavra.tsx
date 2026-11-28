@@ -67,6 +67,7 @@ import type { Recording, VocabCard, VocabWord } from '../../../types';
 import { toast } from '../../Toast';
 import { DialogoBase, IconeEmBloco } from '../../ui';
 import { Segmentos } from './Dialogo';
+import GuardarAudioDoCartao from './GuardarAudioDoCartao';
 
 const NIVEIS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
@@ -359,6 +360,14 @@ export default function GavetaDaPalavra({
               <AudioLines aria-hidden /> {t('Sem fala gravada')}
             </span>
           )}
+          <GuardarAudioDoCartao
+            cartaoId={cartao.id}
+            trecho={
+              cena
+                ? { sessionId: cena.sessionId, temAudio: cena.temAudio, inicioMs: cena.inicioMs, fimMs: cena.fimMs }
+                : null
+            }
+          />
           {temVoz && (
             <Segmentos
               atual={String(velocidade)}

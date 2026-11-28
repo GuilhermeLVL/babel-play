@@ -21,9 +21,9 @@
 
 ## 3. Superfícies
 
-- [ ] 3.1 (parcial, 25/11: `data-forca` feito em `LinhaDaLegenda`, que serve a legenda e a janela flutuante; falta a folha da frase `FolhasDoPrototipo` e o teste de componente) `data-forca` nos nós de palavra da legenda, da janela flutuante e da folha da frase (sem mudar `data-etiqueta` nem o que
+- [x] 3.1 (27/11: `data-forca` também na legenda da captura (`HistoricoDoPrototipo`/`TextoComMarcas`) e na folha da frase (`FolhasDoPrototipo`); teste em `tests/forca-na-legenda-superficies.test.tsx`) `data-forca` nos nós de palavra da legenda, da janela flutuante e da folha da frase (sem mudar `data-etiqueta` nem o que
       a região `aria-live` anuncia). Verificar: teste de componente de que o texto acessível não muda e que o atributo existe.
-- [ ] 3.2 (parcial, 25/11: o cartão da legenda já mostra `ForcaDaPalavra` via `HistoricoDaPalavra`; o leitor ainda tem `ganchosDaPalavra` como stub, a frente das etiquetas do leitor não está ligada) Gaveta e cartão da palavra na legenda e no leitor mostram `ForcaDaPalavra`. Verificar: teste de componente com força 1 a 4.
+- [x] 3.2 (27/11: o stub `HistoricoNaFolha` de `ganchosDaPalavra.tsx` mostra `ForcaDaPalavra` no cartão do leitor, flag `forca_na_legenda`, dentro de "Mais"; `etiquetaDaPalavra` do leitor segue stub; teste em `tests/leitor-forca-no-cartao.test.tsx`) Gaveta e cartão da palavra na legenda e no leitor mostram `ForcaDaPalavra`. Verificar: teste de componente com força 1 a 4.
 - [x] 3.3 Glosa do leitor: some em força >= `FORCA_QUE_APAGA_A_GLOSA` (3) ou na hora com "Já sei" (flag ligada). Verificar: teste do
       módulo da glosa (força 2 mantém, 3 apaga, "Já sei" apaga) e o fluxo do spec `leitor-glosa` sem regressão com a flag desligada.
 - [x] 3.4 Promoção sem toque: depois de uma revisão, a etiqueta muda na próxima releitura do índice, sem toast nem som. Verificar:

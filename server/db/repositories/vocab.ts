@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, type SQL, sql } from 'drizzle-orm'
 
 import { tempoDeRespostaGravavel } from '../../../src/core/learning/calibracao'
 import { nivelCefr } from '../../../src/core/learning/cefrWordlist'
@@ -18,7 +18,9 @@ import {
   LIMIAR_FIRME_DIAS,
 } from '../../../src/core/learning/forcaDoCartao'
 import { avaliarCartao, foraDoBulkAdd, type MotivoDescarte } from '../../../src/core/learning/quality'
+import { ERROS_DE_DIFICIL } from '../../../src/core/learning/resumoDosCartoes'
 import { type Grade, makeFsrs5, metaDeRetencao, type SchedulingState } from '../../../src/core/learning/scheduler'
+import type { EstadoDoCartao } from '../../../src/core/palavras/estados'
 import { type AcaoEmLote, etiquetasDepoisDoLote, idsDoLote } from '../../../src/core/palavras/lote'
 import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import type { UserId } from '../../lib/authContext'
@@ -675,6 +677,8 @@ export const vocabRepo = {
       etiquetas?: string[]
       /** Só os cartões de uma destas forças (1–4). */
       forcas?: number[]
+      /** Estados do cartão (`core/palavras/estados`): um OU outro. */
+      estados?: EstadoDoCartao[]
       desde?: number
       ate?: number
       ordem?: 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica' | 'nivel' | 'forca' | 'proximaRevisao'
@@ -716,6 +720,23 @@ export const vocabRepo = {
         sql`${forcaSql} IN (${sql.join(
           opts.forcas.map((f) => sql`${f}`),
           sql`, `,
+        )})`,
+      )
+    }
+    if (opts.estados?.length) {
+      const noBaralho = sql`(${vocabCards.inDeck} IS NULL OR ${vocabCards.inDeck} = 1)`
+      const por: Record<EstadoDoCartao, SQL> = {
+        nova: sql`(${noBaralho} AND ${vocabCards.stability} IS NULL)`,
+        aprendendo: sql`(${noBaralho} AND ${vocabCards.stability} IS NOT NULL AND coalesce(${vocabCards.reps}, 0) < 2)`,
+        revisao: sql`(${noBaralho} AND ${vocabCards.stability} IS NOT NULL AND coalesce(${vocabCards.reps}, 0) >= 2)`,
+        hoje: sql`(${noBaralho} AND ${vocabCards.dueAt} IS NOT NULL AND ${vocabCards.dueAt} <= ${Date.now()})`,
+        dificeis: sql`(${noBaralho} AND coalesce(${vocabCards.lapses}, 0) >= ${ERROS_DE_DIFICIL})`,
+        suspensa: sql`(${vocabCards.inDeck} = 0)`,
+      }
+      cond.push(
+        sql`(${sql.join(
+          opts.estados.map((e) => por[e]),
+          sql` OR `,
         )})`,
       )
     }

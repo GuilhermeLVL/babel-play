@@ -7,6 +7,7 @@ import { chaveDaPalavraNaVersao } from '../../src/core/texto/palavra'
 import { MAX_ETIQUETAS, normalizarEtiqueta, normalizarEtiquetas } from '../../src/core/vocabulario/etiquetasDoUsuario'
 import { TETO_DE_MARCADAS } from '../../src/core/vocabulario/marcadas'
 import { contagensDeConteudo, versaoDosBaralhos } from '../db/repositories/contagensDeConteudo'
+import { memoriaPorBaralho } from '../db/repositories/memoriaPorBaralho'
 import { opcoesDaRevisaoRepo } from '../db/repositories/opcoesDaRevisao'
 import { palavrasMarcadasRepo } from '../db/repositories/palavrasMarcadas'
 import { palavrasVistasRepo } from '../db/repositories/palavrasVistas'
@@ -151,6 +152,8 @@ vocabRouter.get('/pagina', async (req, res) => {
         origens: q.origens,
         etiquetas,
         forcas: q.forcas,
+        /* O filtro por estado é da flag: desligada, o parâmetro é ignorado e a página é a de sempre. */
+        estados: q.estados?.length && (await flagLigada(req, FLAG_ESTUDO_PALAVRAS_V2)) ? q.estados : undefined,
         desde: q.desde,
         ate: q.ate,
         ordem: q.ordem ?? 'recentes',
@@ -620,6 +623,23 @@ vocabRouter.put('/:id/etiquetas', async (req, res) => {
     const salvo = await vocabRepo.salvarEtiquetas(req.userId, p.id, norm.etiquetas)
     if (!salvo) return res.status(404).json({ error: 'card não encontrado' })
     res.json(salvo)
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/**
+ * A MEMÓRIA POR BARALHO (openspec `cartoes` 4.2), atrás da flag `estudo_palavras_v2` (desligada: 404). Retenção dos últimos
+ * 90 dias e próxima revisão de cada idioma, sessão, baralho do Anki e da Trilha da conta. A regra dos 20 é do cliente
+ * (`retencaoDoBaralho`): o servidor manda as contagens cruas.
+ */
+vocabRouter.get('/memoria-por-baralho', async (req, res) => {
+  if (!(await flagLigada(req, FLAG_ESTUDO_PALAVRAS_V2))) return res.status(404).json({ error: 'não encontrado' })
+  try {
+    res.set('Cache-Control', 'private, no-store')
+    res.json(await memoriaPorBaralho(req.userId, Date.now()))
   } catch (err) {
     res.status(500).json({
       error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),

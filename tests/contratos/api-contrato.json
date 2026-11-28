@@ -64,6 +64,7 @@
     "GET /api/vocab/etiquetas",
     "GET /api/vocab/inicio-da-contagem",
     "GET /api/vocab/marcadas",
+    "GET /api/vocab/memoria-por-baralho",
     "GET /api/vocab/opcoes-da-revisao",
     "GET /api/vocab/pagina",
     "GET /api/vocab/palavra",

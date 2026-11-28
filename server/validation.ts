@@ -9,6 +9,7 @@ import { z } from 'zod'
 
 import { TETOS_DA_NOTA as T } from '../src/core/anki/tetos'
 import { FILTROS_DE_NOTA_ANKI } from '../src/core/learning/contract'
+import { ESTADOS_DO_CARTAO } from '../src/core/palavras/estados'
 import { subtipoDeCapaAceito } from './lib/capaDeSessao'
 
 const shortStr = (max: number) => z.string().max(max).optional()
@@ -584,6 +585,8 @@ export const vocabPaginaQuerySchema = z
     forcas: csv(4)
       .transform((v) => v?.map(Number))
       .pipe(z.array(z.number().int().min(1).max(4)).max(4).optional()),
+    /** Estados do cartão (`ESTADOS_DO_CARTAO`): um OU outro. Só vale com a flag `estudo_palavras_v2`; nome desconhecido: 400. */
+    estados: csv(6).pipe(z.array(z.enum(ESTADOS_DO_CARTAO)).max(6).optional()),
     desde: z.coerce.number().int().min(0).optional(),
     ate: z.coerce.number().int().min(0).optional(),
     ordem: z

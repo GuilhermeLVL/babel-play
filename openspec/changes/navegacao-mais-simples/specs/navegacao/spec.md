@@ -1,63 +1,56 @@
 ## ADDED Requirements
 
-### Requirement: O primeiro nível da navegação tem teto
+### Requirement: O Início é o menu
 
-Com a flag `navegacao_simples` ligada, a navegação principal SHALL ter no máximo 5 destinos de primeiro nível (Início, Ao vivo,
-Praticar, Biblioteca, Você), iguais no computador, no tablet e no celular, mais a Buscar como utilitário no computador. Um teste
-SHALL falhar quando um item novo estourar o teto.
+Com a flag `navegacao_simples` ligada, o app MUST NOT mostrar trilho lateral, painel "Mais" nem barra de baixo, no computador
+e no celular. O Início SHALL ser a grade de destinos: Ao vivo (em destaque), Cartões (com o número de hoje), Jogar, Livros (com
+o progresso do livro atual, quando houver), Biblioteca e Progresso, mais "Seja Premium" só para quem está no Grátis, sem conta
+ou no teste. Os rótulos SHALL seguir o perfil (`navItems.ts`).
 
-#### Scenario: Computador
+#### Scenario: Computador e celular
 
 - **GIVEN** a flag ligada
-- **WHEN** a pessoa abre o app numa janela de 1280x800
-- **THEN** a navegação mostra 5 destinos e a Buscar, e nenhum outro botão de destino
+- **WHEN** a pessoa abre o app em 1280x800 ou em 375x812
+- **THEN** não há trilho, "Mais" nem barra de baixo, e o Início mostra a grade de destinos
 
-#### Scenario: Celular
+#### Scenario: Quem assina
 
-- **WHEN** abre o app em 390x844
-- **THEN** a barra mostra os mesmos 5 destinos
-
-#### Scenario: Item novo
-
-- **WHEN** alguém acrescenta um sexto destino de primeiro nível em `navItems.ts`
-- **THEN** o teste do orçamento de navegação falha
+- **WHEN** a pessoa tem um plano pago (fora do teste)
+- **THEN** o Início não mostra "Seja Premium", e o menu da conta mostra "Seu plano"
 
 #### Scenario: Flag desligada
 
 - **WHEN** a flag está desligada
 - **THEN** a navegação é a de hoje, sem nenhuma mudança
 
-### Requirement: Todo item de primeiro nível mostra o rótulo
+### Requirement: Toda outra tela tem o cabeçalho fino
 
-Os itens de primeiro nível SHALL mostrar o texto do rótulo em qualquer altura de janela a partir de 600 px, e o nome acessível
-SHALL ser igual ao rótulo visível. Quando o espaço faltar, a navegação SHALL rolar em vez de esconder o texto.
+Fora do Início, o app SHALL mostrar um cabeçalho com "‹ Início", o nome da tela, a busca (Ctrl/⌘+K abre a busca global de
+sempre), o sino e o avatar. O sino SHALL abrir direto a lista de avisos, com o número de não lidos preso a ele; o avatar SHALL
+abrir o menu da conta (Progresso, Personalizar, Ajustes, Seu perfil, Ajuda e suporte, Sobre, Planos, Administração para admin,
+interruptores `role="switch"` de tema, som e modo desempenho, estado da conta e Sair). Esc SHALL fechar o painel e devolver o
+foco ao botão que o abriu, e Ctrl+, SHALL continuar abrindo Ajustes.
 
-#### Scenario: Janela baixa
+#### Scenario: Voltar ao Início
 
-- **WHEN** a janela tem 1280x600
-- **THEN** os 5 destinos mostram ícone e texto
+- **WHEN** a pessoa está em Cartões e toca "‹ Início"
+- **THEN** volta à grade de destinos
 
-#### Scenario: Perfil sênior
+#### Scenario: Esc devolve o foco
 
-- **WHEN** o perfil é `senior`
-- **THEN** os rótulos usam o texto longo do perfil ("Página Inicial", "Gravar e conversar") e continuam visíveis
+- **WHEN** a pessoa abre o menu da conta e aperta Esc
+- **THEN** o menu fecha e o foco volta ao avatar
 
-### Requirement: Nenhum diálogo se interpõe entre a tela e um destino principal
+### Requirement: Ao vivo abre direto no último modo
 
-O app MUST NOT abrir painel ou diálogo para escolher entre destinos principais. "Mais" SHALL ser a página "Você", e "Ao vivo"
-SHALL abrir direto a captura, com o seletor "Legendar | Conversar" dentro dela.
+O bloco "Ao vivo" MUST NOT abrir diálogo de escolha: SHALL abrir a captura no último modo usado (Legendar ou Conversar), e o
+seletor "Legendar | Conversar" SHALL ficar dentro da tela do Ao vivo.
 
 #### Scenario: Ao vivo lembra a última escolha
 
 - **GIVEN** a pessoa usou Conversar da última vez
-- **WHEN** toca em "Ao vivo"
-- **THEN** a tela abre já em Conversar, sem diálogo de escolha, e T1 ou T2 se completam em no máximo 2 toques
-
-#### Scenario: Você é uma página
-
-- **WHEN** a pessoa toca em "Você"
-- **THEN** abre uma página com Progresso, Personalizar, Planos, Ajustes, Perfil, Ajuda, Sobre e Avisos, e o botão Voltar
-  funciona como em qualquer tela
+- **WHEN** toca em "Ao vivo" no Início
+- **THEN** a tela abre já em Conversar, em 1 toque
 
 ### Requirement: As tarefas principais cabem em poucos toques
 
@@ -87,28 +80,5 @@ tela de antes.
 #### Scenario: Planos continua achável
 
 - **WHEN** a pessoa procura Planos
-- **THEN** encontra pela página "Você", pela faixa do Início, pelo atalho em Ajustes e pela busca
-
-### Requirement: Ajustes têm poucos itens visíveis de cada vez
-
-Os Ajustes SHALL ter no máximo 5 abas, um bloco "Mais usados" no alto, grupos recolhidos por padrão e uma busca de ajuste, e
-nenhuma aba SHALL mostrar mais de 8 itens antes de "Mostrar mais".
-
-#### Scenario: Busca de ajuste
-
-- **WHEN** a pessoa digita "voz" na busca dos Ajustes
-- **THEN** vê só os ajustes cujo nome ou descrição tem "voz", cada um com a aba de origem
-
-#### Scenario: Endereço de aba antiga
-
-- **WHEN** a pessoa abre `/ajustes/processamento`
-- **THEN** o ajuste correspondente abre na seção nova, sem 404
-
-### Requirement: A navegação tem orçamento e regra de entrada
-
-Um item novo de primeiro nível SHALL entrar somente tirando outro, e cada destino SHALL ter no máximo 5 abas de segundo nível.
-
-#### Scenario: Aba a mais
-
-- **WHEN** um destino passa a ter 6 abas
-- **THEN** o teste do orçamento falha e aponta o destino
+- **THEN** encontra pelo bloco "Seja Premium" do Início (quem não assina), pelo menu da conta, pelo atalho em Ajustes e
+  pela busca
